@@ -2,14 +2,16 @@ import { Contract } from "@ethersproject/contracts";
 import { Web3Provider } from "@ethersproject/providers";
 import { AddressZero } from "@ethersproject/constants";
 import { AbiCoder, keccak256, solidityPack } from "ethers/lib/utils";
-import { Wallet } from "ethers";
+import { Wallet, utils } from "ethers";
 import { UserOperation, SolverOperation, DAppOperation } from "./operation";
 import { atlasAddress, atlasVerificationAddress } from "./address";
 import atlasVerificationAbi from "./abi/AtlasVerification.json";
 import dAppControlAbi from "./abi/DAppControl.json";
 
 const DAPP_TYPE_HASH = keccak256(
-  "DAppApproval(address from,address to,uint256 value,uint256 gas,uint256 maxFeePerGas,uint256 nonce,uint256 deadline,address control,address bundler,bytes32 userOpHash,bytes32 callChainHash)"
+  utils.toUtf8Bytes(
+    "DAppApproval(address from,address to,uint256 value,uint256 gas,uint256 maxFeePerGas,uint256 nonce,uint256 deadline,address control,address bundler,bytes32 userOpHash,bytes32 callChainHash)"
+  )
 );
 
 /**

@@ -4,7 +4,7 @@
   "description": "An SDK for building dApps on top of Atlas",
   "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
     "build": "tsc"
   },
   "repository": {
@@ -18,10 +18,18 @@
   },
   "homepage": "https://github.com/FastLane-Labs/atlas-sdk#readme",
   "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.12",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
+    "dotenv": "^16.4.1",
     "eslint": "^8.56.0",
-    "typescript": "^5.3.3"
+    "express": "^4.18.2",
+    "jest-environment-jsdom": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
+    "web3": "^4.4.0"
   },
   "dependencies": {
     "ethers": "^5.7.0",

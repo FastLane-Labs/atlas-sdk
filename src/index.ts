@@ -1,4 +1,4 @@
-import { Web3Provider } from "@ethersproject/providers";
+import { ExternalProvider, Web3Provider } from "@ethersproject/providers";
 import { Wallet } from "ethers";
 import { OperationRelay } from "./operationRelay";
 import { Sorter } from "./sorter";
@@ -8,7 +8,7 @@ import { UserOperation, SolverOperation, DAppOperation } from "./operation";
 /**
  * The main class to submit user operations to Atlas.
  */
-export default class AtlasSDK {
+export class AtlasSDK {
   operationRelay: OperationRelay;
   sorter: Sorter;
   dApp: DApp;
@@ -22,12 +22,13 @@ export default class AtlasSDK {
    */
   constructor(
     relayApiEndpoint: string,
-    provider: Web3Provider,
+    provider: ExternalProvider,
     chainId: number
   ) {
     this.operationRelay = new OperationRelay(relayApiEndpoint);
-    this.sorter = new Sorter(provider, chainId);
-    this.dApp = new DApp(provider, chainId);
+    const web3Provider = new Web3Provider(provider);
+    this.sorter = new Sorter(web3Provider, chainId);
+    this.dApp = new DApp(web3Provider, chainId);
   }
 
   /**
