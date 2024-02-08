@@ -1,0 +1,30 @@
+{
+  "name": "atlas-sdk",
+  "version": "1.0.0",
+  "description": "An SDK for building dApps on top of Atlas",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FastLane-Labs/atlas-sdk.git"
+  },
+  "author": "FastLane Labs",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/FastLane-Labs/atlas-sdk/issues"
+  },
+  "homepage": "https://github.com/FastLane-Labs/atlas-sdk#readme",
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "ethers": "^5.7.0",
+    "typed-rpc": "^5.0.1"
+  }
+}
