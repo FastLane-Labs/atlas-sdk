@@ -47,6 +47,15 @@
   },
   {
     "type": "function",
+    "name": "requireSequencedUserNonces",
+    "inputs": [],
+    "outputs": [
+      { "name": "isSequenced", "type": "bool", "internalType": "bool" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "preOpsCall",
     "inputs": [
       {
