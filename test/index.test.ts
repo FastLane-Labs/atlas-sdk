@@ -1,4 +1,6 @@
 import { ExternalProvider } from "@ethersproject/providers";
+import { isAddress } from "@ethersproject/address";
+import { AddressZero } from "@ethersproject/constants";
 import { HttpProvider } from "web3-providers-http";
 import { AtlasSDK } from "../src/index";
 import { MockOperationRelay } from "./mockOperationRelay";
@@ -8,25 +10,64 @@ import dotenv from "dotenv";
 dotenv.config();
 
 describe("Atlas SDK tests", () => {
-  const provider = new HttpProvider(
-    process.env.PROVIDER_RPC_URL!
-  ) as unknown as ExternalProvider;
+  const provider = new HttpProvider(process.env.PROVIDER_RPC_URL!);
+  const portListen = 3000;
+  const opsRelay = MockOperationRelay.create(portListen);
+  const atlasSDK = new AtlasSDK(
+    `http://127.0.0.1:${portListen}`,
+    provider as unknown as ExternalProvider,
+    Number(process.env.CHAIN_ID!)
+  );
 
-  const opsRelay = MockOperationRelay.create();
   afterAll(() => {
     opsRelay.close();
   });
 
-  const atlasSDK = new AtlasSDK(
-    "http://127.0.0.1:3000",
-    provider,
-    Number(process.env.CHAIN_ID!)
-  );
+  test("generateSessionKey", async () => {
+    let userOp = generateUserOperation();
 
-  test("TODO", async () => {
-    const userOp = atlasSDK.generateSessionKey(generateUserOperation());
-    const atlasTxHash = await atlasSDK.createAtlasTransaction(userOp);
+    // Session key is not set yet
+    expect(isAddress(userOp.sessionKey)).toBe(false);
 
-    expect(0).toBe(0);
+    // Generate session key
+    userOp = atlasSDK.generateSessionKey(userOp);
+
+    // Session key should be valid
+    expect(isAddress(userOp.sessionKey)).toBe(true);
+  });
+
+  test("submitUserOperation", async () => {
+    let userOp = generateUserOperation();
+
+    // No session key generated
+    await expect(atlasSDK.submitUserOperation(userOp)).rejects.toThrow(
+      "User operation has an invalid session key"
+    );
+
+    // Session key not found
+    userOp.sessionKey = AddressZero;
+    await expect(atlasSDK.submitUserOperation(userOp)).rejects.toThrow(
+      "Session key not found"
+    );
+
+    // Generate valid session key
+    userOp = atlasSDK.generateSessionKey(userOp);
+
+    // No solver operations returned
+    userOp.data = JSON.stringify({
+      test: "submitUserOperation",
+      solverOps: { total: 0, valid: 0 },
+    });
+    await expect(atlasSDK.submitUserOperation(userOp)).rejects.toThrow(
+      "No solver operations were returned by the operation relay"
+    );
+
+    // 3 solver operations returned
+    userOp.data = JSON.stringify({
+      test: "submitUserOperation",
+      solverOps: { total: 3, valid: 3 },
+    });
+    const solverOps = await atlasSDK.submitUserOperation(userOp);
+    expect(solverOps.length).toBe(3);
   });
 });

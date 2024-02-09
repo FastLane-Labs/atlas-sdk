@@ -1,4 +1,5 @@
 import { ExternalProvider, Web3Provider } from "@ethersproject/providers";
+import { isAddress } from "@ethersproject/address";
 import { Wallet } from "ethers";
 import { OperationRelay } from "./operationRelay";
 import { Sorter } from "./sorter";
@@ -17,7 +18,7 @@ export class AtlasSDK {
   /**
    * Creates a new Atlas SDK instance.
    * @param relayApiEndpoint the url of the operation relay's API
-   * @param provider a Web3 provider
+   * @param provider a provider
    * @param chainId the chain ID of the network
    */
   constructor(
@@ -38,29 +39,26 @@ export class AtlasSDK {
    */
   public generateSessionKey(userOp: UserOperation): UserOperation {
     const sessionAccount: Wallet = Wallet.createRandom();
-    userOp.sessionKey = sessionAccount.publicKey;
-    this.sessionKeys.set(sessionAccount.publicKey, sessionAccount);
+    userOp.sessionKey = sessionAccount.address;
+    this.sessionKeys.set(sessionAccount.address, sessionAccount);
     return userOp;
   }
 
   /**
-   * Creates an Atlas transaction from a user operation.
+   * Submits a user operation to the operation relay.
    * @param userOp a signed user operation
-   * @returns the hash of the resulting Atlas transaction
+   * @returns an array of solver operations
    */
-  public async createAtlasTransaction(userOp: UserOperation): Promise<string> {
-    if (!userOp.sessionKey) {
-      throw new Error("User operation does not have a session key");
+  public async submitUserOperation(
+    userOp: UserOperation
+  ): Promise<SolverOperation[]> {
+    if (!isAddress(userOp.sessionKey)) {
+      throw new Error("User operation has an invalid session key");
     }
 
-    // Get the session key for this user operation
-    const sessionAccount = this.sessionKeys.get(userOp.sessionKey);
-    if (!sessionAccount) {
+    if (!this.sessionKeys.has(userOp.sessionKey)) {
       throw new Error("Session key not found");
     }
-
-    // Only keep the local copy for the rest of the process
-    this.sessionKeys.delete(userOp.sessionKey);
 
     // Submit the user operation to the relay
     const solverOps: SolverOperation[] =
@@ -71,26 +69,114 @@ export class AtlasSDK {
       );
     }
 
-    // Sort bids and filter out invalid solver operations
+    return solverOps;
+  }
+
+  /**
+   * Sorts solver operations and filter out invalid ones.
+   * @param solverOps an array of solver operations
+   * @returns a sorted/filtered array of solver operations
+   */
+  public async sortSolverOperations(
+    userOp: UserOperation,
+    solverOps: SolverOperation[]
+  ): Promise<SolverOperation[]> {
     const sortedSolverOps = await this.sorter.sortSolverOperations(
       userOp,
       solverOps
     );
+
     if (sortedSolverOps.length === 0) {
       throw new Error(
         "No valid solver operations were returned by the Atlas sorter"
       );
     }
 
-    // Create the dApp operation, signed with the session key
+    return sortedSolverOps;
+  }
+
+  /**
+   * Creates a valid dApp operation.
+   * @param userOp a signed user operation
+   * @param solverOps an array of solver operations
+   * @returns a valid dApp operation
+   */
+  public async createDAppOperation(
+    userOp: UserOperation,
+    solverOps: SolverOperation[]
+  ): Promise<DAppOperation> {
+    if (!userOp.sessionKey) {
+      throw new Error("User operation is missing a session key");
+    }
+
+    const sessionAccount = this.sessionKeys.get(userOp.sessionKey);
+    if (!sessionAccount) {
+      throw new Error("Session key not found");
+    }
+
+    // Only keep the local copy for the rest of the process
+    this.sessionKeys.delete(userOp.sessionKey);
+
+    if (userOp.sessionKey !== sessionAccount.address) {
+      throw new Error("User operation session key does not match");
+    }
+
     const dAppOp: DAppOperation = await this.dApp.createDAppOperation(
       userOp,
-      sortedSolverOps,
+      solverOps,
       sessionAccount
     );
 
-    // Submit all operations to the relay
+    return dAppOp;
+  }
+
+  /**
+   * Submits all operations to the operations relay for bundling.
+   * @param userOp a signed user operation
+   * @param solverOps an array of solver operations
+   * @param dAppOp a signed dApp operation
+   * @returns the hash of the generated Atlas transaction
+   */
+  public async submitAllOperations(
+    userOp: UserOperation,
+    solverOps: SolverOperation[],
+    dAppOp: DAppOperation
+  ): Promise<string> {
+    if (userOp.sessionKey !== dAppOp.from) {
+      throw new Error(
+        "User operation session key does not match dApp operation"
+      );
+    }
+
     const atlasTxHash: string = await this.operationRelay.submitAllOperations(
+      userOp,
+      solverOps,
+      dAppOp
+    );
+
+    return atlasTxHash;
+  }
+
+  /**
+   * Creates an Atlas transaction from a user operation.
+   * @param userOp a signed user operation
+   * @returns the hash of the resulting Atlas transaction
+   */
+  public async createAtlasTransaction(userOp: UserOperation): Promise<string> {
+    // Submit the user operation to the relay
+    const solverOps: SolverOperation[] = await this.submitUserOperation(userOp);
+
+    // Sort bids and filter out invalid solver operations
+    const sortedSolverOps = await this.sortSolverOperations(userOp, solverOps);
+
+    // Create the dApp operation, signed with the session key
+    const dAppOp: DAppOperation = await this.createDAppOperation(
+      userOp,
+      sortedSolverOps
+    );
+
+    // Submit all operations to the relay for bundling
+    const atlasTxHash: string = await this.submitAllOperations(
       userOp,
       sortedSolverOps,
       dAppOp
