@@ -27,7 +27,7 @@ export class AtlasSDK extends OperationBuilder {
     provider: ExternalProvider,
     chainId: number
   ) {
-    const web3Provider = new Web3Provider(provider);
+    const web3Provider = new Web3Provider(provider, chainId);
 
     super(web3Provider, chainId);
     this.operationRelay = new OperationRelay(relayApiEndpoint);

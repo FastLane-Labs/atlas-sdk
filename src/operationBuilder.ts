@@ -5,6 +5,17 @@ import { atlasAddress, atlasVerificationAddress } from "./address";
 import atlasVerificationAbi from "./abi/AtlasVerification.json";
 import dAppControlAbi from "./abi/DAppControl.json";
 
+export type UserOperationParams = {
+  from: string;
+  destination: string;
+  gas: string;
+  maxFeePerGas: string;
+  value: string;
+  deadline: string;
+  data: string;
+  dAppControl: string;
+};
+
 /**
  * Offers helper methods to build user operations.
  */
@@ -25,47 +36,33 @@ export abstract class OperationBuilder {
 
   /**
    * Builds an unsigned user operation.
-   * @param from the address of the user
-   * @param destination the address of the user transaction destination
-   * @param gas the gas limit for the user transaction
-   * @param maxFeePerGas the maximum fee per gas for the user transaction
-   * @param value the value of the user transaction
-   * @param deadline the deadline for the user transaction (block number)
-   * @param data the data of the user transaction
-   * @param dAppControl the address of the dApp control contract
+   * @param userOperationParams the parameters to build the user operation
    * @returns an unsigned user operation
    */
   public async buildUserOperation(
-    from: string,
-    destination: string,
-    gas: string,
-    maxFeePerGas: string,
-    value: string,
-    deadline: string,
-    data: string,
-    dAppControl: string
+    userOperationParams: UserOperationParams
   ): Promise<UserOperation> {
     const requireSequencedUserNonces: boolean = await this.dAppControl
-      .attach(dAppControl)
+      .attach(userOperationParams.dAppControl)
       .requireSequencedUserNonces();
 
     const nonce: string = await this.atlasVerification.getNextNonce(
-      from,
+      userOperationParams.from,
       requireSequencedUserNonces
     );
 
     return {
-      from: from,
+      from: userOperationParams.from,
       to: atlasAddress[this.chainId],
-      value: value,
-      gas: gas,
-      maxFeePerGas: maxFeePerGas,
+      value: userOperationParams.value,
+      gas: userOperationParams.gas,
+      maxFeePerGas: userOperationParams.maxFeePerGas,
       nonce: nonce,
-      deadline: deadline,
-      dapp: destination,
-      control: dAppControl,
+      deadline: userOperationParams.deadline,
+      dapp: userOperationParams.destination,
+      control: userOperationParams.dAppControl,
       sessionKey: "",
-      data: data,
+      data: userOperationParams.data,
       signature: "",
     };
   }
