@@ -1,3 +1,4 @@
+import { AddressZero } from "@ethersproject/constants";
 import {
   UserOperation,
   SolverOperation,
@@ -10,18 +11,18 @@ import {
  */
 export function generateUserOperation(): UserOperation {
   return {
-    from: "0x",
-    to: "0x",
+    from: AddressZero,
+    to: AddressZero,
     value: "0",
     gas: "0",
     maxFeePerGas: "0",
     nonce: "0",
     deadline: "0",
-    dapp: "0x",
-    control: "0x",
-    sessionKey: "0x",
-    data: "0x",
-    signature: "0x",
+    dapp: AddressZero,
+    control: AddressZero,
+    sessionKey: "",
+    data: "",
+    signature: "",
   };
 }
 
@@ -31,19 +32,19 @@ export function generateUserOperation(): UserOperation {
  */
 export function generateSolverOperation(): SolverOperation {
   return {
-    from: "0x",
-    to: "0x",
+    from: AddressZero,
+    to: AddressZero,
     value: "0",
     gas: "0",
     maxFeePerGas: "0",
     deadline: "0",
-    solver: "0x",
-    control: "0x",
-    userOpHash: "0x",
-    bidToken: "0x",
+    solver: AddressZero,
+    control: AddressZero,
+    userOpHash: "",
+    bidToken: AddressZero,
     bidAmount: "0",
-    data: "0x",
-    signature: "0x",
+    data: "",
+    signature: "",
   };
 }
 
@@ -53,17 +54,17 @@ export function generateSolverOperation(): SolverOperation {
  */
 export function generateDAppOperation(): DAppOperation {
   return {
-    from: "0x",
-    to: "0x",
+    from: AddressZero,
+    to: AddressZero,
     value: "0",
     gas: "0",
     maxFeePerGas: "0",
     nonce: "0",
     deadline: "0",
-    control: "0x",
-    bundler: "0x",
-    userOpHash: "0x",
-    callChainHash: "0x",
-    signature: "0x",
+    control: AddressZero,
+    bundler: AddressZero,
+    userOpHash: "",
+    callChainHash: "",
+    signature: "",
   };
 }

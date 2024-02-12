@@ -4,6 +4,7 @@ import { AddressZero } from "@ethersproject/constants";
 import { HttpProvider } from "web3-providers-http";
 import { AtlasSDK } from "../src/index";
 import { MockOperationRelay } from "./mockOperationRelay";
+import { atlasAddress } from "../src/address";
 import { generateUserOperation } from "./utils";
 import dotenv from "dotenv";
 
@@ -21,6 +22,33 @@ describe("Atlas SDK tests", () => {
 
   afterAll(() => {
     opsRelay.close();
+  });
+
+  test("buildUserOperation", async () => {
+    const userOp = await atlasSDK.buildUserOperation({
+      from: AddressZero,
+      destination: AddressZero,
+      gas: "1",
+      maxFeePerGas: "2",
+      value: "3",
+      deadline: "4",
+      data: "0x1234",
+      dAppControl: AddressZero,
+    });
+
+    expect(userOp).toBeDefined();
+    expect(userOp.from).toBe(AddressZero);
+    expect(userOp.to).toBe(atlasAddress[Number(process.env.CHAIN_ID!)]);
+    expect(userOp.value).toBe("3");
+    expect(userOp.gas).toBe("1");
+    expect(userOp.maxFeePerGas).toBe("2");
+    expect(userOp.nonce).toBe("0");
+    expect(userOp.deadline).toBe("4");
+    expect(userOp.dapp).toBe(AddressZero);
+    expect(userOp.control).toBe(AddressZero);
+    expect(userOp.sessionKey).toBe("");
+    expect(userOp.data).toBe("1234");
+    expect(userOp.signature).toBe("");
   });
 
   test("generateSessionKey", async () => {
@@ -69,5 +97,32 @@ describe("Atlas SDK tests", () => {
     });
     const solverOps = await atlasSDK.submitUserOperation(userOp);
     expect(solverOps.length).toBe(3);
+  });
+
+  test("sortSolverOperations", async () => {
+    // TOFIX
+    //   const userOp = atlasSDK.generateSessionKey(generateUserOperation());
+    //   userOp.data = JSON.stringify({
+    //     test: "submitUserOperation",
+    //     solverOps: { total: 3, valid: 3 },
+    //   });
+    //   const solverOps = await atlasSDK.submitUserOperation(userOp);
+    //   userOp.data = ""; // Clear the data field
+    //   const sortedSolverOps = await atlasSDK.sortSolverOperations(
+    //     userOp,
+    //     solverOps
+    //   );
+  });
+
+  test("createDAppOperation", async () => {
+    // TODO
+  });
+
+  test("submitAllOperations", async () => {
+    // TODO
+  });
+
+  test("createAtlasTransaction", async () => {
+    // TODO
   });
 });
