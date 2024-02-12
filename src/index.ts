@@ -1,16 +1,19 @@
 import { ExternalProvider, Web3Provider } from "@ethersproject/providers";
 import { isAddress } from "@ethersproject/address";
 import { Wallet } from "ethers";
+import { Interface } from "ethers/lib/utils";
 import { OperationBuilder } from "./operationBuilder";
 import { OperationRelay } from "./operationRelay";
 import { Sorter } from "./sorter";
 import { DApp } from "./dApp";
 import { UserOperation, SolverOperation, DAppOperation } from "./operation";
+import atlasAbi from "./abi/Atlas.json";
 
 /**
  * The main class to submit user operations to Atlas.
  */
 export class AtlasSDK extends OperationBuilder {
+  private iAtlas: Interface;
   private operationRelay: OperationRelay;
   private sorter: Sorter;
   private dApp: DApp;
@@ -30,6 +33,7 @@ export class AtlasSDK extends OperationBuilder {
     const web3Provider = new Web3Provider(provider, chainId);
 
     super(web3Provider, chainId);
+    this.iAtlas = new Interface(atlasAbi);
     this.operationRelay = new OperationRelay(relayApiEndpoint);
     this.sorter = new Sorter(web3Provider, chainId);
     this.dApp = new DApp(web3Provider, chainId);
@@ -134,6 +138,25 @@ export class AtlasSDK extends OperationBuilder {
   }
 
   /**
+   * Gets metacall's encoded calldata.
+   * @param userOp a signed user operation
+   * @param solverOps an array of solver operations
+   * @param dAppOp a signed dApp operation
+   * @returns the encoded calldata for metacall
+   */
+  public getMetacallCalldata(
+    userOp: UserOperation,
+    solverOps: SolverOperation[],
+    dAppOp: DAppOperation
+  ): string {
+    return this.iAtlas.encodeFunctionData("metacall", [
+      userOp,
+      solverOps,
+      dAppOp,
+    ]);
+  }
+
+  /**
    * Submits all operations to the operations relay for bundling.
    * @param userOp a signed user operation
    * @param solverOps an array of solver operations
@@ -163,9 +186,14 @@ export class AtlasSDK extends OperationBuilder {
   /**
    * Creates an Atlas transaction from a user operation.
    * @param userOp a signed user operation
-   * @returns the hash of the resulting Atlas transaction
+   * @param isBundlerLocal a boolean indicating if the bundler is local
+   * @returns the encoded calldata for metacall if isBundlerLocal is true,
+   * the hash of the resulting Atlas transaction otherwise
    */
-  public async createAtlasTransaction(userOp: UserOperation): Promise<string> {
+  public async createAtlasTransaction(
+    userOp: UserOperation,
+    isBundlerLocal: boolean = false
+  ): Promise<string> {
     // Submit the user operation to the relay
     const solverOps: SolverOperation[] = await this.submitUserOperation(userOp);
 
@@ -177,6 +205,15 @@ export class AtlasSDK extends OperationBuilder {
       userOp,
       sortedSolverOps
     );
+
+    if (isBundlerLocal) {
+      // Return metacall's calldata only, for local bundling
+      return this.iAtlas.encodeFunctionData("metacall", [
+        userOp,
+        sortedSolverOps,
+        dAppOp,
+      ]);
+    }
 
     // Submit all operations to the relay for bundling
     const atlasTxHash: string = await this.submitAllOperations(
