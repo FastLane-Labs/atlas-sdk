@@ -18,23 +18,23 @@ const DAPP_TYPE_HASH = keccak256(
  * Represents a dApp, and has methods for helping build dApp operations.
  */
 export class DApp {
-  atlasVerification: Contract;
-  dAppControl: Contract;
-  chainId: number;
-  abiCoder: AbiCoder;
+  private chainId: number;
+  private atlasVerification: Contract;
+  private dAppControl: Contract;
+  private abiCoder: AbiCoder;
 
   /**
    * Creates a new dApp.
    * @param chainId the chain ID of the network
    */
   constructor(provider: Web3Provider, chainId: number) {
+    this.chainId = chainId;
     this.atlasVerification = new Contract(
       atlasVerificationAddress[chainId],
       atlasVerificationAbi,
       provider
     );
     this.dAppControl = new Contract("", dAppControlAbi, provider);
-    this.chainId = chainId;
     this.abiCoder = new AbiCoder();
   }
 

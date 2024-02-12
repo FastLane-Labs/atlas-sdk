@@ -9,18 +9,18 @@ import dAppControlAbi from "./abi/DAppControl.json";
  * Offers helper methods to build user operations.
  */
 export abstract class OperationBuilder {
-  atlasVerification: Contract;
-  dAppControl: Contract;
-  chainId: number;
+  private chainId: number;
+  private atlasVerification: Contract;
+  private dAppControl: Contract;
 
   constructor(provider: Web3Provider, chainId: number) {
+    this.chainId = chainId;
     this.atlasVerification = new Contract(
       atlasVerificationAddress[chainId],
       atlasVerificationAbi,
       provider
     );
     this.dAppControl = new Contract("", dAppControlAbi, provider);
-    this.chainId = chainId;
   }
 
   /**

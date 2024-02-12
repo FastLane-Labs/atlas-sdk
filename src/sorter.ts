@@ -8,8 +8,8 @@ import sorterAbi from "./abi/Sorter.json";
  * Represents an Atlas sorter, and has methods for helping sort solver operations.
  */
 export class Sorter {
-  chainId: number;
-  contract: Contract;
+  private chainId: number;
+  private sorter: Contract;
 
   /**
    * Creates a new Atlas sorter.
@@ -18,7 +18,7 @@ export class Sorter {
    */
   constructor(provider: Web3Provider, chainId: number) {
     this.chainId = chainId;
-    this.contract = new Contract(
+    this.sorter = new Contract(
       atlasSorterAddress[chainId],
       sorterAbi,
       provider
@@ -35,7 +35,7 @@ export class Sorter {
     userOp: UserOperation,
     solverOps: SolverOperation[]
   ): Promise<SolverOperation[]> {
-    const sortedSolverOps: SolverOperation[] = await this.contract.sortBids(
+    const sortedSolverOps: SolverOperation[] = await this.sorter.sortBids(
       userOp,
       solverOps
     );

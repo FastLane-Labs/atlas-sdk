@@ -17,7 +17,7 @@ export type OperationRelayRPCSservice = {
  * Represents an operation relay, and has methods for helping submit operations.
  */
 export class OperationRelay {
-  rpcClient: any;
+  private rpcClient: any;
   timeout: number = 1000; // In milliseconds
 
   /**
