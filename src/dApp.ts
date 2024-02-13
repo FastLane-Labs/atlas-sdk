@@ -1,15 +1,20 @@
-import { Contract } from "@ethersproject/contracts";
-import { Web3Provider } from "@ethersproject/providers";
-import { AddressZero } from "@ethersproject/constants";
-import { AbiCoder, keccak256, solidityPack } from "ethers/lib/utils";
-import { Wallet, utils } from "ethers";
+import {
+  BrowserProvider,
+  Contract,
+  HDNodeWallet,
+  ZeroAddress,
+  AbiCoder,
+  keccak256,
+  solidityPacked,
+  toUtf8Bytes,
+} from "ethers";
 import { UserOperation, SolverOperation, DAppOperation } from "./operation";
 import { atlasAddress, atlasVerificationAddress } from "./address";
 import atlasVerificationAbi from "./abi/AtlasVerification.json";
 import dAppControlAbi from "./abi/DAppControl.json";
 
 const DAPP_TYPE_HASH = keccak256(
-  utils.toUtf8Bytes(
+  toUtf8Bytes(
     "DAppApproval(address from,address to,uint256 value,uint256 gas,uint256 maxFeePerGas,uint256 nonce,uint256 deadline,address control,address bundler,bytes32 userOpHash,bytes32 callChainHash)"
   )
 );
@@ -27,14 +32,14 @@ export class DApp {
    * Creates a new dApp.
    * @param chainId the chain ID of the network
    */
-  constructor(provider: Web3Provider, chainId: number) {
+  constructor(provider: BrowserProvider, chainId: number) {
     this.chainId = chainId;
     this.atlasVerification = new Contract(
       atlasVerificationAddress[chainId],
       atlasVerificationAbi,
       provider
     );
-    this.dAppControl = new Contract("", dAppControlAbi, provider);
+    this.dAppControl = new Contract(ZeroAddress, dAppControlAbi, provider);
     this.abiCoder = new AbiCoder();
   }
 
@@ -48,7 +53,7 @@ export class DApp {
   public async createDAppOperation(
     userOp: UserOperation,
     solverOps: SolverOperation[],
-    sessionAccount: Wallet
+    sessionAccount: HDNodeWallet
   ): Promise<DAppOperation> {
     const dAppOp: DAppOperation = {
       from: sessionAccount.publicKey,
@@ -59,7 +64,7 @@ export class DApp {
       nonce: "0",
       deadline: userOp.deadline,
       control: userOp.control,
-      bundler: AddressZero,
+      bundler: ZeroAddress,
       userOpHash: keccak256(this.abiEncodeUserOperation(userOp)),
       callChainHash: await this.getCallChainHash(userOp, solverOps),
       signature: "",
@@ -159,7 +164,8 @@ export class DApp {
   ): Promise<string> {
     const dConfig = await this.dAppControl
       .attach(userOp.control)
-      .getDAppConfig(userOp);
+      .getFunction("getDAppConfig")
+      .staticCall(userOp.control);
 
     let callSequenceHash = "";
     let counter = 0;
@@ -167,7 +173,7 @@ export class DApp {
     if ((dConfig.callConfig & 4) !== 0) {
       // Require preOps
       callSequenceHash = keccak256(
-        solidityPack(
+        solidityPacked(
           ["bytes32", "address", "bytes", "uint256"],
           [
             callSequenceHash,
@@ -183,7 +189,7 @@ export class DApp {
 
     // User call
     callSequenceHash = keccak256(
-      solidityPack(
+      solidityPacked(
         ["bytes32", "bytes", "uint256"],
         [callSequenceHash, this.abiEncodeUserOperation(userOp), counter++]
       )
@@ -192,7 +198,7 @@ export class DApp {
     // Solver calls
     for (const solverOp of solverOps) {
       callSequenceHash = keccak256(
-        solidityPack(
+        solidityPacked(
           ["bytes32", "bytes", "uint256"],
           [callSequenceHash, this.abiEncodeSolverOperation(solverOp), counter++]
         )
@@ -210,7 +216,7 @@ export class DApp {
    */
   public async signDAppOperation(
     dAppOp: DAppOperation,
-    sessionAccount: Wallet
+    sessionAccount: HDNodeWallet
   ): Promise<string> {
     const proofHash: string = keccak256(
       this.abiCoder.encode(

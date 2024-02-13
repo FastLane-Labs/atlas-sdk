@@ -1,5 +1,4 @@
-import { Contract } from "@ethersproject/contracts";
-import { Web3Provider } from "@ethersproject/providers";
+import { BrowserProvider, Contract, ZeroAddress } from "ethers";
 import { UserOperation } from "./operation";
 import { atlasAddress, atlasVerificationAddress } from "./address";
 import atlasVerificationAbi from "./abi/AtlasVerification.json";
@@ -24,14 +23,14 @@ export abstract class OperationBuilder {
   private atlasVerification: Contract;
   private dAppControl: Contract;
 
-  constructor(provider: Web3Provider, chainId: number) {
+  constructor(provider: BrowserProvider, chainId: number) {
     this.chainId = chainId;
     this.atlasVerification = new Contract(
       atlasVerificationAddress[chainId],
       atlasVerificationAbi,
       provider
     );
-    this.dAppControl = new Contract("", dAppControlAbi, provider);
+    this.dAppControl = new Contract(ZeroAddress, dAppControlAbi, provider);
   }
 
   /**
@@ -42,13 +41,14 @@ export abstract class OperationBuilder {
   public async buildUserOperation(
     userOperationParams: UserOperationParams
   ): Promise<UserOperation> {
-    const requireSequencedUserNonces: boolean = await this.dAppControl
+    let requireSequencedUserNonces = await this.dAppControl
       .attach(userOperationParams.dAppControl)
-      .requireSequencedUserNonces();
+      .getFunction("requireSequencedUserNonces")
+      .staticCall();
 
-    const nonce: string = await this.atlasVerification.getNextNonce(
+    const nonce: bigint = await this.atlasVerification.getNextNonce(
       userOperationParams.from,
-      requireSequencedUserNonces
+      false
     );
 
     return {
@@ -57,7 +57,7 @@ export abstract class OperationBuilder {
       value: userOperationParams.value,
       gas: userOperationParams.gas,
       maxFeePerGas: userOperationParams.maxFeePerGas,
-      nonce: nonce,
+      nonce: nonce.toString(),
       deadline: userOperationParams.deadline,
       dapp: userOperationParams.destination,
       control: userOperationParams.dAppControl,

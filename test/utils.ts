@@ -1,4 +1,4 @@
-import { AddressZero } from "@ethersproject/constants";
+import { ZeroAddress } from "ethers";
 import {
   UserOperation,
   SolverOperation,
@@ -11,15 +11,15 @@ import {
  */
 export function generateUserOperation(): UserOperation {
   return {
-    from: AddressZero,
-    to: AddressZero,
+    from: ZeroAddress,
+    to: ZeroAddress,
     value: "0",
     gas: "0",
     maxFeePerGas: "0",
     nonce: "0",
     deadline: "0",
-    dapp: AddressZero,
-    control: AddressZero,
+    dapp: ZeroAddress,
+    control: ZeroAddress,
     sessionKey: "",
     data: "",
     signature: "",
@@ -32,16 +32,16 @@ export function generateUserOperation(): UserOperation {
  */
 export function generateSolverOperation(): SolverOperation {
   return {
-    from: AddressZero,
-    to: AddressZero,
+    from: ZeroAddress,
+    to: ZeroAddress,
     value: "0",
     gas: "0",
     maxFeePerGas: "0",
     deadline: "0",
-    solver: AddressZero,
-    control: AddressZero,
+    solver: ZeroAddress,
+    control: ZeroAddress,
     userOpHash: "",
-    bidToken: AddressZero,
+    bidToken: ZeroAddress,
     bidAmount: "0",
     data: "",
     signature: "",
@@ -54,15 +54,15 @@ export function generateSolverOperation(): SolverOperation {
  */
 export function generateDAppOperation(): DAppOperation {
   return {
-    from: AddressZero,
-    to: AddressZero,
+    from: ZeroAddress,
+    to: ZeroAddress,
     value: "0",
     gas: "0",
     maxFeePerGas: "0",
     nonce: "0",
     deadline: "0",
-    control: AddressZero,
-    bundler: AddressZero,
+    control: ZeroAddress,
+    bundler: ZeroAddress,
     userOpHash: "",
     callChainHash: "",
     signature: "",

@@ -1,6 +1,4 @@
-import { ExternalProvider } from "@ethersproject/providers";
-import { isAddress } from "@ethersproject/address";
-import { AddressZero } from "@ethersproject/constants";
+import { BrowserProvider, ZeroAddress, isAddress } from "ethers";
 import { HttpProvider } from "web3-providers-http";
 import { AtlasSDK } from "../src/index";
 import { MockOperationRelay } from "./mockOperationRelay";
@@ -16,7 +14,7 @@ describe("Atlas SDK tests", () => {
   const opsRelay = MockOperationRelay.create(portListen);
   const atlasSDK = new AtlasSDK(
     `http://127.0.0.1:${portListen}`,
-    provider as unknown as ExternalProvider,
+    provider,
     Number(process.env.CHAIN_ID!)
   );
 
@@ -25,29 +23,31 @@ describe("Atlas SDK tests", () => {
   });
 
   test("buildUserOperation", async () => {
+    const mockDappControlAddress = "0xc97dBFFA4b73ff6a6c1C08C61D51F05301581bfC";
+
     const userOp = await atlasSDK.buildUserOperation({
-      from: AddressZero,
-      destination: AddressZero,
+      from: ZeroAddress,
+      destination: ZeroAddress,
       gas: "1",
       maxFeePerGas: "2",
       value: "3",
       deadline: "4",
       data: "0x1234",
-      dAppControl: AddressZero,
+      dAppControl: mockDappControlAddress,
     });
 
     expect(userOp).toBeDefined();
-    expect(userOp.from).toBe(AddressZero);
+    expect(userOp.from).toBe(ZeroAddress);
     expect(userOp.to).toBe(atlasAddress[Number(process.env.CHAIN_ID!)]);
     expect(userOp.value).toBe("3");
     expect(userOp.gas).toBe("1");
     expect(userOp.maxFeePerGas).toBe("2");
-    expect(userOp.nonce).toBe("0");
+    expect(userOp.nonce).toBe("1");
     expect(userOp.deadline).toBe("4");
-    expect(userOp.dapp).toBe(AddressZero);
-    expect(userOp.control).toBe(AddressZero);
+    expect(userOp.dapp).toBe(ZeroAddress);
+    expect(userOp.control).toBe(mockDappControlAddress);
     expect(userOp.sessionKey).toBe("");
-    expect(userOp.data).toBe("1234");
+    expect(userOp.data).toBe("0x1234");
     expect(userOp.signature).toBe("");
   });
 
@@ -73,7 +73,7 @@ describe("Atlas SDK tests", () => {
     );
 
     // Session key not found
-    userOp.sessionKey = AddressZero;
+    userOp.sessionKey = ZeroAddress;
     await expect(atlasSDK.submitUserOperation(userOp)).rejects.toThrow(
       "Session key not found"
     );

@@ -32,7 +32,7 @@
     "web3": "^4.4.0"
   },
   "dependencies": {
-    "ethers": "^5.7.0",
+    "ethers": "^6.11.0",
     "typed-rpc": "^5.0.1"
   }
 }

@@ -1,7 +1,12 @@
-import { ExternalProvider, Web3Provider } from "@ethersproject/providers";
-import { isAddress } from "@ethersproject/address";
-import { Wallet } from "ethers";
-import { Interface } from "ethers/lib/utils";
+import {
+  Eip1193Provider,
+  BrowserProvider,
+  Wallet,
+  HDNodeWallet,
+  Interface,
+  isAddress,
+} from "ethers";
+import { BProvider } from "./bProvider";
 import { OperationBuilder } from "./operationBuilder";
 import { OperationRelay } from "./operationRelay";
 import { Sorter } from "./sorter";
@@ -17,7 +22,7 @@ export class AtlasSDK extends OperationBuilder {
   private operationRelay: OperationRelay;
   private sorter: Sorter;
   private dApp: DApp;
-  private sessionKeys: Map<string, Wallet> = new Map();
+  private sessionKeys: Map<string, HDNodeWallet> = new Map();
 
   /**
    * Creates a new Atlas SDK instance.
@@ -27,16 +32,16 @@ export class AtlasSDK extends OperationBuilder {
    */
   constructor(
     relayApiEndpoint: string,
-    provider: ExternalProvider,
+    provider: Eip1193Provider,
     chainId: number
   ) {
-    const web3Provider = new Web3Provider(provider, chainId);
+    const browserProvider = new BProvider(provider, chainId);
 
-    super(web3Provider, chainId);
+    super(browserProvider, chainId);
     this.iAtlas = new Interface(atlasAbi);
     this.operationRelay = new OperationRelay(relayApiEndpoint);
-    this.sorter = new Sorter(web3Provider, chainId);
-    this.dApp = new DApp(web3Provider, chainId);
+    this.sorter = new Sorter(browserProvider, chainId);
+    this.dApp = new DApp(browserProvider, chainId);
   }
 
   /**
@@ -45,7 +50,7 @@ export class AtlasSDK extends OperationBuilder {
    * @returns the user operation with a valid sessionKey field
    */
   public generateSessionKey(userOp: UserOperation): UserOperation {
-    const sessionAccount: Wallet = Wallet.createRandom();
+    const sessionAccount = Wallet.createRandom();
     userOp.sessionKey = sessionAccount.address;
     this.sessionKeys.set(sessionAccount.address, sessionAccount);
     return userOp;
