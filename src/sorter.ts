@@ -34,6 +34,7 @@ export class Sorter {
     userOp: UserOperation,
     solverOps: SolverOperation[]
   ): Promise<SolverOperation[]> {
+    console.log(userOp, solverOps);
     const sortedSolverOps: SolverOperation[] = await this.sorter.sortBids(
       userOp,
       solverOps

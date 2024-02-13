@@ -1,4 +1,4 @@
-import { ZeroAddress } from "ethers";
+import { ZeroAddress, zeroPadBytes } from "ethers";
 import {
   UserOperation,
   SolverOperation,
@@ -20,9 +20,9 @@ export function generateUserOperation(): UserOperation {
     deadline: "0",
     dapp: ZeroAddress,
     control: ZeroAddress,
-    sessionKey: "",
-    data: "",
-    signature: "",
+    sessionKey: "0x",
+    data: "0x",
+    signature: "0x",
   };
 }
 
@@ -40,11 +40,11 @@ export function generateSolverOperation(): SolverOperation {
     deadline: "0",
     solver: ZeroAddress,
     control: ZeroAddress,
-    userOpHash: "",
+    userOpHash: zeroPadBytes("0x", 32),
     bidToken: ZeroAddress,
     bidAmount: "0",
-    data: "",
-    signature: "",
+    data: "0x",
+    signature: "0x",
   };
 }
 

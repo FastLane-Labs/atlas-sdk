@@ -101,17 +101,18 @@ describe("Atlas SDK tests", () => {
 
   test("sortSolverOperations", async () => {
     // TOFIX
-    //   const userOp = atlasSDK.generateSessionKey(generateUserOperation());
-    //   userOp.data = JSON.stringify({
-    //     test: "submitUserOperation",
-    //     solverOps: { total: 3, valid: 3 },
-    //   });
-    //   const solverOps = await atlasSDK.submitUserOperation(userOp);
-    //   userOp.data = ""; // Clear the data field
-    //   const sortedSolverOps = await atlasSDK.sortSolverOperations(
-    //     userOp,
-    //     solverOps
-    //   );
+    const userOp = atlasSDK.generateSessionKey(generateUserOperation());
+    userOp.data = JSON.stringify({
+      test: "submitUserOperation",
+      solverOps: { total: 3, valid: 3 },
+    });
+    const solverOps = await atlasSDK.submitUserOperation(userOp);
+    userOp.data = "0x"; // Clear the data field
+    const sortedSolverOps = await atlasSDK.sortSolverOperations(
+      userOp,
+      solverOps
+    );
+    console.log(sortedSolverOps);
   });
 
   test("createDAppOperation", async () => {
