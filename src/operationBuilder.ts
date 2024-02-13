@@ -48,7 +48,7 @@ export abstract class OperationBuilder {
 
     const nonce: bigint = await this.atlasVerification.getNextNonce(
       userOperationParams.from,
-      false
+      requireSequencedUserNonces
     );
 
     return {
