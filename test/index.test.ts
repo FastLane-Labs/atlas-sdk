@@ -1,9 +1,14 @@
-import { BrowserProvider, ZeroAddress, isAddress } from "ethers";
+import { ZeroAddress, isAddress } from "ethers";
 import { HttpProvider } from "web3-providers-http";
 import { AtlasSDK } from "../src/index";
-import { MockOperationRelay } from "./mockOperationRelay";
+import { SolverOperation } from "../src/operation";
 import { atlasAddress } from "../src/address";
-import { generateUserOperation } from "./utils";
+import { MockOperationRelay, randomHash } from "./mockOperationRelay";
+import {
+  generateUserOperation,
+  generateSolverOperation,
+  generateDAppOperation,
+} from "./utils";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -119,7 +124,37 @@ describe("Atlas SDK tests", () => {
   });
 
   test("submitAllOperations", async () => {
-    // TODO
+    const userOp = atlasSDK.generateSessionKey(generateUserOperation());
+    let solverOps: SolverOperation[] = [];
+    solverOps.push(generateSolverOperation());
+    let dAppOp = generateDAppOperation();
+
+    // Session key does not match
+    await expect(
+      atlasSDK.submitAllOperations(userOp, solverOps, dAppOp)
+    ).rejects.toThrow(
+      "User operation session key does not match dApp operation"
+    );
+
+    dAppOp.from = userOp.sessionKey;
+
+    // Operation relay error
+    userOp.data = JSON.stringify({
+      test: "submitAllOperations",
+      result: false,
+    });
+    await expect(
+      atlasSDK.submitAllOperations(userOp, solverOps, dAppOp)
+    ).rejects.toThrow("Operation relay error");
+
+    // Atlas transaction hash returned
+    userOp.data = JSON.stringify({
+      test: "submitAllOperations",
+      result: true,
+    });
+    expect(await atlasSDK.submitAllOperations(userOp, solverOps, dAppOp)).toBe(
+      randomHash
+    );
   });
 
   test("createAtlasTransaction", async () => {

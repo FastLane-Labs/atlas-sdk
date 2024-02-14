@@ -1,3 +1,4 @@
+import express from "express";
 import { rpcHandler } from "typed-rpc/express";
 import {
   UserOperation,
@@ -5,7 +6,9 @@ import {
   DAppOperation,
 } from "../src/operation";
 import { generateSolverOperation } from "./utils";
-import express from "express";
+
+export const randomHash =
+  "0xba17854d533ef9fec37ef7acf26b30632990101113543645bb8da9b1ae0bd20f";
 
 const RPCService = {
   submitUserOperation(userOp: UserOperation): SolverOperation[] {
@@ -18,7 +21,7 @@ const RPCService = {
      */
 
     let solverOps: SolverOperation[] = [];
-    let data = JSON.parse(userOp.data);
+    const data = JSON.parse(userOp.data);
 
     if (data.test === "submitUserOperation") {
       for (let i = 0; i < data.solverOps.total; i++) {
@@ -34,7 +37,21 @@ const RPCService = {
     solverOps: SolverOperation[],
     dAppOp: DAppOperation
   ): string {
-    return "";
+    /*
+     * This is a mock implementation of the submitAllOperations method.
+     * The "data" field of the user operation holds information about the
+     * desired result returned (for testing purposes only).
+     * The "data" field is a stringified JSON object formatted as:
+     * { "test": "submitAllOperations", "result": "true/false" }
+     */
+
+    const data = JSON.parse(userOp.data);
+    if (data.test === "submitAllOperations" && !data.result) {
+      throw new Error("Operation relay error");
+    }
+
+    // Returns a random hash for tests
+    return randomHash;
   },
 };
 
