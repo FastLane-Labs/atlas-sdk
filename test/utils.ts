@@ -21,8 +21,8 @@ export function generateUserOperation(): UserOperation {
     dapp: ZeroAddress,
     control: ZeroAddress,
     sessionKey: "",
-    data: "0x1234",
-    signature: "0x0",
+    data: "0x00",
+    signature: "0x00",
   };
 }
 
@@ -43,8 +43,8 @@ export function generateSolverOperation(): SolverOperation {
     userOpHash: zeroPadBytes("0x", 32),
     bidToken: ZeroAddress,
     bidAmount: "0x0",
-    data: "0x0",
-    signature: "0x0",
+    data: "0x00",
+    signature: "0x00",
   };
 }
 
@@ -65,6 +65,6 @@ export function generateDAppOperation(): DAppOperation {
     bundler: ZeroAddress,
     userOpHash: zeroPadBytes("0x", 32),
     callChainHash: zeroPadBytes("0x", 32),
-    signature: "0x0",
+    signature: "0x00",
   };
 }

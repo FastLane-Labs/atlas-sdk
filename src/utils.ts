@@ -14,5 +14,5 @@ export function validateBytes32(value: string): boolean {
 }
 
 export function validateBytes(value: string): boolean {
-  return /^0x[0-9a-f]*$/.test(value);
+  return /^0x([0-9a-f][0-9a-f])*$/.test(value);
 }
