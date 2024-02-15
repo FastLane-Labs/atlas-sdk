@@ -1,5 +1,10 @@
 import { BrowserProvider, Contract, ZeroAddress } from "ethers";
-import { UserOperation, SolverOperation, DAppOperation } from "./operation";
+import {
+  UserOperation,
+  UserOperationParams,
+  SolverOperation,
+  DAppOperation,
+} from "./operation";
 import { atlasAddress, atlasVerificationAddress } from "./address";
 import {
   validateAddress,
@@ -10,21 +15,10 @@ import {
 import atlasVerificationAbi from "./abi/AtlasVerification.json";
 import dAppControlAbi from "./abi/DAppControl.json";
 
-export type UserOperationParams = {
-  from: string; // address
-  destination: string; // address
-  gas: string; // uint256
-  maxFeePerGas: string; // uint256
-  value: string; // uint256
-  deadline: string; // uint256
-  data: string; // bytes
-  dAppControl: string; // address
-};
-
 /**
  * Offers helper methods to build user operations.
  */
-export abstract class OperationBuilder {
+export class OperationBuilder {
   private chainId: number;
   private atlasVerification: Contract;
   private dAppControl: Contract;
@@ -47,7 +41,7 @@ export abstract class OperationBuilder {
   public async buildUserOperation(
     userOperationParams: UserOperationParams
   ): Promise<UserOperation> {
-    this.validateUserOperationParams(userOperationParams);
+    OperationBuilder.validateUserOperationParams(userOperationParams);
 
     let requireSequencedUserNonces = await this.dAppControl
       .attach(userOperationParams.dAppControl)
@@ -59,7 +53,7 @@ export abstract class OperationBuilder {
       requireSequencedUserNonces
     );
 
-    const userOp: UserOperation = {
+    return {
       from: userOperationParams.from,
       to: atlasAddress[this.chainId],
       value: userOperationParams.value,
@@ -73,9 +67,6 @@ export abstract class OperationBuilder {
       data: userOperationParams.data,
       signature: "",
     };
-
-    this.validateUserOperation(userOp, false, false);
-    return userOp;
   }
 
   /**
@@ -83,7 +74,7 @@ export abstract class OperationBuilder {
    * @param userOperationParams the object to inspect
    * @returns true if valid, throws an error otherwise
    */
-  public validateUserOperationParams(
+  public static validateUserOperationParams(
     userOperationParams: UserOperationParams
   ): boolean {
     if (!validateAddress(userOperationParams.from)) {
@@ -136,7 +127,7 @@ export abstract class OperationBuilder {
    * @param checkSignature a boolean indicating if the signature should be checked
    * @returns true if valid, throws an error otherwise
    */
-  public validateUserOperation(
+  public static validateUserOperation(
     userOp: UserOperation,
     checkSessionKey: boolean = true,
     checkSignature: boolean = true
@@ -205,11 +196,33 @@ export abstract class OperationBuilder {
   }
 
   /**
+   * Checks the validity of an array of solver operations.
+   * @param solverOps an array of solver operations
+   * @returns true if valid, throws an error otherwise
+   */
+  public static validateSolverOperations(
+    solverOps: SolverOperation[]
+  ): boolean {
+    for (let i = 0; i < solverOps.length; i++) {
+      try {
+        OperationBuilder.validateSolverOperation(solverOps[i]);
+      } catch (err) {
+        let message = err;
+        if (err instanceof Error) {
+          message = err.message;
+        }
+        throw new Error(`SolverOperation at index ${i} is invalid: ${message}`);
+      }
+    }
+    return true;
+  }
+
+  /**
    * Checks the validity of a solver operation object.
    * @param solverOp the object to inspect
    * @returns true if valid, throws an error otherwise
    */
-  public validateSolverOperation(solverOp: SolverOperation): boolean {
+  public static validateSolverOperation(solverOp: SolverOperation): boolean {
     if (!validateAddress(solverOp.from)) {
       throw new Error(
         `SolverOperation: 'from' is not a valid address (${solverOp.from})`
@@ -283,7 +296,7 @@ export abstract class OperationBuilder {
    * @param dAppOp the object to inspect
    * @returns true if valid, throws an error otherwise
    */
-  public validateDAppOperation(dAppOp: DAppOperation): boolean {
+  public static validateDAppOperation(dAppOp: DAppOperation): boolean {
     if (!validateAddress(dAppOp.from)) {
       throw new Error(
         `DAppOperation: 'from' is not a valid address (${dAppOp.from})`

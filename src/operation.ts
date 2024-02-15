@@ -1,3 +1,14 @@
+export type UserOperationParams = {
+  from: string; // address
+  destination: string; // address
+  gas: string; // uint256
+  maxFeePerGas: string; // uint256
+  value: string; // uint256
+  deadline: string; // uint256
+  data: string; // bytes
+  dAppControl: string; // address
+};
+
 export type UserOperation = {
   from: string; // address
   to: string; // address

@@ -1,6 +1,5 @@
 import {
   Eip1193Provider,
-  BrowserProvider,
   Wallet,
   HDNodeWallet,
   Interface,
@@ -11,15 +10,22 @@ import { OperationBuilder } from "./operationBuilder";
 import { OperationRelay } from "./operationRelay";
 import { Sorter } from "./sorter";
 import { DApp } from "./dApp";
-import { UserOperation, SolverOperation, DAppOperation } from "./operation";
+import {
+  UserOperation,
+  UserOperationParams,
+  SolverOperation,
+  DAppOperation,
+} from "./operation";
 import atlasAbi from "./abi/Atlas.json";
 
 /**
  * The main class to submit user operations to Atlas.
  */
-export class AtlasSDK extends OperationBuilder {
+export class AtlasSDK {
+  private provider: BProvider;
   private iAtlas: Interface;
   private operationRelay: OperationRelay;
+  private operationBuilder: OperationBuilder;
   private sorter: Sorter;
   private dApp: DApp;
   private sessionKeys: Map<string, HDNodeWallet> = new Map();
@@ -35,13 +41,27 @@ export class AtlasSDK extends OperationBuilder {
     provider: Eip1193Provider,
     chainId: number
   ) {
-    const browserProvider = new BProvider(provider, chainId);
-
-    super(browserProvider, chainId);
+    this.provider = new BProvider(provider, chainId);
     this.iAtlas = new Interface(atlasAbi);
     this.operationRelay = new OperationRelay(relayApiEndpoint);
-    this.sorter = new Sorter(browserProvider, chainId);
-    this.dApp = new DApp(browserProvider, chainId);
+    this.operationBuilder = new OperationBuilder(this.provider, chainId);
+    this.sorter = new Sorter(this.provider, chainId);
+    this.dApp = new DApp(this.provider, chainId);
+  }
+
+  /**
+   * Builds a user operation without the 'sessionKey' and 'signature' fields.
+   * @param userOperationParams the parameters to build the user operation
+   * @returns an unsigned user operation
+   */
+  public async buildUserOperation(
+    userOperationParams: UserOperationParams
+  ): Promise<UserOperation> {
+    const userOp = await this.operationBuilder.buildUserOperation(
+      userOperationParams
+    );
+    OperationBuilder.validateUserOperation(userOp, false, false);
+    return userOp;
   }
 
   /**
@@ -52,7 +72,27 @@ export class AtlasSDK extends OperationBuilder {
   public generateSessionKey(userOp: UserOperation): UserOperation {
     const sessionAccount = Wallet.createRandom();
     userOp.sessionKey = sessionAccount.address;
+    OperationBuilder.validateUserOperation(userOp, true, false);
     this.sessionKeys.set(sessionAccount.address, sessionAccount);
+    return userOp;
+  }
+
+  /**
+   * Prompt the user to sign their operation.
+   * @param userOp a user operation
+   * @returns the user operation with a valid signature field
+   */
+  public async signUserOperation(
+    userOp: UserOperation
+  ): Promise<UserOperation> {
+    OperationBuilder.validateUserOperation(userOp, true, false);
+
+    userOp.signature = await this.provider.send("eth_signTypedData_v4", [
+      userOp.from,
+      JSON.stringify(userOp),
+    ]);
+
+    OperationBuilder.validateUserOperation(userOp);
     return userOp;
   }
 
@@ -64,9 +104,7 @@ export class AtlasSDK extends OperationBuilder {
   public async submitUserOperation(
     userOp: UserOperation
   ): Promise<SolverOperation[]> {
-    if (!isAddress(userOp.sessionKey)) {
-      throw new Error("User operation has an invalid session key");
-    }
+    OperationBuilder.validateUserOperation(userOp);
 
     if (!this.sessionKeys.has(userOp.sessionKey)) {
       throw new Error("Session key not found");
@@ -81,6 +119,7 @@ export class AtlasSDK extends OperationBuilder {
       );
     }
 
+    OperationBuilder.validateSolverOperations(solverOps);
     return solverOps;
   }
 
@@ -93,6 +132,9 @@ export class AtlasSDK extends OperationBuilder {
     userOp: UserOperation,
     solverOps: SolverOperation[]
   ): Promise<SolverOperation[]> {
+    OperationBuilder.validateUserOperation(userOp);
+    OperationBuilder.validateSolverOperations(solverOps);
+
     const sortedSolverOps = await this.sorter.sortSolverOperations(
       userOp,
       solverOps
@@ -104,6 +146,7 @@ export class AtlasSDK extends OperationBuilder {
       );
     }
 
+    OperationBuilder.validateSolverOperations(sortedSolverOps);
     return sortedSolverOps;
   }
 
@@ -117,9 +160,8 @@ export class AtlasSDK extends OperationBuilder {
     userOp: UserOperation,
     solverOps: SolverOperation[]
   ): Promise<DAppOperation> {
-    if (!userOp.sessionKey) {
-      throw new Error("User operation is missing a session key");
-    }
+    OperationBuilder.validateUserOperation(userOp);
+    OperationBuilder.validateSolverOperations(solverOps);
 
     const sessionAccount = this.sessionKeys.get(userOp.sessionKey);
     if (!sessionAccount) {
@@ -139,6 +181,7 @@ export class AtlasSDK extends OperationBuilder {
       sessionAccount
     );
 
+    OperationBuilder.validateDAppOperation(dAppOp);
     return dAppOp;
   }
 
@@ -154,6 +197,10 @@ export class AtlasSDK extends OperationBuilder {
     solverOps: SolverOperation[],
     dAppOp: DAppOperation
   ): string {
+    OperationBuilder.validateUserOperation(userOp);
+    OperationBuilder.validateSolverOperations(solverOps);
+    OperationBuilder.validateDAppOperation(dAppOp);
+
     return this.iAtlas.encodeFunctionData("metacall", [
       userOp,
       solverOps,
@@ -173,6 +220,10 @@ export class AtlasSDK extends OperationBuilder {
     solverOps: SolverOperation[],
     dAppOp: DAppOperation
   ): Promise<string> {
+    OperationBuilder.validateUserOperation(userOp);
+    OperationBuilder.validateSolverOperations(solverOps);
+    OperationBuilder.validateDAppOperation(dAppOp);
+
     if (userOp.sessionKey !== dAppOp.from) {
       throw new Error(
         "User operation session key does not match dApp operation"
@@ -189,16 +240,27 @@ export class AtlasSDK extends OperationBuilder {
   }
 
   /**
-   * Creates an Atlas transaction from a user operation.
-   * @param userOp a signed user operation
+   * Creates an Atlas transaction.
+   * @param userOperationParams the parameters to build the user operation
    * @param isBundlerLocal a boolean indicating if the bundler is local
    * @returns the encoded calldata for metacall if isBundlerLocal is true,
    * the hash of the resulting Atlas transaction otherwise
    */
   public async createAtlasTransaction(
-    userOp: UserOperation,
+    userOperationParams: UserOperationParams,
     isBundlerLocal: boolean = false
   ): Promise<string> {
+    // Build the user operation
+    let userOp: UserOperation = await this.buildUserOperation(
+      userOperationParams
+    );
+
+    // Generate a unique session key for this user operation
+    userOp = this.generateSessionKey(userOp);
+
+    // Prompt the user to sign their operation
+    userOp = await this.signUserOperation(userOp);
+
     // Submit the user operation to the relay
     const solverOps: SolverOperation[] = await this.submitUserOperation(userOp);
 
@@ -213,11 +275,7 @@ export class AtlasSDK extends OperationBuilder {
 
     if (isBundlerLocal) {
       // Return metacall's calldata only, for local bundling
-      return this.iAtlas.encodeFunctionData("metacall", [
-        userOp,
-        sortedSolverOps,
-        dAppOp,
-      ]);
+      return this.getMetacallCalldata(userOp, sortedSolverOps, dAppOp);
     }
 
     // Submit all operations to the relay for bundling
