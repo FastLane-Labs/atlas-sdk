@@ -59,7 +59,7 @@ export class OperationBuilder {
       value: userOperationParams.value,
       gas: userOperationParams.gas,
       maxFeePerGas: userOperationParams.maxFeePerGas,
-      nonce: nonce.toString(),
+      nonce: `0x${nonce.toString(16)}`,
       deadline: userOperationParams.deadline,
       dapp: userOperationParams.destination,
       control: userOperationParams.dAppControl,
@@ -177,7 +177,7 @@ export class OperationBuilder {
         `UserOperation: 'control' is not a valid address (${userOp.control})`
       );
     }
-    if (!checkSessionKey || !validateAddress(userOp.sessionKey)) {
+    if (checkSessionKey && !validateAddress(userOp.sessionKey)) {
       throw new Error(
         `UserOperation: 'sessionKey' is not a valid address (${userOp.sessionKey})`
       );
@@ -187,7 +187,7 @@ export class OperationBuilder {
         `UserOperation: 'data' is not a valid bytes (${userOp.data})`
       );
     }
-    if (!checkSignature || !validateBytes(userOp.signature)) {
+    if (checkSignature && !validateBytes(userOp.signature)) {
       throw new Error(
         `UserOperation: 'signature' is not a valid bytes (${userOp.signature})`
       );

@@ -1,4 +1,4 @@
-import { ZeroAddress } from "ethers";
+import { ZeroAddress, zeroPadBytes } from "ethers";
 import {
   UserOperation,
   SolverOperation,
@@ -13,16 +13,16 @@ export function generateUserOperation(): UserOperation {
   return {
     from: ZeroAddress,
     to: ZeroAddress,
-    value: "0",
-    gas: "0",
-    maxFeePerGas: "0",
-    nonce: "0",
-    deadline: "0",
+    value: "0x0",
+    gas: "0x0",
+    maxFeePerGas: "0x0",
+    nonce: "0x0",
+    deadline: "0x0",
     dapp: ZeroAddress,
     control: ZeroAddress,
     sessionKey: "",
-    data: "",
-    signature: "",
+    data: "0x1234",
+    signature: "0x0",
   };
 }
 
@@ -34,17 +34,17 @@ export function generateSolverOperation(): SolverOperation {
   return {
     from: ZeroAddress,
     to: ZeroAddress,
-    value: "0",
-    gas: "0",
-    maxFeePerGas: "0",
-    deadline: "0",
+    value: "0x0",
+    gas: "0x0",
+    maxFeePerGas: "0x0",
+    deadline: "0x0",
     solver: ZeroAddress,
     control: ZeroAddress,
-    userOpHash: "",
+    userOpHash: zeroPadBytes("0x", 32),
     bidToken: ZeroAddress,
-    bidAmount: "0",
-    data: "",
-    signature: "",
+    bidAmount: "0x0",
+    data: "0x0",
+    signature: "0x0",
   };
 }
 
@@ -56,15 +56,15 @@ export function generateDAppOperation(): DAppOperation {
   return {
     from: ZeroAddress,
     to: ZeroAddress,
-    value: "0",
-    gas: "0",
-    maxFeePerGas: "0",
-    nonce: "0",
-    deadline: "0",
+    value: "0x0",
+    gas: "0x0",
+    maxFeePerGas: "0x0",
+    nonce: "0x0",
+    deadline: "0x0",
     control: ZeroAddress,
     bundler: ZeroAddress,
-    userOpHash: "",
-    callChainHash: "",
-    signature: "",
+    userOpHash: zeroPadBytes("0x", 32),
+    callChainHash: zeroPadBytes("0x", 32),
+    signature: "0x0",
   };
 }

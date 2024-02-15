@@ -16,17 +16,17 @@ const RPCService = {
      * This is a mock implementation of the submitUserOperation method.
      * the "data" field of the user operation holds information about the
      * desired result returned (for testing purposes only).
-     * The "data" field is a stringified JSON object formatted as:
-     * { "test": "submitUserOperation", "solverOps": { "total": 5, "valid: 3" } }
+     * The first byte of the "data" field represent the number of solver operations
+     * to be returned. The second byte represents the number of valid solver operations
+     * to be returned.
      */
 
+    const totalSolverOps = parseInt(userOp.data.slice(2, 4), 16);
+    const validSolverOps = parseInt(userOp.data.slice(4, 6), 16);
     let solverOps: SolverOperation[] = [];
-    const data = JSON.parse(userOp.data);
 
-    if (data.test === "submitUserOperation") {
-      for (let i = 0; i < data.solverOps.total; i++) {
-        solverOps.push(generateSolverOperation());
-      }
+    for (let i = 0; i < totalSolverOps; i++) {
+      solverOps.push(generateSolverOperation());
     }
 
     return solverOps;
@@ -41,12 +41,12 @@ const RPCService = {
      * This is a mock implementation of the submitAllOperations method.
      * The "data" field of the user operation holds information about the
      * desired result returned (for testing purposes only).
-     * The "data" field is a stringified JSON object formatted as:
-     * { "test": "submitAllOperations", "result": "true/false" }
+     * The first byte of the "data" field represents a boolean that determines
+     * if the operation relay should return a hash or should throw an error.
      */
 
-    const data = JSON.parse(userOp.data);
-    if (data.test === "submitAllOperations" && !data.result) {
+    const success = userOp.data.slice(2, 4) === "01";
+    if (!success) {
       throw new Error("Operation relay error");
     }
 
