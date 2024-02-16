@@ -1,45 +1,56 @@
+export type UserOperationParams = {
+  from: string; // address
+  destination: string; // address
+  gas: string; // uint256
+  maxFeePerGas: string; // uint256
+  value: string; // uint256
+  deadline: string; // uint256
+  data: string; // bytes
+  dAppControl: string; // address
+};
+
 export type UserOperation = {
-  from: string;
-  to: string;
-  value: string;
-  gas: string;
-  maxFeePerGas: string;
-  nonce: string;
-  deadline: string;
-  dapp: string;
-  control: string;
-  sessionKey: string;
-  data: string;
-  signature: string;
+  from: string; // address
+  to: string; // address
+  value: string; // uint256
+  gas: string; // uint256
+  maxFeePerGas: string; // uint256
+  nonce: string; // uint256
+  deadline: string; // uint256
+  dapp: string; // address
+  control: string; // address
+  sessionKey: string; // address
+  data: string; // bytes
+  signature: string; // bytes
 };
 
 export type SolverOperation = {
-  from: string;
-  to: string;
-  value: string;
-  gas: string;
-  maxFeePerGas: string;
-  deadline: string;
-  solver: string;
-  control: string;
-  userOpHash: string;
-  bidToken: string;
-  bidAmount: string;
-  data: string;
-  signature: string;
+  from: string; // address
+  to: string; // address
+  value: string; // uint256
+  gas: string; // uint256
+  maxFeePerGas: string; // uint256
+  deadline: string; // uint256
+  solver: string; // address
+  control: string; // address
+  userOpHash: string; // bytes32
+  bidToken: string; // address
+  bidAmount: string; // uint256
+  data: string; // bytes
+  signature: string; // bytes
 };
 
 export type DAppOperation = {
-  from: string;
-  to: string;
-  value: string;
-  gas: string;
-  maxFeePerGas: string;
-  nonce: string;
-  deadline: string;
-  control: string;
-  bundler: string;
-  userOpHash: string;
-  callChainHash: string;
-  signature: string;
+  from: string; // address
+  to: string; // address
+  value: string; // uint256
+  gas: string; // uint256
+  maxFeePerGas: string; // uint256
+  nonce: string; // uint256
+  deadline: string; // uint256
+  control: string; // address
+  bundler: string; // address
+  userOpHash: string; // bytes32
+  callChainHash: string; // bytes32
+  signature: string; // bytes
 };

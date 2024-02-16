@@ -1,21 +1,27 @@
-import { BrowserProvider, ZeroAddress, isAddress } from "ethers";
+import { ZeroAddress, isAddress } from "ethers";
 import { HttpProvider } from "web3-providers-http";
 import { AtlasSDK } from "../src/index";
-import { MockOperationRelay } from "./mockOperationRelay";
+import { SolverOperation } from "../src/operation";
 import { atlasAddress } from "../src/address";
-import { generateUserOperation } from "./utils";
+import { MockOperationRelay, randomHash } from "./mockOperationRelay";
+import {
+  generateUserOperation,
+  generateSolverOperation,
+  generateDAppOperation,
+} from "./utils";
 import dotenv from "dotenv";
 
 dotenv.config();
 
 describe("Atlas SDK tests", () => {
+  const chainId = Number(process.env.CHAIN_ID!);
   const provider = new HttpProvider(process.env.PROVIDER_RPC_URL!);
   const portListen = 3000;
   const opsRelay = MockOperationRelay.create(portListen);
   const atlasSDK = new AtlasSDK(
     `http://127.0.0.1:${portListen}`,
     provider,
-    Number(process.env.CHAIN_ID!)
+    chainId
   );
 
   afterAll(() => {
@@ -28,22 +34,21 @@ describe("Atlas SDK tests", () => {
     const userOp = await atlasSDK.buildUserOperation({
       from: ZeroAddress,
       destination: ZeroAddress,
-      gas: "1",
-      maxFeePerGas: "2",
-      value: "3",
-      deadline: "4",
+      gas: "0x1",
+      maxFeePerGas: "0x2",
+      value: "0x3",
+      deadline: "0x4",
       data: "0x1234",
       dAppControl: mockDappControlAddress,
     });
 
-    expect(userOp).toBeDefined();
     expect(userOp.from).toBe(ZeroAddress);
-    expect(userOp.to).toBe(atlasAddress[Number(process.env.CHAIN_ID!)]);
-    expect(userOp.value).toBe("3");
-    expect(userOp.gas).toBe("1");
-    expect(userOp.maxFeePerGas).toBe("2");
-    expect(userOp.nonce).toBe("1");
-    expect(userOp.deadline).toBe("4");
+    expect(userOp.to).toBe(atlasAddress[chainId]);
+    expect(userOp.value).toBe("0x3");
+    expect(userOp.gas).toBe("0x1");
+    expect(userOp.maxFeePerGas).toBe("0x2");
+    expect(userOp.nonce).toBe("0x1");
+    expect(userOp.deadline).toBe("0x4");
     expect(userOp.dapp).toBe(ZeroAddress);
     expect(userOp.control).toBe(mockDappControlAddress);
     expect(userOp.sessionKey).toBe("");
@@ -69,7 +74,7 @@ describe("Atlas SDK tests", () => {
 
     // No session key generated
     await expect(atlasSDK.submitUserOperation(userOp)).rejects.toThrow(
-      "User operation has an invalid session key"
+      "UserOperation: 'sessionKey' is not a valid address ()"
     );
 
     // Session key not found
@@ -82,19 +87,13 @@ describe("Atlas SDK tests", () => {
     userOp = atlasSDK.generateSessionKey(userOp);
 
     // No solver operations returned
-    userOp.data = JSON.stringify({
-      test: "submitUserOperation",
-      solverOps: { total: 0, valid: 0 },
-    });
+    userOp.data = "0x0000";
     await expect(atlasSDK.submitUserOperation(userOp)).rejects.toThrow(
       "No solver operations were returned by the operation relay"
     );
 
     // 3 solver operations returned
-    userOp.data = JSON.stringify({
-      test: "submitUserOperation",
-      solverOps: { total: 3, valid: 3 },
-    });
+    userOp.data = "0x0303";
     const solverOps = await atlasSDK.submitUserOperation(userOp);
     expect(solverOps.length).toBe(3);
   });
@@ -120,7 +119,31 @@ describe("Atlas SDK tests", () => {
   });
 
   test("submitAllOperations", async () => {
-    // TODO
+    const userOp = atlasSDK.generateSessionKey(generateUserOperation());
+    let solverOps: SolverOperation[] = [];
+    solverOps.push(generateSolverOperation());
+    let dAppOp = generateDAppOperation();
+
+    // Session key does not match
+    await expect(
+      atlasSDK.submitAllOperations(userOp, solverOps, dAppOp)
+    ).rejects.toThrow(
+      "User operation session key does not match dApp operation"
+    );
+
+    dAppOp.from = userOp.sessionKey;
+
+    // Operation relay error
+    userOp.data = "0x00";
+    await expect(
+      atlasSDK.submitAllOperations(userOp, solverOps, dAppOp)
+    ).rejects.toThrow("Operation relay error");
+
+    // Atlas transaction hash returned
+    userOp.data = "0x01";
+    expect(await atlasSDK.submitAllOperations(userOp, solverOps, dAppOp)).toBe(
+      randomHash
+    );
   });
 
   test("createAtlasTransaction", async () => {

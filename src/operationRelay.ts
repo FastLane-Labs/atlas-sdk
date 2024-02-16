@@ -1,4 +1,4 @@
-import { rpcClient } from "typed-rpc";
+import { rpcClient, RpcError } from "typed-rpc";
 import { UserOperation, SolverOperation, DAppOperation } from "./operation";
 
 /**
@@ -46,9 +46,17 @@ export class OperationRelay {
       );
     }, this.timeout);
 
-    const solverOps: SolverOperation[] = await res;
-    clearTimeout(timeoutId);
+    let solverOps: SolverOperation[];
+    try {
+      solverOps = await res;
+    } catch (err) {
+      if (err instanceof RpcError) {
+        throw new Error(err.message);
+      }
+      throw err;
+    }
 
+    clearTimeout(timeoutId);
     return solverOps;
   }
 
@@ -77,9 +85,17 @@ export class OperationRelay {
       );
     }, this.timeout);
 
-    const atlasTxHash: string = await res;
-    clearTimeout(timeoutId);
+    let atlasTxHash: string;
+    try {
+      atlasTxHash = await res;
+    } catch (err) {
+      if (err instanceof RpcError) {
+        throw new Error(err.message);
+      }
+      throw err;
+    }
 
+    clearTimeout(timeoutId);
     return atlasTxHash;
   }
 }
