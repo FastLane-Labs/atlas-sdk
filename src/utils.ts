@@ -1,4 +1,4 @@
-import { isAddress } from "ethers";
+import { isAddress, AbiCoder } from "ethers";
 
 export function validateAddress(address: string): boolean {
   // isAddress returns true for ICAP addresses, add a length check to exclude them
@@ -6,7 +6,13 @@ export function validateAddress(address: string): boolean {
 }
 
 export function validateUint256(value: string): boolean {
-  return /^0x[0-9a-f]{1,64}$/.test(value);
+  try {
+    const num = BigInt(value);
+    return num >= 0 && num <= 2n ** 256n - 1n;
+  } catch (e) {
+    console.log(e);
+    return false;
+  }
 }
 
 export function validateBytes32(value: string): boolean {

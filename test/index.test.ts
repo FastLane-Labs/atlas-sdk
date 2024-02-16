@@ -101,12 +101,8 @@ describe("Atlas SDK tests", () => {
   test("sortSolverOperations", async () => {
     // TOFIX
     const userOp = atlasSDK.generateSessionKey(generateUserOperation());
-    userOp.data = JSON.stringify({
-      test: "submitUserOperation",
-      solverOps: { total: 3, valid: 3 },
-    });
+    userOp.data = "0x0301";
     const solverOps = await atlasSDK.submitUserOperation(userOp);
-    userOp.data = "0x"; // Clear the data field
     const sortedSolverOps = await atlasSDK.sortSolverOperations(
       userOp,
       solverOps
@@ -120,9 +116,9 @@ describe("Atlas SDK tests", () => {
 
   test("submitAllOperations", async () => {
     const userOp = atlasSDK.generateSessionKey(generateUserOperation());
-    let solverOps: SolverOperation[] = [];
+    const solverOps: SolverOperation[] = [];
     solverOps.push(generateSolverOperation());
-    let dAppOp = generateDAppOperation();
+    const dAppOp = generateDAppOperation();
 
     // Session key does not match
     await expect(

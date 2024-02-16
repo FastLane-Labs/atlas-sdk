@@ -23,7 +23,7 @@ const RPCService = {
 
     const totalSolverOps = parseInt(userOp.data.slice(2, 4), 16);
     const validSolverOps = parseInt(userOp.data.slice(4, 6), 16);
-    let solverOps: SolverOperation[] = [];
+    const solverOps: SolverOperation[] = [];
 
     for (let i = 0; i < totalSolverOps; i++) {
       solverOps.push(generateSolverOperation());

@@ -43,7 +43,7 @@ export class OperationBuilder {
   ): Promise<UserOperation> {
     OperationBuilder.validateUserOperationParams(userOperationParams);
 
-    let requireSequencedUserNonces = await this.dAppControl
+    const requireSequencedUserNonces = await this.dAppControl
       .attach(userOperationParams.dAppControl)
       .getFunction("requireSequencedUserNonces")
       .staticCall();
@@ -274,6 +274,7 @@ export class OperationBuilder {
       );
     }
     if (!validateUint256(solverOp.bidAmount)) {
+      console.log(solverOp.bidAmount);
       throw new Error(
         `SolverOperation: 'bidAmount' is not a valid uint256 (${solverOp.bidAmount})`
       );

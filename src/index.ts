@@ -135,6 +135,8 @@ export class AtlasSDK {
     OperationBuilder.validateUserOperation(userOp);
     OperationBuilder.validateSolverOperations(solverOps);
 
+    console.log(userOp, solverOps);
+
     const sortedSolverOps = await this.sorter.sortSolverOperations(
       userOp,
       solverOps
