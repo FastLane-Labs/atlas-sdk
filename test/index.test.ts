@@ -119,9 +119,9 @@ describe("Atlas SDK tests", () => {
 
   test("submitAllOperations", async () => {
     const userOp = atlasSDK.generateSessionKey(generateUserOperation());
-    let solverOps: SolverOperation[] = [];
+    const solverOps: SolverOperation[] = [];
     solverOps.push(generateSolverOperation());
-    let dAppOp = generateDAppOperation();
+    const dAppOp = generateDAppOperation();
 
     // Session key does not match
     await expect(
