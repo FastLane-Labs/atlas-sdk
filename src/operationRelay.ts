@@ -4,30 +4,6 @@ import * as url from "url";
 
 const BASE_PATH = "/".replace(/\/+$/, "");
 
-export interface ConfigurationParameters {
-  apiKey?: string | ((name: string) => string);
-  username?: string;
-  password?: string;
-  accessToken?: string | ((name: string, scopes?: string[]) => string);
-  basePath?: string;
-}
-
-export class Configuration {
-  apiKey?: string | ((name: string) => string);
-  username?: string;
-  password?: string;
-  accessToken?: string | ((name: string, scopes?: string[]) => string);
-  basePath?: string;
-
-  constructor(param: ConfigurationParameters = {}) {
-    this.apiKey = param.apiKey;
-    this.username = param.username;
-    this.password = param.password;
-    this.accessToken = param.accessToken;
-    this.basePath = param.basePath;
-  }
-}
-
 export interface FetchAPI {
   (url: string, init?: any): Promise<Response>;
 }
@@ -268,14 +244,8 @@ export const DAppApiFp = function() {
 
 
 export class OperationsRelay {
-  protected configuration!: Configuration;
 
-  constructor(configuration?: Configuration, protected basePath: string = BASE_PATH, protected fetch: FetchAPI = isomorphicFetch) {
-    if (configuration) {
-      this.configuration = configuration;
-      this.basePath = configuration.basePath || this.basePath;
-    }
-  }
+  constructor(protected basePath: string = BASE_PATH, protected fetch: FetchAPI = isomorphicFetch) {}
 
   /**
    * Get the Atlas transaction hash from a previously submitted bundle
@@ -287,7 +257,7 @@ export class OperationsRelay {
    * @memberof DAppApi
    */
   public getBundleHash(userOpHash: any, wait?: any, options?: any) {
-    return DAppApiFp(this.configuration).getBundleHash(userOpHash, wait, options)(this.fetch, this.basePath);
+    return DAppApiFp().getBundleHash(userOpHash, wait, options)(this.fetch, this.basePath);
   }
 
   /**
@@ -300,7 +270,7 @@ export class OperationsRelay {
    * @memberof DAppApi
    */
   public solverOperations(userOpHash: any, wait?: any, options?: any) {
-    return DAppApiFp(this.configuration).solverOperations(userOpHash, wait, options)(this.fetch, this.basePath);
+    return DAppApiFp().solverOperations(userOpHash, wait, options)(this.fetch, this.basePath);
   }
 
   /**
@@ -312,7 +282,7 @@ export class OperationsRelay {
    * @memberof DAppApi
    */
   public submitAllOperations(body?: Bundle, options?: any) {
-    return DAppApiFp(this.configuration).submitAllOperations(body, options)(this.fetch, this.basePath);
+    return DAppApiFp().submitAllOperations(body, options)(this.fetch, this.basePath);
   }
 
   /**
@@ -324,7 +294,7 @@ export class OperationsRelay {
    * @memberof DAppApi
    */
   public submitUserOperation(body?: UserOperation, options?: any) {
-    return DAppApiFp(this.configuration).submitUserOperation(body, options)(this.fetch, this.basePath);
+    return DAppApiFp().submitUserOperation(body, options)(this.fetch, this.basePath);
   }
 
 }
