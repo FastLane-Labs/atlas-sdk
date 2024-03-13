@@ -155,10 +155,6 @@ export const DAppApiFetchParamCreator = function () {
   };
 };
 
-/**
-* DAppApi - functional programming interface
-* @export
-*/
 export const DAppApiFp = function() {
   return {
     /**
