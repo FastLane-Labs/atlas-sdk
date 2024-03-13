@@ -1,4 +1,4 @@
-import { UserOperation, SolverOperation, DAppOperation } from "./operation";
+import { UserOperation, SolverOperations, Bundle } from "./operation";
 import isomorphicFetch from "isomorphic-fetch";
 import * as url from "url";
 
@@ -13,39 +13,10 @@ export interface ConfigurationParameters {
 }
 
 export class Configuration {
-  /**
-   * parameter for apiKey security
-   * @param name security name
-   * @memberof Configuration
-   */
   apiKey?: string | ((name: string) => string);
-  /**
-   * parameter for basic security
-   * 
-   * @type {string}
-   * @memberof Configuration
-   */
   username?: string;
-  /**
-   * parameter for basic security
-   * 
-   * @type {string}
-   * @memberof Configuration
-   */
   password?: string;
-  /**
-   * parameter for oauth2 security
-   * @param name security name
-   * @param scopes oauth2 scope
-   * @memberof Configuration
-   */
   accessToken?: string | ((name: string, scopes?: string[]) => string);
-  /**
-   * override base path
-   * 
-   * @type {string}
-   * @memberof Configuration
-   */
   basePath?: string;
 
   constructor(param: ConfigurationParameters = {}) {
@@ -73,7 +44,7 @@ export class RequiredError extends Error {
   }
 }
 
-export const DAppApiFetchParamCreator = function (configuration?: Configuration) {
+export const DAppApiFetchParamCreator = function () {
   return {
     /**
        * Get the Atlas transaction hash from a previously submitted bundle
@@ -212,7 +183,7 @@ export const DAppApiFetchParamCreator = function (configuration?: Configuration)
 * DAppApi - functional programming interface
 * @export
 */
-export const DAppApiFp = function(configuration?: Configuration) {
+export const DAppApiFp = function() {
   return {
     /**
        * Get the Atlas transaction hash from a previously submitted bundle
@@ -223,7 +194,7 @@ export const DAppApiFp = function(configuration?: Configuration) {
        * @throws {RequiredError}
        */
     getBundleHash(userOpHash: any, wait?: any, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<any> {
-      const localVarFetchArgs = DAppApiFetchParamCreator(configuration).getBundleHash(userOpHash, wait, options);
+      const localVarFetchArgs = DAppApiFetchParamCreator().getBundleHash(userOpHash, wait, options);
       return (fetch: FetchAPI = isomorphicFetch, basePath: string = BASE_PATH) => {
         return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
           if (response.status >= 200 && response.status < 300) {
@@ -242,8 +213,8 @@ export const DAppApiFp = function(configuration?: Configuration) {
        * @param {*} [options] Override http request option.
        * @throws {RequiredError}
        */
-    solverOperations(userOpHash: any, wait?: any, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<SolverOperation[]> {
-      const localVarFetchArgs = DAppApiFetchParamCreator(configuration).solverOperations(userOpHash, wait, options);
+    solverOperations(userOpHash: any, wait?: any, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<SolverOperations> {
+      const localVarFetchArgs = DAppApiFetchParamCreator().solverOperations(userOpHash, wait, options);
       return (fetch: FetchAPI = isomorphicFetch, basePath: string = BASE_PATH) => {
         return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
           if (response.status >= 200 && response.status < 300) {
@@ -262,7 +233,7 @@ export const DAppApiFp = function(configuration?: Configuration) {
        * @throws {RequiredError}
        */
     submitAllOperations(body?: Bundle, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<any> {
-      const localVarFetchArgs = DAppApiFetchParamCreator(configuration).submitAllOperations(body, options);
+      const localVarFetchArgs = DAppApiFetchParamCreator().submitAllOperations(body, options);
       return (fetch: FetchAPI = isomorphicFetch, basePath: string = BASE_PATH) => {
         return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
           if (response.status >= 200 && response.status < 300) {
@@ -281,7 +252,7 @@ export const DAppApiFp = function(configuration?: Configuration) {
        * @throws {RequiredError}
        */
     submitUserOperation(body?: UserOperation, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<any> {
-      const localVarFetchArgs = DAppApiFetchParamCreator(configuration).submitUserOperation(body, options);
+      const localVarFetchArgs = DAppApiFetchParamCreator().submitUserOperation(body, options);
       return (fetch: FetchAPI = isomorphicFetch, basePath: string = BASE_PATH) => {
         return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
           if (response.status >= 200 && response.status < 300) {

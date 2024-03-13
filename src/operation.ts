@@ -40,6 +40,8 @@ export type SolverOperation = {
   signature: string; // bytes
 };
 
+export type SolverOperations = SolverOperation[]
+
 export type DAppOperation = {
   from: string; // address
   to: string; // address
@@ -53,3 +55,9 @@ export type DAppOperation = {
   callChainHash: string; // bytes32
   signature: string; // bytes
 };
+
+export interface Bundle {
+  userOperation: UserOperation;
+  solverOperations: SolverOperations;
+  dAppOperation: DAppOperation;
+}
