@@ -16,17 +16,12 @@ dotenv.config();
 describe("Atlas SDK tests", () => {
   const chainId = Number(process.env.CHAIN_ID!);
   const provider = new HttpProvider(process.env.PROVIDER_RPC_URL!);
-  const portListen = 3000;
-  const opsRelay = MockOperationRelay.create(portListen);
+  const portListen = 8080;
   const atlasSDK = new AtlasSDK(
     `http://127.0.0.1:${portListen}`,
     provider,
     chainId
   );
-
-  afterAll(() => {
-    opsRelay.close();
-  });
 
   test("buildUserOperation", async () => {
     const mockDappControlAddress = "0xc97dBFFA4b73ff6a6c1C08C61D51F05301581bfC";

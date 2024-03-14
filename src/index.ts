@@ -3,11 +3,10 @@ import {
   Wallet,
   HDNodeWallet,
   Interface,
-  isAddress,
 } from "ethers";
 import { BProvider } from "./bProvider";
 import { OperationBuilder } from "./operationBuilder";
-import { OperationRelay } from "./operationRelay";
+import { OperationsRelay } from "./operationRelay";
 import { Sorter } from "./sorter";
 import { DApp } from "./dApp";
 import {
@@ -24,7 +23,7 @@ import atlasAbi from "./abi/Atlas.json";
 export class AtlasSDK {
   private provider: BProvider;
   private iAtlas: Interface;
-  private operationRelay: OperationRelay;
+  private operationRelay: OperationsRelay;
   private operationBuilder: OperationBuilder;
   private sorter: Sorter;
   private dApp: DApp;
@@ -43,7 +42,7 @@ export class AtlasSDK {
   ) {
     this.provider = new BProvider(provider, chainId);
     this.iAtlas = new Interface(atlasAbi);
-    this.operationRelay = new OperationRelay(relayApiEndpoint);
+    this.operationRelay = new OperationsRelay(relayApiEndpoint);
     this.operationBuilder = new OperationBuilder(this.provider, chainId);
     this.sorter = new Sorter(this.provider, chainId);
     this.dApp = new DApp(this.provider, chainId);
@@ -113,6 +112,7 @@ export class AtlasSDK {
     // Submit the user operation to the relay
     const solverOps: SolverOperation[] =
       await this.operationRelay.submitUserOperation(userOp);
+    console.log("returned data", solverOps);
     if (solverOps.length === 0) {
       throw new Error(
         "No solver operations were returned by the operation relay"
@@ -230,11 +230,11 @@ export class AtlasSDK {
       );
     }
 
-    const atlasTxHash: string = await this.operationRelay.submitAllOperations(
-      userOp,
-      solverOps,
-      dAppOp
-    );
+    const atlasTxHash: string = await this.operationRelay.submitAllOperations({
+      userOperation: userOp,
+      solverOperations: solverOps,
+      dAppOperation: dAppOp,
+    });
 
     return atlasTxHash;
   }
