@@ -1,4 +1,5 @@
 import { UserOperation, Bundle } from "./operation";
+import { toQuantity } from "ethers";
 import isomorphicFetch from "isomorphic-fetch";
 import * as url from "url";
 
@@ -117,7 +118,7 @@ export const DAppApiFetchParamCreator = function () {
       localVarUrlObj.search = null;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
       const needsSerialization = (<any>"Bundle" !== "string") || localVarRequestOptions.headers["Content-Type"] === "application/json";
-      localVarRequestOptions.body =  needsSerialization ? JSON.stringify(body || {}) : (body || "");
+      localVarRequestOptions.body =  needsSerialization ? JSON.stringify(body || {}, (_, v) => typeof v === "bigint" ? toQuantity(v) : v) : (body || "");
 
       return {
         url: url.format(localVarUrlObj),
@@ -145,7 +146,7 @@ export const DAppApiFetchParamCreator = function () {
       localVarUrlObj.search = null;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
       const needsSerialization = (<any>"UserOperation" !== "string") || localVarRequestOptions.headers["Content-Type"] === "application/json";
-      localVarRequestOptions.body =  needsSerialization ? JSON.stringify(body || {}) : (body || "");
+      localVarRequestOptions.body = needsSerialization ? JSON.stringify(body || {}, (_, v) => typeof v === "bigint" ? toQuantity(v) : v) : (body || "");
 
       return {
         url: url.format(localVarUrlObj),
