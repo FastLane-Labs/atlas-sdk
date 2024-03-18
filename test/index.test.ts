@@ -3,7 +3,7 @@ import { HttpProvider } from "web3-providers-http";
 import { AtlasSDK } from "../src/index";
 import { SolverOperation } from "../src/operation";
 import { atlasAddress } from "../src/address";
-import { MockOperationRelay, randomHash } from "./mockOperationRelay";
+import { randomHash } from "./mockOperationRelay";
 import {
   generateUserOperation,
   generateSolverOperation,
@@ -29,10 +29,10 @@ describe("Atlas SDK tests", () => {
     const userOp = await atlasSDK.buildUserOperation({
       from: ZeroAddress,
       destination: ZeroAddress,
-      gas: "0x1",
-      maxFeePerGas: "0x2",
-      value: "0x3",
-      deadline: "0x4",
+      gas: 1n,
+      maxFeePerGas: 2n,
+      value: 3n,
+      deadline: 4n,
       data: "0x1234",
       dAppControl: mockDappControlAddress,
     });

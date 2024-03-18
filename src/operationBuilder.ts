@@ -59,7 +59,7 @@ export class OperationBuilder {
       value: userOperationParams.value,
       gas: userOperationParams.gas,
       maxFeePerGas: userOperationParams.maxFeePerGas,
-      nonce: `0x${nonce.toString(16)}`,
+      nonce: nonce,
       deadline: userOperationParams.deadline,
       dapp: userOperationParams.destination,
       control: userOperationParams.dAppControl,

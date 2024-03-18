@@ -58,9 +58,9 @@ export class DApp {
     const dAppOp: DAppOperation = {
       from: sessionAccount.publicKey,
       to: atlasAddress[this.chainId],
-      value: "0",
-      gas: "0",
-      nonce: "0",
+      value: 0n,
+      gas: 0n,
+      nonce: 0n,
       deadline: userOp.deadline,
       control: userOp.control,
       bundler: ZeroAddress,
