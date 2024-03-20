@@ -12,12 +12,12 @@ import {
 export function generateUserOperation(): UserOperation {
   return {
     from: ZeroAddress,
-    to: ZeroAddress,
+    to: "0x590cBb439Bfb3C37ad6CcE12C92427B0358cB4Dd",
     value: 1n,
     gas: 1n,
     maxFeePerGas: 1n,
     nonce: 1n,
-    deadline: 1n,
+    deadline: BigInt(Math.floor(Date.now() / 1000 + 1000)),
     dapp: ZeroAddress,
     control: ZeroAddress,
     sessionKey: "",

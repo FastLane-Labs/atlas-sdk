@@ -173,9 +173,10 @@ export class OperationsRelay {
     const localVarFetchArgs = DAppApiFetchParamCreator().getBundleHash(userOpHash, wait, options);
     const response = await fetch(this.basePath + localVarFetchArgs.url, localVarFetchArgs.options);
     if (response.status >= 200 && response.status < 300) {
-      return response.json();
+      return await response.json();
     } else {
-      throw response;
+      const reponseBody = await response.json();
+      throw new Error(reponseBody.message);
     }
   }
 
@@ -192,9 +193,10 @@ export class OperationsRelay {
     const localVarFetchArgs = DAppApiFetchParamCreator().solverOperations(userOpHash, wait, options);
     const response = await fetch(this.basePath + localVarFetchArgs.url, localVarFetchArgs.options);
     if (response.status >= 200 && response.status < 300) {
-      return response.json();
+      return await response.json();
     } else {
-      throw response;
+      const reponseBody = await response.json();
+      throw new Error(reponseBody.message);
     }
   }
 
@@ -210,9 +212,10 @@ export class OperationsRelay {
     const localVarFetchArgs = DAppApiFetchParamCreator().submitAllOperations(body, options);
     const response = await fetch(this.basePath + localVarFetchArgs.url, localVarFetchArgs.options);
     if (response.status >= 200 && response.status < 300) {
-      return response.json();
+      return await response.json();
     } else {
-      throw response;
+      const reponseBody = await response.json();
+      throw new Error(reponseBody.message);
     }
   }
 
@@ -228,10 +231,12 @@ export class OperationsRelay {
     const localVarFetchArgs = DAppApiFetchParamCreator().submitUserOperation(body, options);
     const response = await fetch(this.basePath + localVarFetchArgs.url, localVarFetchArgs.options);
     if (response.status >= 200 && response.status < 300) {
-      return response.json();
+      return await response.json();
     } else {
       console.log("request error", this.basePath + localVarFetchArgs.url, localVarFetchArgs.options);
-      throw response;
+      const reponseBody = await response.json();
+      console.log("response", reponseBody, reponseBody.message);
+      throw new Error(reponseBody.message);
     }
   }
 
