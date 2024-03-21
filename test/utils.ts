@@ -58,7 +58,6 @@ export function generateDAppOperation(): DAppOperation {
     to: ZeroAddress,
     value: "0x0",
     gas: "0x0",
-    maxFeePerGas: "0x0",
     nonce: "0x0",
     deadline: "0x0",
     control: ZeroAddress,

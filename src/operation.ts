@@ -45,7 +45,6 @@ export type DAppOperation = {
   to: string; // address
   value: string; // uint256
   gas: string; // uint256
-  maxFeePerGas: string; // uint256
   nonce: string; // uint256
   deadline: string; // uint256
   control: string; // address

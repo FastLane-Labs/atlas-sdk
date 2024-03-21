@@ -5,17 +5,17 @@ import {
   ZeroAddress,
   AbiCoder,
   keccak256,
-  solidityPacked,
   toUtf8Bytes,
 } from "ethers";
 import { UserOperation, SolverOperation, DAppOperation } from "./operation";
 import { atlasAddress, atlasVerificationAddress } from "./address";
+import { abiEncodeUserOperation, getCallChainHash, signEip712 } from "./utils";
 import atlasVerificationAbi from "./abi/AtlasVerification.json";
 import dAppControlAbi from "./abi/DAppControl.json";
 
 const DAPP_TYPE_HASH = keccak256(
   toUtf8Bytes(
-    "DAppApproval(address from,address to,uint256 value,uint256 gas,uint256 maxFeePerGas,uint256 nonce,uint256 deadline,address control,address bundler,bytes32 userOpHash,bytes32 callChainHash)"
+    "DAppApproval(address from,address to,uint256 value,uint256 gas,uint256 nonce,uint256 deadline,address control,address bundler,bytes32 userOpHash,bytes32 callChainHash)"
   )
 );
 
@@ -26,7 +26,6 @@ export class DApp {
   private chainId: number;
   private atlasVerification: Contract;
   private dAppControl: Contract;
-  private abiCoder: AbiCoder;
 
   /**
    * Creates a new dApp.
@@ -40,7 +39,6 @@ export class DApp {
       provider
     );
     this.dAppControl = new Contract(ZeroAddress, dAppControlAbi, provider);
-    this.abiCoder = new AbiCoder();
   }
 
   /**
@@ -55,157 +53,32 @@ export class DApp {
     solverOps: SolverOperation[],
     sessionAccount: HDNodeWallet
   ): Promise<DAppOperation> {
-    const dAppOp: DAppOperation = {
-      from: sessionAccount.publicKey,
-      to: atlasAddress[this.chainId],
-      value: "0",
-      gas: "0",
-      maxFeePerGas: userOp.maxFeePerGas,
-      nonce: "0",
-      deadline: userOp.deadline,
-      control: userOp.control,
-      bundler: ZeroAddress,
-      userOpHash: keccak256(this.abiEncodeUserOperation(userOp)),
-      callChainHash: await this.getCallChainHash(userOp, solverOps),
-      signature: "",
-    };
-
-    dAppOp.signature = await this.signDAppOperation(dAppOp, sessionAccount);
-    return dAppOp;
-  }
-
-  /**
-   * Get a user operation structure abi encoded.
-   * @param userOp a user operation
-   * @returns the user operation abi encoded
-   */
-  public abiEncodeUserOperation(userOp: UserOperation): string {
-    return this.abiCoder.encode(
-      [
-        "address",
-        "address",
-        "uint256",
-        "uint256",
-        "uint256",
-        "uint256",
-        "uint256",
-        "address",
-        "address",
-        "address",
-        "bytes",
-        "bytes",
-      ],
-      [
-        userOp.from,
-        userOp.to,
-        userOp.value,
-        userOp.gas,
-        userOp.maxFeePerGas,
-        userOp.nonce,
-        userOp.deadline,
-        userOp.dapp,
-        userOp.control,
-        userOp.sessionKey,
-        userOp.data,
-        userOp.signature,
-      ]
-    );
-  }
-
-  /**
-   * Get a solver operation structure abi encoded.
-   * @param userOp a solver operation
-   * @returns the solver operation abi encoded
-   */
-  public abiEncodeSolverOperation(solverOp: SolverOperation): string {
-    return this.abiCoder.encode(
-      [
-        "address",
-        "address",
-        "uint256",
-        "uint256",
-        "uint256",
-        "uint256",
-        "address",
-        "address",
-        "bytes32",
-        "address",
-        "uint256",
-        "bytes",
-        "bytes",
-      ],
-      [
-        solverOp.from,
-        solverOp.to,
-        solverOp.value,
-        solverOp.gas,
-        solverOp.maxFeePerGas,
-        solverOp.deadline,
-        solverOp.solver,
-        solverOp.control,
-        solverOp.userOpHash,
-        solverOp.bidToken,
-        solverOp.bidAmount,
-        solverOp.data,
-        solverOp.signature,
-      ]
-    );
-  }
-
-  /**
-   * Get the call chain hash.
-   * @param userOp a signed user operation
-   * @param solverOps an array of signed solver operations
-   * @returns a call chain hash
-   */
-  public async getCallChainHash(
-    userOp: UserOperation,
-    solverOps: SolverOperation[]
-  ): Promise<string> {
     const dConfig = await this.dAppControl
       .attach(userOp.control)
       .getFunction("getDAppConfig")
       .staticCall(userOp.control);
 
-    let callSequenceHash = "";
-    let counter = 0;
+    const dAppOp: DAppOperation = {
+      from: sessionAccount.publicKey,
+      to: atlasAddress[this.chainId],
+      value: "0",
+      gas: "0",
+      nonce: "0",
+      deadline: userOp.deadline,
+      control: userOp.control,
+      bundler: ZeroAddress,
+      userOpHash: keccak256(abiEncodeUserOperation(userOp)),
+      callChainHash: getCallChainHash(
+        dConfig.callConfig,
+        dConfig.to,
+        userOp,
+        solverOps
+      ),
+      signature: "",
+    };
 
-    if ((dConfig.callConfig & 4) !== 0) {
-      // Require preOps
-      callSequenceHash = keccak256(
-        solidityPacked(
-          ["bytes32", "address", "bytes", "uint256"],
-          [
-            callSequenceHash,
-            dConfig.to,
-            this.dAppControl.interface.encodeFunctionData("preOpsCall", [
-              userOp,
-            ]),
-            counter++,
-          ]
-        )
-      );
-    }
-
-    // User call
-    callSequenceHash = keccak256(
-      solidityPacked(
-        ["bytes32", "bytes", "uint256"],
-        [callSequenceHash, this.abiEncodeUserOperation(userOp), counter++]
-      )
-    );
-
-    // Solver calls
-    for (const solverOp of solverOps) {
-      callSequenceHash = keccak256(
-        solidityPacked(
-          ["bytes32", "bytes", "uint256"],
-          [callSequenceHash, this.abiEncodeSolverOperation(solverOp), counter++]
-        )
-      );
-    }
-
-    return callSequenceHash;
+    dAppOp.signature = await this.signDAppOperation(dAppOp, sessionAccount);
+    return dAppOp;
   }
 
   /**
@@ -218,48 +91,37 @@ export class DApp {
     dAppOp: DAppOperation,
     sessionAccount: HDNodeWallet
   ): Promise<string> {
-    const proofHash: string = keccak256(
-      this.abiCoder.encode(
-        [
-          "bytes32",
-          "address",
-          "address",
-          "uint256",
-          "uint256",
-          "uint256",
-          "uint256",
-          "uint256",
-          "address",
-          "bytes32",
-          "bytes32",
-        ],
+    const atlasDomainSeparator: string =
+      await this.atlasVerification.getDomainSeparator();
+
+    return signEip712(
+      atlasDomainSeparator,
+      getDAppOperationProofHash(dAppOp),
+      sessionAccount
+    );
+  }
+}
+
+export function getDAppOperationProofHash(dAppOp: DAppOperation): string {
+  return keccak256(
+    new AbiCoder().encode(
+      [
+        "tuple(bytes32, address, address, uint256, uint256, uint256, uint256, address, bytes32, bytes32)",
+      ],
+      [
         [
           DAPP_TYPE_HASH,
           dAppOp.from,
           dAppOp.to,
           dAppOp.value,
           dAppOp.gas,
-          dAppOp.maxFeePerGas,
           dAppOp.nonce,
           dAppOp.deadline,
           dAppOp.control,
           dAppOp.userOpHash,
           dAppOp.callChainHash,
-        ]
-      )
-    );
-
-    const atlasDomainSeparator: string =
-      await this.atlasVerification.getDomainSeparator();
-
-    const messageHash: string = keccak256(
-      this.abiCoder.encode(
-        ["bytes32", "bytes32"],
-        [atlasDomainSeparator, proofHash]
-      )
-    );
-
-    const signature = await sessionAccount.signMessage(messageHash);
-    return signature;
-  }
+        ],
+      ]
+    )
+  );
 }

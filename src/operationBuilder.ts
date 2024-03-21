@@ -317,11 +317,6 @@ export class OperationBuilder {
         `DAppOperation: 'gas' is not a valid uint256 (${dAppOp.gas})`
       );
     }
-    if (!validateUint256(dAppOp.maxFeePerGas)) {
-      throw new Error(
-        `DAppOperation: 'maxFeePerGas' is not a valid uint256 (${dAppOp.maxFeePerGas})`
-      );
-    }
     if (!validateUint256(dAppOp.nonce)) {
       throw new Error(
         `DAppOperation: 'nonce' is not a valid uint256 (${dAppOp.nonce})`
