@@ -3,6 +3,7 @@ import {
   Wallet,
   HDNodeWallet,
   Interface,
+  AbstractSigner,
 } from "ethers";
 import { OperationBuilder } from "./operationBuilder";
 import { OperationsRelay } from "./operationRelay";
@@ -15,6 +16,7 @@ import {
   DAppOperation,
 } from "./operation";
 import atlasAbi from "./abi/Atlas.json";
+import { atlasAddress } from "./address";
 
 /**
  * The main class to submit user operations to Atlas.
@@ -27,6 +29,7 @@ export class AtlasSDK {
   private sorter: Sorter;
   private dApp: DApp;
   private sessionKeys: Map<string, HDNodeWallet> = new Map();
+  private chainId: number;
 
   /**
    * Creates a new Atlas SDK instance.
@@ -40,6 +43,7 @@ export class AtlasSDK {
     chainId: number,
   ) {
     this.provider = provider;
+    this.chainId = chainId;
     this.iAtlas = new Interface(atlasAbi);
     this.operationRelay = new OperationsRelay(relayApiEndpoint);
     this.operationBuilder = new OperationBuilder(this.provider, chainId);
@@ -82,17 +86,33 @@ export class AtlasSDK {
    */
   public async signUserOperation(
     userOp: UserOperation,
+    signer: AbstractSigner
   ): Promise<UserOperation> {
-    throw new Error("not implemented");
-    // OperationBuilder.validateUserOperation(userOp, true, false);
+    OperationBuilder.validateUserOperation(userOp, true, false);
 
-    // userOp.signature = await this.provider.send("eth_signTypedData_v4", [
-    //   userOp.from,
-    //   JSON.stringify(userOp),
-    // ]);
+    userOp.signature = await signer.signTypedData({
+      name: "Atlas",
+      version: "1",
+      chainId: this.chainId,
+      verifyingContract: atlasAddress[this.chainId]
+    }, {
+      "UserOperation": [
+        { name: "from", type: "address" },
+        { name: "to", type: "address" },
+        { name: "value", type: "uint256" },
+        { name: "gas", type: "uint64" },
+        { name: "maxFeePerGas", type: "uint256" },
+        { name: "nonce", type: "uint64" },
+        { name: "deadline", type: "uint64" },
+        { name: "dapp", type: "address" },
+        { name: "control", type: "address" },
+        { name: "sessionKey", type: "address" },
+        { name: "data", type: "bytes" }
+      ]
+    }, userOp);
 
-    // OperationBuilder.validateUserOperation(userOp);
-    // return userOp;
+    OperationBuilder.validateUserOperation(userOp);
+    return userOp;
   }
 
   /**
@@ -248,6 +268,7 @@ export class AtlasSDK {
    */
   public async createAtlasTransaction(
     userOperationParams: UserOperationParams,
+    signer: AbstractSigner,
     isBundlerLocal: boolean = false
   ): Promise<string> {
     // Build the user operation
@@ -259,7 +280,7 @@ export class AtlasSDK {
     userOp = this.generateSessionKey(userOp);
 
     // Prompt the user to sign their operation
-    userOp = await this.signUserOperation(userOp);
+    userOp = await this.signUserOperation(userOp, signer);
 
     // Submit the user operation to the relay
     const solverOps: SolverOperation[] = await this.submitUserOperation(userOp);

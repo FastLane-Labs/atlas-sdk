@@ -73,26 +73,26 @@ describe("Atlas SDK tests", () => {
       gas: 1n,
       maxFeePerGas: 2n,
       value: 3n,
-      deadline: 4n,
+      deadline: 999999999999n,
       data: "0x1234",
       dAppControl: mockDappControlAddress,
     });
 
-    userOp = await atlasSDK.signUserOperation(userOp);
-
-    // No session key generated
     await expect(atlasSDK.submitUserOperation(userOp)).rejects.toThrow(
       "UserOperation: 'sessionKey' is not a valid address ()"
     );
 
     // Session key not found
     userOp.sessionKey = ZeroAddress;
+    userOp = await atlasSDK.signUserOperation(userOp, signer);
+
     await expect(atlasSDK.submitUserOperation(userOp)).rejects.toThrow(
       "Session key not found"
     );
 
     // Generate valid session key
     userOp = atlasSDK.generateSessionKey(userOp);
+    userOp = await atlasSDK.signUserOperation(userOp, signer);
 
     // No solver operations returned
     userOp.data = "0x0000";
