@@ -25,7 +25,6 @@ describe("Atlas SDK tests", () => {
   const mockDappControlAddress = "0xAFc62D0645D71A3ad1d4dC411C6D5d9f90E2255F";
 
   test("buildUserOperation", async () => {
-
     const userOp = await atlasSDK.buildUserOperation({
       from: ZeroAddress,
       destination: ZeroAddress,
