@@ -1,8 +1,6 @@
-import { ZeroAddress, isAddress } from "ethers";
-import { HttpProvider } from "web3-providers-http";
+import { Wallet, ZeroAddress, isAddress, JsonRpcProvider } from "ethers";
 import { AtlasSDK } from "../src/index";
 import { SolverOperation } from "../src/operation";
-import { atlasAddress } from "../src/address";
 import { randomHash } from "./mockOperationRelay";
 import {
   generateUserOperation,
@@ -10,21 +8,23 @@ import {
   generateDAppOperation,
 } from "./utils";
 import dotenv from "dotenv";
+import { atlasAddress } from "../src/address";
 
 dotenv.config();
 
 describe("Atlas SDK tests", () => {
   const chainId = Number(process.env.CHAIN_ID!);
-  const provider = new HttpProvider(process.env.PROVIDER_RPC_URL!);
+  const provider = new JsonRpcProvider(process.env.PROVIDER_RPC_URL!);
   const portListen = 8080;
   const atlasSDK = new AtlasSDK(
     `http://127.0.0.1:${portListen}`,
     provider,
     chainId
   );
+  // const atlasAddress = "0x644256165e9aC5F617370AB7cecCBD989aC96181";
+  const mockDappControlAddress = "0xAFc62D0645D71A3ad1d4dC411C6D5d9f90E2255F";
 
   test("buildUserOperation", async () => {
-    const mockDappControlAddress = "0xc97dBFFA4b73ff6a6c1C08C61D51F05301581bfC";
 
     const userOp = await atlasSDK.buildUserOperation({
       from: ZeroAddress,
@@ -39,11 +39,11 @@ describe("Atlas SDK tests", () => {
 
     expect(userOp.from).toBe(ZeroAddress);
     expect(userOp.to).toBe(atlasAddress[chainId]);
-    expect(userOp.value).toBe("0x3");
-    expect(userOp.gas).toBe("0x1");
-    expect(userOp.maxFeePerGas).toBe("0x2");
-    expect(userOp.nonce).toBe("0x1");
-    expect(userOp.deadline).toBe("0x4");
+    expect(userOp.value).toBe(3n);
+    expect(userOp.gas).toBe(1n);
+    expect(userOp.maxFeePerGas).toBe(2n);
+    expect(userOp.nonce).toBe(1n);
+    expect(userOp.deadline).toBe(4n);
     expect(userOp.dapp).toBe(ZeroAddress);
     expect(userOp.control).toBe(mockDappControlAddress);
     expect(userOp.sessionKey).toBe("");
@@ -65,7 +65,20 @@ describe("Atlas SDK tests", () => {
   });
 
   test("submitUserOperation", async () => {
-    let userOp = generateUserOperation();
+    const signer = Wallet.createRandom();
+
+    let userOp = await atlasSDK.buildUserOperation({
+      from: signer.address,
+      destination: atlasAddress[chainId],
+      gas: 1n,
+      maxFeePerGas: 2n,
+      value: 3n,
+      deadline: 4n,
+      data: "0x1234",
+      dAppControl: mockDappControlAddress,
+    });
+
+    userOp = await atlasSDK.signUserOperation(userOp);
 
     // No session key generated
     await expect(atlasSDK.submitUserOperation(userOp)).rejects.toThrow(

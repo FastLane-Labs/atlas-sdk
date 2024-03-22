@@ -1,5 +1,4 @@
 import {
-  BrowserProvider,
   Contract,
   HDNodeWallet,
   ZeroAddress,
@@ -7,6 +6,7 @@ import {
   keccak256,
   solidityPacked,
   toUtf8Bytes,
+  AbstractProvider,
 } from "ethers";
 import { UserOperation, SolverOperation, DAppOperation } from "./operation";
 import { atlasAddress, atlasVerificationAddress } from "./address";
@@ -32,7 +32,7 @@ export class DApp {
    * Creates a new dApp.
    * @param chainId the chain ID of the network
    */
-  constructor(provider: BrowserProvider, chainId: number) {
+  constructor(provider: AbstractProvider, chainId: number) {
     this.chainId = chainId;
     this.atlasVerification = new Contract(
       atlasVerificationAddress[chainId],

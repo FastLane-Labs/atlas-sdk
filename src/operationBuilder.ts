@@ -1,4 +1,4 @@
-import { BrowserProvider, Contract, ZeroAddress } from "ethers";
+import { AbstractProvider, Contract, ZeroAddress } from "ethers";
 import {
   UserOperation,
   UserOperationParams,
@@ -23,7 +23,7 @@ export class OperationBuilder {
   private atlasVerification: Contract;
   private dAppControl: Contract;
 
-  constructor(provider: BrowserProvider, chainId: number) {
+  constructor(provider: AbstractProvider, chainId: number) {
     this.chainId = chainId;
     this.atlasVerification = new Contract(
       atlasVerificationAddress[chainId],

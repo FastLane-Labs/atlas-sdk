@@ -1,10 +1,9 @@
 import {
-  Eip1193Provider,
+  AbstractProvider,
   Wallet,
   HDNodeWallet,
   Interface,
 } from "ethers";
-import { BProvider } from "./bProvider";
 import { OperationBuilder } from "./operationBuilder";
 import { OperationsRelay } from "./operationRelay";
 import { Sorter } from "./sorter";
@@ -21,7 +20,7 @@ import atlasAbi from "./abi/Atlas.json";
  * The main class to submit user operations to Atlas.
  */
 export class AtlasSDK {
-  private provider: BProvider;
+  private provider: AbstractProvider;
   private iAtlas: Interface;
   private operationRelay: OperationsRelay;
   private operationBuilder: OperationBuilder;
@@ -37,10 +36,10 @@ export class AtlasSDK {
    */
   constructor(
     relayApiEndpoint: string,
-    provider: Eip1193Provider,
-    chainId: number
+    provider: AbstractProvider,
+    chainId: number,
   ) {
-    this.provider = new BProvider(provider, chainId);
+    this.provider = provider;
     this.iAtlas = new Interface(atlasAbi);
     this.operationRelay = new OperationsRelay(relayApiEndpoint);
     this.operationBuilder = new OperationBuilder(this.provider, chainId);
@@ -82,17 +81,18 @@ export class AtlasSDK {
    * @returns the user operation with a valid signature field
    */
   public async signUserOperation(
-    userOp: UserOperation
+    userOp: UserOperation,
   ): Promise<UserOperation> {
-    OperationBuilder.validateUserOperation(userOp, true, false);
+    throw new Error("not implemented");
+    // OperationBuilder.validateUserOperation(userOp, true, false);
 
-    userOp.signature = await this.provider.send("eth_signTypedData_v4", [
-      userOp.from,
-      JSON.stringify(userOp),
-    ]);
+    // userOp.signature = await this.provider.send("eth_signTypedData_v4", [
+    //   userOp.from,
+    //   JSON.stringify(userOp),
+    // ]);
 
-    OperationBuilder.validateUserOperation(userOp);
-    return userOp;
+    // OperationBuilder.validateUserOperation(userOp);
+    // return userOp;
   }
 
   /**
