@@ -1,4 +1,4 @@
-import { BrowserProvider, Contract } from "ethers";
+import { AbstractProvider, BrowserProvider, Contract } from "ethers";
 import { UserOperation, SolverOperation } from "./operation";
 import { atlasSorterAddress } from "./address";
 import sorterAbi from "./abi/Sorter.json";
@@ -15,7 +15,7 @@ export class Sorter {
    * @param provider a Web3 provider
    * @param chainId the chain ID of the network
    */
-  constructor(provider: BrowserProvider, chainId: number) {
+  constructor(provider: AbstractProvider, chainId: number) {
     this.chainId = chainId;
     this.sorter = new Contract(
       atlasSorterAddress[chainId],

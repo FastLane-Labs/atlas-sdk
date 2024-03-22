@@ -1,101 +1,243 @@
-import { rpcClient, RpcError } from "typed-rpc";
-import { UserOperation, SolverOperation, DAppOperation } from "./operation";
+import { UserOperation, Bundle } from "./operation";
+import { toQuantity } from "ethers";
+import isomorphicFetch from "isomorphic-fetch";
+import * as url from "url";
 
-/**
- * Operation relay's RPC methods definitions.
- */
-export type OperationRelayRPCSservice = {
-  submitUserOperation(userOp: UserOperation): SolverOperation[];
-  submitAllOperations(
-    userOp: UserOperation,
-    solverOps: SolverOperation[],
-    dAppOp: DAppOperation
-  ): string;
+const BASE_PATH = "/".replace(/\/+$/, "");
+
+export interface FetchAPI {
+  (url: string, init?: any): Promise<Response>;
+}
+
+export interface FetchArgs {
+  url: string;
+  options: any;
+}
+
+export class RequiredError extends Error {
+  name = "RequiredError";
+  constructor(public field: string, msg?: string) {
+    super(msg);
+  }
+}
+
+export const DAppApiFetchParamCreator = function () {
+  return {
+    /**
+       * Get the Atlas transaction hash from a previously submitted bundle
+       * @summary Get the Atlas transaction hash from a previously submitted bundle
+       * @param {any} userOpHash The hash of the user operation
+       * @param {any} [wait] Hold the request until having a response
+       * @param {*} [options] Override http request option.
+       * @throws {RequiredError}
+       */
+    getBundleHash(userOpHash: any, wait?: any, options: any = {}): FetchArgs {
+      // verify required parameter 'userOpHash' is not null or undefined
+      if (userOpHash === null || userOpHash === undefined) {
+        throw new RequiredError("userOpHash","Required parameter userOpHash was null or undefined when calling getBundleHash.");
+      }
+      const localVarPath = "/bundleHash";
+      const localVarUrlObj = url.parse(localVarPath, true);
+      const localVarRequestOptions = Object.assign({ method: "GET" }, options);
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      if (userOpHash !== undefined) {
+        localVarQueryParameter["userOpHash"] = userOpHash;
+      }
+
+      if (wait !== undefined) {
+        localVarQueryParameter["wait"] = wait;
+      }
+
+      localVarUrlObj.query = Object.assign({}, localVarUrlObj.query, localVarQueryParameter, options.query);
+      // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
+      localVarUrlObj.search = null;
+      localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
+
+      return {
+        url: url.format(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+       * Get solver operations for a user operation previously submitted
+       * @summary Get solver operations for a user operation previously submitted
+       * @param {any} userOpHash The hash of the user operation
+       * @param {any} [wait] Hold the request until having a response
+       * @param {*} [options] Override http request option.
+       * @throws {RequiredError}
+       */
+    solverOperations(userOpHash: any, wait?: any, options: any = {}): FetchArgs {
+      // verify required parameter 'userOpHash' is not null or undefined
+      if (userOpHash === null || userOpHash === undefined) {
+        throw new RequiredError("userOpHash","Required parameter userOpHash was null or undefined when calling solverOperations.");
+      }
+      const localVarPath = "/solverOperations";
+      const localVarUrlObj = url.parse(localVarPath, true);
+      const localVarRequestOptions = Object.assign({ method: "GET" }, options);
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      if (userOpHash !== undefined) {
+        localVarQueryParameter["userOpHash"] = userOpHash;
+      }
+
+      if (wait !== undefined) {
+        localVarQueryParameter["wait"] = wait;
+      }
+
+      localVarUrlObj.query = Object.assign({}, localVarUrlObj.query, localVarQueryParameter, options.query);
+      // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
+      localVarUrlObj.search = null;
+      localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
+
+      return {
+        url: url.format(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+       * Submit user/solvers/dApp operations to the relay for bundling
+       * @summary Submit a bundle of user/solvers/dApp operations to the relay
+       * @param {Bundle} [body] The user/solvers/dApp operations to be bundled
+       * @param {*} [options] Override http request option.
+       * @throws {RequiredError}
+       */
+    submitAllOperations(body?: Bundle, options: any = {}): FetchArgs {
+      const localVarPath = "/bundleOperations";
+      const localVarUrlObj = url.parse(localVarPath, true);
+      const localVarRequestOptions = Object.assign({ method: "POST" }, options);
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      localVarHeaderParameter["Content-Type"] = "application/json";
+
+      localVarUrlObj.query = Object.assign({}, localVarUrlObj.query, localVarQueryParameter, options.query);
+      // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
+      localVarUrlObj.search = null;
+      localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
+      const needsSerialization = (<any>"Bundle" !== "string") || localVarRequestOptions.headers["Content-Type"] === "application/json";
+      localVarRequestOptions.body =  needsSerialization ? JSON.stringify(body || {}, (_, v) => typeof v === "bigint" ? toQuantity(v) : v) : (body || "");
+
+      return {
+        url: url.format(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+       * Submit a user operation to the relay
+       * @summary Submit a user operation to the relay
+       * @param {UserOperation} [body] The user operation
+       * @param {*} [options] Override http request option.
+       * @throws {RequiredError}
+       */
+    submitUserOperation(body?: UserOperation, options: any = {}): FetchArgs {
+      const localVarPath = "/userOperation";
+      const localVarUrlObj = url.parse(localVarPath, true);
+      const localVarRequestOptions = Object.assign({ method: "POST" }, options);
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      localVarHeaderParameter["Content-Type"] = "application/json";
+
+      localVarUrlObj.query = Object.assign({}, localVarUrlObj.query, localVarQueryParameter, options.query);
+      // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
+      localVarUrlObj.search = null;
+      localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
+      const needsSerialization = (<any>"UserOperation" !== "string") || localVarRequestOptions.headers["Content-Type"] === "application/json";
+      localVarRequestOptions.body = needsSerialization ? JSON.stringify(body || {}, (_, v) => typeof v === "bigint" ? toQuantity(v) : v) : (body || "");
+
+      return {
+        url: url.format(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+  };
 };
 
-/**
- * Represents an operation relay, and has methods for helping submit operations.
- */
-export class OperationRelay {
-  private rpcClient: any;
-  timeout: number = 1000; // In milliseconds
+export class OperationsRelay {
+
+  constructor(protected basePath: string = BASE_PATH, protected fetch: FetchAPI = isomorphicFetch) {}
 
   /**
-   * Creates a new operation relay.
-   * @param relayApiEndpoint the url of the operation relay's RPC
+   * Get the Atlas transaction hash from a previously submitted bundle
+   * @summary Get the Atlas transaction hash from a previously submitted bundle
+   * @param {any} userOpHash The hash of the user operation
+   * @param {any} [wait] Hold the request until having a response
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof DAppApi
    */
-  constructor(relayApiEndpoint: string) {
-    this.rpcClient = rpcClient<OperationRelayRPCSservice>(relayApiEndpoint);
-  }
-
-  /**
-   * Submits a user operation to the operation relay.
-   * @param userOp the signed user operation to submit
-   * @returns an array of solver operations
-   */
-  public async submitUserOperation(
-    userOp: UserOperation
-  ): Promise<SolverOperation[]> {
-    const res: Promise<SolverOperation[]> =
-      this.rpcClient.submitUserOperation(userOp);
-
-    const timeoutId = setTimeout(() => {
-      this.rpcClient.$abort(res);
-      throw new Error(
-        "Operation relay request timed out (submitUserOperation)"
-      );
-    }, this.timeout);
-
-    let solverOps: SolverOperation[];
-    try {
-      solverOps = await res;
-    } catch (err) {
-      if (err instanceof RpcError) {
-        throw new Error(err.message);
-      }
-      throw err;
+  public async getBundleHash(userOpHash: any, wait?: any, options?: any) {
+    const localVarFetchArgs = DAppApiFetchParamCreator().getBundleHash(userOpHash, wait, options);
+    const response = await fetch(this.basePath + localVarFetchArgs.url, localVarFetchArgs.options);
+    if (response.status >= 200 && response.status < 300) {
+      return await response.json();
+    } else {
+      const reponseBody = await response.json();
+      throw new Error(reponseBody.message);
     }
-
-    clearTimeout(timeoutId);
-    return solverOps;
   }
 
   /**
-   * Submits user, solvers and dApp operations for bundling.
-   * @param userOp the signed user operation
-   * @param solverOps an array of signed solver operations
-   * @param dAppOp the signed dApp operation
-   * @returns the hash of the resulting Atlas transaction
+   * Get solver operations for a user operation previously submitted
+   * @summary Get solver operations for a user operation previously submitted
+   * @param {any} userOpHash The hash of the user operation
+   * @param {any} [wait] Hold the request until having a response
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof DAppApi
    */
-  public async submitAllOperations(
-    userOp: UserOperation,
-    solverOps: SolverOperation[],
-    dAppOp: DAppOperation
-  ): Promise<string> {
-    const res: Promise<string> = this.rpcClient.submitAllOperations(
-      userOp,
-      solverOps,
-      dAppOp
-    );
-
-    const timeoutId = setTimeout(() => {
-      this.rpcClient.$abort(res);
-      throw new Error(
-        "Operation relay request timed out (submitAllOperations)"
-      );
-    }, this.timeout);
-
-    let atlasTxHash: string;
-    try {
-      atlasTxHash = await res;
-    } catch (err) {
-      if (err instanceof RpcError) {
-        throw new Error(err.message);
-      }
-      throw err;
+  public async solverOperations(userOpHash: any, wait?: any, options?: any) {
+    const localVarFetchArgs = DAppApiFetchParamCreator().solverOperations(userOpHash, wait, options);
+    const response = await fetch(this.basePath + localVarFetchArgs.url, localVarFetchArgs.options);
+    if (response.status >= 200 && response.status < 300) {
+      return await response.json();
+    } else {
+      const reponseBody = await response.json();
+      throw new Error(reponseBody.message);
     }
-
-    clearTimeout(timeoutId);
-    return atlasTxHash;
   }
+
+  /**
+   * Submit user/solvers/dApp operations to the relay for bundling
+   * @summary Submit a bundle of user/solvers/dApp operations to the relay
+   * @param {Bundle} [body] The user/solvers/dApp operations to be bundled
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof DAppApi
+   */
+  public async submitAllOperations(body?: Bundle, options?: any) {
+    const localVarFetchArgs = DAppApiFetchParamCreator().submitAllOperations(body, options);
+    const response = await fetch(this.basePath + localVarFetchArgs.url, localVarFetchArgs.options);
+    if (response.status >= 200 && response.status < 300) {
+      return await response.json();
+    } else {
+      const reponseBody = await response.json();
+      throw new Error(reponseBody.message);
+    }
+  }
+
+  /**
+   * Submit a user operation to the relay
+   * @summary Submit a user operation to the relay
+   * @param {UserOperation} [body] The user operation
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof DAppApi
+   */
+  public async submitUserOperation(body?: UserOperation, options?: any) {
+    const localVarFetchArgs = DAppApiFetchParamCreator().submitUserOperation(body, options);
+    const response = await fetch(this.basePath + localVarFetchArgs.url, localVarFetchArgs.options);
+    if (response.status >= 200 && response.status < 300) {
+      return await response.json();
+    } else {
+      console.log("request error", this.basePath + localVarFetchArgs.url, localVarFetchArgs.options);
+      const reponseBody = await response.json();
+      console.log("response", reponseBody, reponseBody.message);
+      throw new Error(reponseBody.message);
+    }
+  }
+
 }

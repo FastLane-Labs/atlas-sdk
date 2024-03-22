@@ -1,4 +1,4 @@
-import { hexlify, toQuantity, toUtf8Bytes, HDNodeWallet } from "ethers";
+import { hexlify, toUtf8Bytes, HDNodeWallet } from "ethers";
 import { getDAppOperationProofHash } from "../src/dApp";
 import {
   UserOperation,
@@ -16,11 +16,11 @@ describe("Atlas SDK unit tests", () => {
   const testUserOperation: UserOperation = {
     from: "0x0000000000000000000000000000000000000001",
     to: "0x0000000000000000000000000000000000000002",
-    deadline: toQuantity(BigInt(100)),
-    gas: toQuantity(BigInt(200)),
-    nonce: toQuantity(BigInt(300)),
-    maxFeePerGas: toQuantity(BigInt(400)),
-    value: toQuantity(BigInt(500)),
+    deadline: BigInt(100),
+    gas: BigInt(200),
+    nonce: BigInt(300),
+    maxFeePerGas: BigInt(400),
+    value: BigInt(500),
     dapp: "0x0000000000000000000000000000000000000003",
     control: "0x0000000000000000000000000000000000000004",
     sessionKey: "0x0000000000000000000000000000000000000005",
@@ -31,16 +31,16 @@ describe("Atlas SDK unit tests", () => {
   const testSolverOperation: SolverOperation = {
     from: "0x0000000000000000000000000000000000000001",
     to: "0x0000000000000000000000000000000000000002",
-    value: toQuantity(BigInt(100)),
-    gas: toQuantity(BigInt(200)),
-    maxFeePerGas: toQuantity(BigInt(300)),
-    deadline: toQuantity(BigInt(400)),
+    value: BigInt(100),
+    gas: BigInt(200),
+    maxFeePerGas: BigInt(300),
+    deadline: BigInt(400),
     solver: "0x0000000000000000000000000000000000000003",
     control: "0x0000000000000000000000000000000000000004",
     userOpHash:
       "0x9999999999999999999999999999999999999999999999999999999999999999",
     bidToken: "0x0000000000000000000000000000000000000005",
-    bidAmount: toQuantity(BigInt(500)),
+    bidAmount: BigInt(500),
     data: hexlify(toUtf8Bytes("data")),
     signature: hexlify(toUtf8Bytes("signature")),
   };
@@ -48,10 +48,10 @@ describe("Atlas SDK unit tests", () => {
   const testDAppOperation: DAppOperation = {
     from: "0x0000000000000000000000000000000000000001",
     to: "0x0000000000000000000000000000000000000002",
-    value: toQuantity(BigInt(100)),
-    gas: toQuantity(BigInt(200)),
-    nonce: toQuantity(BigInt(300)),
-    deadline: toQuantity(BigInt(400)),
+    value: BigInt(100),
+    gas: BigInt(200),
+    nonce: BigInt(300),
+    deadline: BigInt(400),
     control: "0x0000000000000000000000000000000000000003",
     bundler: "0x0000000000000000000000000000000000000004",
     userOpHash:
