@@ -1,4 +1,4 @@
-import { BrowserProvider, Contract, ZeroAddress } from "ethers";
+import { AbstractProvider, Contract, ZeroAddress } from "ethers";
 import {
   UserOperation,
   UserOperationParams,
@@ -23,7 +23,7 @@ export class OperationBuilder {
   private atlasVerification: Contract;
   private dAppControl: Contract;
 
-  constructor(provider: BrowserProvider, chainId: number) {
+  constructor(provider: AbstractProvider, chainId: number) {
     this.chainId = chainId;
     this.atlasVerification = new Contract(
       atlasVerificationAddress[chainId],
@@ -43,7 +43,7 @@ export class OperationBuilder {
   ): Promise<UserOperation> {
     OperationBuilder.validateUserOperationParams(userOperationParams);
 
-    let requireSequencedUserNonces = await this.dAppControl
+    const requireSequencedUserNonces = await this.dAppControl
       .attach(userOperationParams.dAppControl)
       .getFunction("requireSequencedUserNonces")
       .staticCall();
@@ -59,7 +59,7 @@ export class OperationBuilder {
       value: userOperationParams.value,
       gas: userOperationParams.gas,
       maxFeePerGas: userOperationParams.maxFeePerGas,
-      nonce: `0x${nonce.toString(16)}`,
+      nonce: nonce,
       deadline: userOperationParams.deadline,
       dapp: userOperationParams.destination,
       control: userOperationParams.dAppControl,
@@ -315,11 +315,6 @@ export class OperationBuilder {
     if (!validateUint256(dAppOp.gas)) {
       throw new Error(
         `DAppOperation: 'gas' is not a valid uint256 (${dAppOp.gas})`
-      );
-    }
-    if (!validateUint256(dAppOp.maxFeePerGas)) {
-      throw new Error(
-        `DAppOperation: 'maxFeePerGas' is not a valid uint256 (${dAppOp.maxFeePerGas})`
       );
     }
     if (!validateUint256(dAppOp.nonce)) {

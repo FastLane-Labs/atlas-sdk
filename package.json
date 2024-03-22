@@ -19,6 +19,7 @@
   "homepage": "https://github.com/FastLane-Labs/atlas-sdk#readme",
   "devDependencies": {
     "@types/express": "^4.17.21",
+    "@types/isomorphic-fetch": "^0.0.39",
     "@types/jest": "^29.5.12",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
@@ -33,6 +34,7 @@
   },
   "dependencies": {
     "ethers": "^6.11.0",
+    "isomorphic-fetch": "^3.0.0",
     "typed-rpc": "^5.0.1"
   }
 }

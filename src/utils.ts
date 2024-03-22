@@ -5,8 +5,8 @@ export function validateAddress(address: string): boolean {
   return isAddress(address) && address.length === 42;
 }
 
-export function validateUint256(value: string): boolean {
-  return /^0x[0-9a-f]{1,64}$/.test(value);
+export function validateUint256(value: bigint): boolean {
+  return value <= 2n ** 256n - 1n;
 }
 
 export function validateBytes32(value: string): boolean {

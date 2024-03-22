@@ -1,13 +1,12 @@
 import {
-  Eip1193Provider,
+  AbstractProvider,
   Wallet,
   HDNodeWallet,
   Interface,
-  isAddress,
+  AbstractSigner,
 } from "ethers";
-import { BProvider } from "./bProvider";
 import { OperationBuilder } from "./operationBuilder";
-import { OperationRelay } from "./operationRelay";
+import { OperationsRelay } from "./operationRelay";
 import { Sorter } from "./sorter";
 import { DApp } from "./dApp";
 import {
@@ -17,18 +16,20 @@ import {
   DAppOperation,
 } from "./operation";
 import atlasAbi from "./abi/Atlas.json";
+import { atlasAddress } from "./address";
 
 /**
  * The main class to submit user operations to Atlas.
  */
 export class AtlasSDK {
-  private provider: BProvider;
+  private provider: AbstractProvider;
   private iAtlas: Interface;
-  private operationRelay: OperationRelay;
+  private operationRelay: OperationsRelay;
   private operationBuilder: OperationBuilder;
   private sorter: Sorter;
   private dApp: DApp;
   private sessionKeys: Map<string, HDNodeWallet> = new Map();
+  private chainId: number;
 
   /**
    * Creates a new Atlas SDK instance.
@@ -38,12 +39,13 @@ export class AtlasSDK {
    */
   constructor(
     relayApiEndpoint: string,
-    provider: Eip1193Provider,
-    chainId: number
+    provider: AbstractProvider,
+    chainId: number,
   ) {
-    this.provider = new BProvider(provider, chainId);
+    this.provider = provider;
+    this.chainId = chainId;
     this.iAtlas = new Interface(atlasAbi);
-    this.operationRelay = new OperationRelay(relayApiEndpoint);
+    this.operationRelay = new OperationsRelay(relayApiEndpoint);
     this.operationBuilder = new OperationBuilder(this.provider, chainId);
     this.sorter = new Sorter(this.provider, chainId);
     this.dApp = new DApp(this.provider, chainId);
@@ -83,14 +85,31 @@ export class AtlasSDK {
    * @returns the user operation with a valid signature field
    */
   public async signUserOperation(
-    userOp: UserOperation
+    userOp: UserOperation,
+    signer: AbstractSigner
   ): Promise<UserOperation> {
     OperationBuilder.validateUserOperation(userOp, true, false);
 
-    userOp.signature = await this.provider.send("eth_signTypedData_v4", [
-      userOp.from,
-      JSON.stringify(userOp),
-    ]);
+    userOp.signature = await signer.signTypedData({
+      name: "Atlas",
+      version: "1",
+      chainId: this.chainId,
+      verifyingContract: atlasAddress[this.chainId]
+    }, {
+      "UserOperation": [
+        { name: "from", type: "address" },
+        { name: "to", type: "address" },
+        { name: "value", type: "uint256" },
+        { name: "gas", type: "uint64" },
+        { name: "maxFeePerGas", type: "uint256" },
+        { name: "nonce", type: "uint64" },
+        { name: "deadline", type: "uint64" },
+        { name: "dapp", type: "address" },
+        { name: "control", type: "address" },
+        { name: "sessionKey", type: "address" },
+        { name: "data", type: "bytes" }
+      ]
+    }, userOp);
 
     OperationBuilder.validateUserOperation(userOp);
     return userOp;
@@ -113,6 +132,7 @@ export class AtlasSDK {
     // Submit the user operation to the relay
     const solverOps: SolverOperation[] =
       await this.operationRelay.submitUserOperation(userOp);
+    console.log("returned data", solverOps);
     if (solverOps.length === 0) {
       throw new Error(
         "No solver operations were returned by the operation relay"
@@ -230,11 +250,11 @@ export class AtlasSDK {
       );
     }
 
-    const atlasTxHash: string = await this.operationRelay.submitAllOperations(
-      userOp,
-      solverOps,
-      dAppOp
-    );
+    const atlasTxHash: string = await this.operationRelay.submitAllOperations({
+      userOperation: userOp,
+      solverOperations: solverOps,
+      dAppOperation: dAppOp,
+    });
 
     return atlasTxHash;
   }
@@ -248,6 +268,7 @@ export class AtlasSDK {
    */
   public async createAtlasTransaction(
     userOperationParams: UserOperationParams,
+    signer: AbstractSigner,
     isBundlerLocal: boolean = false
   ): Promise<string> {
     // Build the user operation
@@ -259,7 +280,7 @@ export class AtlasSDK {
     userOp = this.generateSessionKey(userOp);
 
     // Prompt the user to sign their operation
-    userOp = await this.signUserOperation(userOp);
+    userOp = await this.signUserOperation(userOp, signer);
 
     // Submit the user operation to the relay
     const solverOps: SolverOperation[] = await this.submitUserOperation(userOp);

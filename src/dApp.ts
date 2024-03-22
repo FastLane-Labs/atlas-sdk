@@ -1,5 +1,4 @@
 import {
-  BrowserProvider,
   Contract,
   HDNodeWallet,
   ZeroAddress,
@@ -7,6 +6,7 @@ import {
   keccak256,
   solidityPacked,
   toUtf8Bytes,
+  AbstractProvider,
 } from "ethers";
 import { UserOperation, SolverOperation, DAppOperation } from "./operation";
 import { atlasAddress, atlasVerificationAddress } from "./address";
@@ -32,7 +32,7 @@ export class DApp {
    * Creates a new dApp.
    * @param chainId the chain ID of the network
    */
-  constructor(provider: BrowserProvider, chainId: number) {
+  constructor(provider: AbstractProvider, chainId: number) {
     this.chainId = chainId;
     this.atlasVerification = new Contract(
       atlasVerificationAddress[chainId],
@@ -58,10 +58,9 @@ export class DApp {
     const dAppOp: DAppOperation = {
       from: sessionAccount.publicKey,
       to: atlasAddress[this.chainId],
-      value: "0",
-      gas: "0",
-      maxFeePerGas: userOp.maxFeePerGas,
-      nonce: "0",
+      value: 0n,
+      gas: 0n,
+      nonce: 0n,
       deadline: userOp.deadline,
       control: userOp.control,
       bundler: ZeroAddress,
@@ -239,7 +238,6 @@ export class DApp {
           dAppOp.to,
           dAppOp.value,
           dAppOp.gas,
-          dAppOp.maxFeePerGas,
           dAppOp.nonce,
           dAppOp.deadline,
           dAppOp.control,
