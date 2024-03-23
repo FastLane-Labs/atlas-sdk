@@ -18,7 +18,6 @@ export class SolverOperation extends BaseOperation {
   ]);
 
   constructor() {
-    super();
-    this.setTypeHash("SolverOperation");
+    super("SolverOperation");
   }
 }

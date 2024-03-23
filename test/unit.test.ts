@@ -1,6 +1,7 @@
 import { hexlify, toUtf8Bytes, HDNodeWallet } from "ethers";
 import { OperationBuilder } from "../src/operation";
-import { getCallChainHash, signEip712 } from "../src/utils";
+import { getCallChainHash } from "../src/utils";
+import { chainConfig } from "../src/config";
 
 describe("Atlas SDK unit tests", () => {
   const testUserOperation = OperationBuilder.newUserOperation({
@@ -89,26 +90,31 @@ describe("Atlas SDK unit tests", () => {
     );
   });
 
-  test("signEip712", async () => {
+  test("dApp operation EIP712 signature", async () => {
     const signer = HDNodeWallet.fromSeed(
       toUtf8Bytes("bad seed used for this test only")
     );
 
-    const signature = signEip712(
-      "0x82b5c47bb09eca2c93143f36f8fde6567050d39f3611535aab530d4f15fa5d0f",
-      testDAppOperation.proofHash(),
-      signer
+    const signature = await signer.signTypedData(
+      chainConfig[0].eip712Domain,
+      testDAppOperation.toTypedDataTypes(),
+      testDAppOperation.toTypedDataValues()
     );
-
-    // TODO: make this work
-    // const signature = await signer.signTypedData(
-    //   chainConfig[0].eip712Domain,
-    //   testDAppOperation.toTypedDataTypes(),
-    //   testDAppOperation.toTypedDataValues()
-    // );
 
     expect(signature).toBe(
       "0xa11109455bb5a262eaa0a0718ce0c306e5668e25845ed02324ad286cccdea41038bb2a1772922a427032bd8d622e01131772b32b8d0eedaa4e6dde38988b18621c"
     );
+  });
+
+  test("validate EIP712 signature", () => {
+    testDAppOperation.setFields({
+      from: "0xB764B6545d283C0E547952763F8a843394295da1",
+      signature:
+        "0x0a487d88042d1735c61c3d6b3be15f4d79ae83eed6d2a4d27362ad9469812fae4db8bc1998f0f18f240c78d4903d75ecc934b1a021750c547b7c77a29d4ee4171b",
+    });
+
+    expect(() =>
+      testDAppOperation.validateSignature(chainConfig[0].eip712Domain)
+    ).not.toThrow();
   });
 });

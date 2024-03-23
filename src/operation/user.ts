@@ -17,7 +17,6 @@ export class UserOperation extends BaseOperation {
   ]);
 
   constructor() {
-    super();
-    this.setTypeHash("UserOperation");
+    super("UserOperation");
   }
 }

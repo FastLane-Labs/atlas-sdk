@@ -1,3 +1,4 @@
+import { TypedDataDomain } from "ethers";
 import { UserOperation, SolverOperation, DAppOperation } from "./";
 
 export class Bundle {
@@ -15,9 +16,9 @@ export class Bundle {
     this.dAppOperation = dAppOp;
   }
 
-  public validate(): void {
-    this.userOperation.validate();
-    this.dAppOperation.validate();
+  public validate(tdDomain: TypedDataDomain): void {
+    this.userOperation.validate(tdDomain);
+    this.dAppOperation.validate(tdDomain);
     // We don't validate solver operations
   }
 }

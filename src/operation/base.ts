@@ -1,4 +1,9 @@
-import { AbiCoder, keccak256, toUtf8Bytes, TypedDataField } from "ethers";
+import {
+  AbiCoder,
+  TypedDataField,
+  TypedDataDomain,
+  verifyTypedData,
+} from "ethers";
 import {
   validateAddress,
   validateUint256,
@@ -11,22 +16,12 @@ export type OpField = { name: string; value?: OpFieldType; solType: string };
 
 export abstract class BaseOperation {
   protected fields: Map<string, OpField> = new Map();
-  private TYPE_HASH: string = "";
+  private TYPE_HASH_PREFIX: string;
   private abiCoder: AbiCoder;
 
-  constructor() {
+  constructor(thPrefix: string) {
+    this.TYPE_HASH_PREFIX = thPrefix;
     this.abiCoder = new AbiCoder();
-  }
-
-  protected setTypeHash(prefix: string) {
-    this.TYPE_HASH = keccak256(
-      toUtf8Bytes(
-        `${prefix}(${Array.from(this.fields.values())
-          .map((f) => `${f.solType} ${f.name}`)
-          .slice(0, -1)
-          .join(",")})`
-      )
-    );
   }
 
   public setFields(fields: { [key: string]: OpFieldType }) {
@@ -52,12 +47,12 @@ export abstract class BaseOperation {
     return f;
   }
 
-  public validate() {
+  public validate(tdDomain: TypedDataDomain) {
     this.validateFields();
-    this.validateSignature();
+    this.validateSignature(tdDomain);
   }
 
-  public validateSignature() {
+  public validateSignature(tdDomain: TypedDataDomain) {
     const f = this.fields.get("signature");
     if (f === undefined) {
       throw new Error("Field signature does not exist");
@@ -68,7 +63,15 @@ export abstract class BaseOperation {
     if (!validateBytes(f.value as string)) {
       throw new Error("Field signature is not a valid bytes");
     }
-    // TODO: validate the actual signature
+    const signer = verifyTypedData(
+      tdDomain,
+      this.toTypedDataTypes(),
+      this.toTypedDataValues(),
+      f.value as string
+    );
+    if (signer !== this.getField("from").value) {
+      throw new Error("Invalid signature");
+    }
   }
 
   public validateFields() {
@@ -115,24 +118,6 @@ export abstract class BaseOperation {
     );
   }
 
-  public proofHash(): string {
-    const f = [
-      { name: "TYPE_HASH", value: this.TYPE_HASH, solType: "bytes32" },
-      ...Array.from(this.fields.values()).slice(0, -1),
-    ];
-
-    return keccak256(
-      this.abiCoder.encode(
-        [`tuple(${f.map((f) => f.solType).join(", ")})`],
-        [
-          f.map((f) =>
-            f.solType !== "bytes" ? f.value : keccak256(f.value as string)
-          ),
-        ]
-      )
-    );
-  }
-
   public toStruct(): { [key: string]: OpFieldType } {
     return Array.from(this.fields.values()).reduce(
       (acc, f) => ({ ...acc, [f.name]: f.value }),
@@ -141,32 +126,25 @@ export abstract class BaseOperation {
   }
 
   public toTypedDataTypes(): { [key: string]: TypedDataField[] } {
-    const f = [
-      { name: "TYPE_HASH", value: this.TYPE_HASH, solType: "bytes32" },
-      ...Array.from(this.fields.values()).slice(0, -1),
-    ];
-
     return {
-      [this.constructor.name]: f.map((f) => ({
-        name: f.name,
-        type: f.solType !== "bytes" ? f.solType : "bytes32",
-      })),
+      [this.TYPE_HASH_PREFIX]: Array.from(this.fields.values())
+        .slice(0, -1)
+        .map((f) => ({
+          name: f.name,
+          type: f.solType,
+        })),
     };
   }
 
   public toTypedDataValues(): { [key: string]: OpFieldType } {
-    const f = [
-      { name: "TYPE_HASH", value: this.TYPE_HASH, solType: "bytes32" },
-      ...Array.from(this.fields.values()).slice(0, -1),
-    ];
-
-    return f.reduce(
-      (acc, f) => ({
-        ...acc,
-        [f.name]:
-          f.solType !== "bytes" ? f.value : keccak256(f.value as string),
-      }),
-      {}
-    );
+    return Array.from(this.fields.values())
+      .slice(0, -1)
+      .reduce(
+        (acc, f) => ({
+          ...acc,
+          [f.name]: f.value,
+        }),
+        {}
+      );
   }
 }

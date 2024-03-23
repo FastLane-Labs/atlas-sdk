@@ -289,7 +289,6 @@ export class OperationsRelay {
    * @memberof DAppApi
    */
   public async submitBundle(bundle: Bundle, options?: any) {
-    bundle.validate();
     const localVarFetchArgs = DAppApiFetchParamCreator().submitBundle(
       bundle,
       options
@@ -315,7 +314,6 @@ export class OperationsRelay {
    * @memberof DAppApi
    */
   public async submitUserOperation(userOp: UserOperation, options?: any) {
-    userOp.validate();
     const localVarFetchArgs = DAppApiFetchParamCreator().submitUserOperation(
       userOp,
       options

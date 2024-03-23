@@ -10,7 +10,6 @@ import {
 import { OperationBuilder } from "./operation";
 import { OperationsRelay } from "./relay";
 import { UserOperation, SolverOperation, DAppOperation } from "./operation";
-import { signEip712 } from "./utils";
 import { chainConfig } from "./config";
 import atlasAbi from "./abi/Atlas.json";
 import atlasVerificationAbi from "./abi/AtlasVerification.json";
@@ -21,7 +20,6 @@ import sorterAbi from "./abi/Sorter.json";
  * The main class to submit user operations to Atlas.
  */
 export class Atlas {
-  private provider: AbstractProvider;
   private iAtlas: Interface;
   private atlasVerification: Contract;
   private dAppControl: Contract;
@@ -41,7 +39,6 @@ export class Atlas {
     provider: AbstractProvider,
     chainId: number
   ) {
-    this.provider = provider;
     this.chainId = chainId;
     this.iAtlas = new Interface(atlasAbi);
     this.atlasVerification = new Contract(
@@ -107,10 +104,11 @@ export class Atlas {
     //   "signature",
     //   await this.provider.send("eth_signTypedData_v4", [
     //     signer,
-    //     JSON.stringify(userOp.toStruct()),
+    //     JSON.stringify(userOp.toTypedDataValues()),
     //   ])
     // );
 
+    userOp.validateSignature(chainConfig[this.chainId].eip712Domain);
     return userOp;
   }
 
@@ -127,6 +125,7 @@ export class Atlas {
     }
 
     // Submit the user operation to the relay
+    userOp.validate(chainConfig[this.chainId].eip712Domain);
     const userOphash: string = await this.operationsRelay.submitUserOperation(
       userOp
     );
@@ -198,20 +197,15 @@ export class Atlas {
         this.chainId
       );
 
-    const signature = signEip712(
-      "0x82b5c47bb09eca2c93143f36f8fde6567050d39f3611535aab530d4f15fa5d0f",
-      dAppOp.proofHash(),
-      sessionAccount
+    const signature = await sessionAccount.signTypedData(
+      chainConfig[this.chainId].eip712Domain,
+      dAppOp.toTypedDataTypes(),
+      dAppOp.toTypedDataValues()
     );
 
-    // TODO: make this work
-    // const signature = await sessionAccount.signTypedData(
-    //   chainConfig[this.chainId].eip712Domain,
-    //   dAppOp.toTypedDataTypes(),
-    //   dAppOp.toTypedDataValues()
-    // );
-
     dAppOp.setField("signature", signature);
+    dAppOp.validateSignature(chainConfig[this.chainId].eip712Domain);
+
     return dAppOp;
   }
 
@@ -254,9 +248,10 @@ export class Atlas {
       );
     }
 
-    await this.operationsRelay.submitBundle(
-      OperationBuilder.newBundle(userOp, solverOps, dAppOp)
-    );
+    const bundle = OperationBuilder.newBundle(userOp, solverOps, dAppOp);
+    bundle.validate(chainConfig[this.chainId].eip712Domain);
+
+    await this.operationsRelay.submitBundle(bundle);
 
     const atlasTxHash: string = await this.operationsRelay.getBundleHash(
       userOpHash,

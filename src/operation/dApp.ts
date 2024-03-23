@@ -16,7 +16,6 @@ export class DAppOperation extends BaseOperation {
   ]);
 
   constructor() {
-    super();
-    this.setTypeHash("DAppApproval");
+    super("DAppApproval");
   }
 }
