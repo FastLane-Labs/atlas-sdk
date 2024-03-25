@@ -1,4 +1,5 @@
-import { UserOperation, Bundle } from "../operation";
+import { OperationBuilder } from "../operation/builder";
+import { UserOperation, SolverOperation, Bundle } from "../operation";
 import { toQuantity } from "ethers";
 import isomorphicFetch from "isomorphic-fetch";
 import * as url from "url";
@@ -245,7 +246,11 @@ export class OperationsRelay {
    * @throws {RequiredError}
    * @memberof DAppApi
    */
-  public async getBundleHash(userOpHash: any, wait?: boolean, options?: any) {
+  public async getBundleHash(
+    userOpHash: any,
+    wait?: boolean,
+    options?: any
+  ): Promise<string> {
     const localVarFetchArgs = DAppApiFetchParamCreator().getBundleHash(
       userOpHash,
       wait,
@@ -276,7 +281,7 @@ export class OperationsRelay {
     userOpHash: any,
     wait?: boolean,
     options?: any
-  ) {
+  ): Promise<SolverOperation[]> {
     const localVarFetchArgs = DAppApiFetchParamCreator().getSolverOperations(
       userOpHash,
       wait,
@@ -287,7 +292,10 @@ export class OperationsRelay {
       localVarFetchArgs.options
     );
     if (response.status >= 200 && response.status < 300) {
-      return await response.json();
+      const solverOpsStruct = await response.json();
+      return solverOpsStruct.map((opStruct: any) =>
+        OperationBuilder.newSolverOperation(opStruct)
+      );
     } else {
       const reponseBody = await response.json();
       throw new Error(reponseBody.message);
@@ -302,7 +310,7 @@ export class OperationsRelay {
    * @throws {RequiredError}
    * @memberof DAppApi
    */
-  public async submitBundle(bundle: Bundle, options?: any) {
+  public async submitBundle(bundle: Bundle, options?: any): Promise<string> {
     const localVarFetchArgs = DAppApiFetchParamCreator().submitBundle(
       bundle,
       options
@@ -332,7 +340,7 @@ export class OperationsRelay {
     userOp: UserOperation,
     hints: string[],
     options?: any
-  ) {
+  ): Promise<string> {
     const localVarFetchArgs = DAppApiFetchParamCreator().submitUserOperation(
       userOp,
       hints,
