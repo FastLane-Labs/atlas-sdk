@@ -10,6 +10,7 @@ import {
 import { OperationBuilder } from "./operation";
 import { OperationsRelay } from "./relay";
 import { UserOperation, SolverOperation, DAppOperation } from "./operation";
+import { validateAddress } from "./utils";
 import { chainConfig } from "./config";
 import atlasAbi from "./abi/Atlas.json";
 import atlasVerificationAbi from "./abi/AtlasVerification.json";
@@ -115,19 +116,28 @@ export class Atlas {
   /**
    * Submits a user operation to the operation relay.
    * @param userOp a signed user operation
+   * @param hints an array of addresses used as hints for solvers
    * @returns an array of solver operations
    */
   public async submitUserOperation(
-    userOp: UserOperation
+    userOp: UserOperation,
+    hints: string[] = []
   ): Promise<[string, SolverOperation[]]> {
     if (!this.sessionKeys.has(userOp.getField("sessionKey").value as string)) {
       throw new Error("Session key not found");
     }
 
-    // Submit the user operation to the relay
     userOp.validate(chainConfig[this.chainId].eip712Domain);
+    for (const hint of hints) {
+      if (!validateAddress(hint)) {
+        throw new Error(`Invalid hint address: ${hint}`);
+      }
+    }
+
+    // Submit the user operation to the relay
     const userOphash: string = await this.operationsRelay.submitUserOperation(
-      userOp
+      userOp,
+      hints
     );
 
     // Get the solver operations
@@ -263,14 +273,17 @@ export class Atlas {
 
   /**
    * Creates an Atlas transaction.
+   * @param signer the signer to sign the user operation
    * @param userOp the user operation (without nonce, sessionKey, signature)
+   * @param hints an array of addresses used as hints for solvers
    * @param isBundlerLocal a boolean indicating if the bundler is local
    * @returns the encoded calldata for metacall if isBundlerLocal is true,
    * the hash of the resulting Atlas transaction otherwise
    */
   public async createAtlasTransaction(
-    userOp: UserOperation,
     signer: AbstractSigner,
+    userOp: UserOperation,
+    hints: string[] = [],
     isBundlerLocal: boolean = false
   ): Promise<string> {
     // Set the user operation nonce
@@ -285,7 +298,7 @@ export class Atlas {
     // Submit the user operation to the relay
     let userOpHash: string;
     let solverOps: SolverOperation[];
-    [userOpHash, solverOps] = await this.submitUserOperation(userOp);
+    [userOpHash, solverOps] = await this.submitUserOperation(userOp, hints);
 
     // Sort bids and filter out invalid solver operations
     const sortedSolverOps = await this.sortSolverOperations(userOp, solverOps);

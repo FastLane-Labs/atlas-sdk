@@ -177,11 +177,21 @@ export const DAppApiFetchParamCreator = function () {
      * Submit a user operation to the relay
      * @summary Submit a user operation to the relay
      * @param {UserOperation} [body] The user operation
+     * @param {string[]} [hints] Hints for solvers
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    submitUserOperation(userOp: UserOperation, options: any = {}): FetchArgs {
-      const userOpStruct = userOp.toStruct();
+    submitUserOperation(
+      userOp: UserOperation,
+      hints: string[],
+      options: any = {}
+    ): FetchArgs {
+      let body: any = {
+        userOperation: userOp.toStruct(),
+      };
+      if (hints.length > 0) {
+        body["hints"] = hints;
+      }
       const localVarPath = "/userOperation";
       const localVarUrlObj = url.parse(localVarPath, true);
       const localVarRequestOptions = Object.assign({ method: "POST" }, options);
@@ -207,10 +217,10 @@ export const DAppApiFetchParamCreator = function () {
         <any>"UserOperation" !== "string" ||
         localVarRequestOptions.headers["Content-Type"] === "application/json";
       localVarRequestOptions.body = needsSerialization
-        ? JSON.stringify(userOpStruct || {}, (_, v) =>
+        ? JSON.stringify(body || {}, (_, v) =>
             typeof v === "bigint" ? toQuantity(v) : v
           )
-        : userOpStruct || "";
+        : body || "";
 
       return {
         url: url.format(localVarUrlObj),
@@ -230,12 +240,12 @@ export class OperationsRelay {
    * Get the Atlas transaction hash from a previously submitted bundle
    * @summary Get the Atlas transaction hash from a previously submitted bundle
    * @param {any} userOpHash The hash of the user operation
-   * @param {any} [wait] Hold the request until having a response
+   * @param {boolean} [wait] Hold the request until having a response
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof DAppApi
    */
-  public async getBundleHash(userOpHash: any, wait?: any, options?: any) {
+  public async getBundleHash(userOpHash: any, wait?: boolean, options?: any) {
     const localVarFetchArgs = DAppApiFetchParamCreator().getBundleHash(
       userOpHash,
       wait,
@@ -257,12 +267,16 @@ export class OperationsRelay {
    * Get solver operations for a user operation previously submitted
    * @summary Get solver operations for a user operation previously submitted
    * @param {any} userOpHash The hash of the user operation
-   * @param {any} [wait] Hold the request until having a response
+   * @param {boolean} [wait] Hold the request until having a response
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof DAppApi
    */
-  public async getSolverOperations(userOpHash: any, wait?: any, options?: any) {
+  public async getSolverOperations(
+    userOpHash: any,
+    wait?: boolean,
+    options?: any
+  ) {
     const localVarFetchArgs = DAppApiFetchParamCreator().getSolverOperations(
       userOpHash,
       wait,
@@ -283,7 +297,7 @@ export class OperationsRelay {
   /**
    * Submit user/solvers/dApp operations to the relay for bundling
    * @summary Submit a bundle of user/solvers/dApp operations to the relay
-   * @param {Bundle} [body] The user/solvers/dApp operations to be bundled
+   * @param {Bundle} [bundle] The user/solvers/dApp operations to be bundled
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof DAppApi
@@ -308,14 +322,20 @@ export class OperationsRelay {
   /**
    * Submit a user operation to the relay
    * @summary Submit a user operation to the relay
-   * @param {UserOperation} [body] The user operation
+   * @param {UserOperation} [userOp] The user operation
+   * @param {string[]} [hints] Hints for solvers
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof DAppApi
    */
-  public async submitUserOperation(userOp: UserOperation, options?: any) {
+  public async submitUserOperation(
+    userOp: UserOperation,
+    hints: string[],
+    options?: any
+  ) {
     const localVarFetchArgs = DAppApiFetchParamCreator().submitUserOperation(
       userOp,
+      hints,
       options
     );
     const response = await fetch(
