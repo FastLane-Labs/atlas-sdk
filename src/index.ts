@@ -10,7 +10,13 @@ import {
 import { OperationBuilder } from "./operation";
 import { OperationsRelay } from "./relay";
 import { UserOperation, SolverOperation, DAppOperation } from "./operation";
-import { validateAddress } from "./utils";
+import {
+  validateAddress,
+  flagUserNoncesSequenced,
+  flagZeroSolvers,
+  flagRequirePreOps,
+  flagExPostBids,
+} from "./utils";
 import { chainConfig } from "./config";
 import atlasAbi from "./abi/Atlas.json";
 import atlasVerificationAbi from "./abi/AtlasVerification.json";
@@ -59,19 +65,16 @@ export class Atlas {
   /**
    * Sets the user operation's nonce.
    * @param userOp a user operation
+   * @param callConfig the dApp call configuration
    * @returns the user operation with a valid nonce field
    */
   public async setUserOperationNonce(
-    userOp: UserOperation
+    userOp: UserOperation,
+    callConfig: number
   ): Promise<UserOperation> {
-    const requireSequencedUserNonces = await this.dAppControl
-      .attach(userOp.getField("control").value as string)
-      .getFunction("requireSequencedUserNonces")
-      .staticCall();
-
     const nonce: bigint = await this.atlasVerification.getNextNonce(
       userOp.getField("from").value as string,
-      requireSequencedUserNonces
+      flagUserNoncesSequenced(callConfig)
     );
 
     userOp.setField("nonce", nonce);
@@ -116,11 +119,13 @@ export class Atlas {
   /**
    * Submits a user operation to the operation relay.
    * @param userOp a signed user operation
+   * @param callConfig the dApp call configuration
    * @param hints an array of addresses used as hints for solvers
    * @returns an array of solver operations
    */
   public async submitUserOperation(
     userOp: UserOperation,
+    callConfig: number,
     hints: string[] = []
   ): Promise<[string, SolverOperation[]]> {
     if (!this.sessionKeys.has(userOp.getField("sessionKey").value as string)) {
@@ -144,39 +149,53 @@ export class Atlas {
     const solverOps: SolverOperation[] =
       await this.operationsRelay.getSolverOperations(userOphash, true);
 
-    // TODO: validate that the dApp allows 0 solvers if none was returned
+    if (solverOps.length === 0 && !flagZeroSolvers(callConfig)) {
+      throw new Error("No solver operations returned");
+    }
 
     return [userOphash, solverOps];
   }
 
   /**
    * Sorts solver operations and filter out invalid ones.
+   * @param userOp a user operation
    * @param solverOps an array of solver operations
+   * @param callConfig the dApp call configuration
    * @returns a sorted/filtered array of solver operations
    */
   public async sortSolverOperations(
     userOp: UserOperation,
-    solverOps: SolverOperation[]
+    solverOps: SolverOperation[],
+    callConfig: number
   ): Promise<SolverOperation[]> {
+    if (flagExPostBids(callConfig)) {
+      // Sorting will be done onchain during execution
+      return solverOps;
+    }
+
     const sortedSolverOps: SolverOperation[] = await this.sorter.sortBids(
       userOp.toStruct(),
       solverOps.map((solverOp) => solverOp.toStruct())
     );
 
-    // TODO: validate that the dApp allows 0 solvers if none was returned
+    if (sortedSolverOps.length === 0 && !flagZeroSolvers(callConfig)) {
+      throw new Error("No solver operations returned");
+    }
 
     return sortedSolverOps;
   }
 
   /**
    * Creates a valid dApp operation.
-   * @param userOp a signed user operation
+   * @param userOp a user operation
    * @param solverOps an array of solver operations
+   * @param callConfig the dApp call configuration
    * @returns a valid dApp operation
    */
   public async createDAppOperation(
     userOp: UserOperation,
-    solverOps: SolverOperation[]
+    solverOps: SolverOperation[],
+    callConfig: number
   ): Promise<DAppOperation> {
     const sessionKey = userOp.getField("sessionKey").value as string;
 
@@ -192,18 +211,12 @@ export class Atlas {
       throw new Error("User operation session key does not match");
     }
 
-    const dConfig = await this.dAppControl
-      .attach(userOp.getField("control").value as string)
-      .getFunction("getDAppConfig")
-      .staticCall(userOp.toStruct());
-
     const dAppOp: DAppOperation =
       OperationBuilder.newDAppOperationFromUserSolvers(
         userOp,
         solverOps,
         sessionAccount,
-        dConfig.callConfig,
-        dConfig.to,
+        flagRequirePreOps(callConfig),
         this.chainId
       );
 
@@ -286,8 +299,24 @@ export class Atlas {
     hints: string[] = [],
     isBundlerLocal: boolean = false
   ): Promise<string> {
+    const dConfig = await this.dAppControl
+      .attach(userOp.getField("control").value as string)
+      .getFunction("getDAppConfig")
+      .staticCall(userOp.toStruct());
+
+    const userControl = userOp.getField("control").value;
+    if (userControl === undefined) {
+      throw new Error("UserOperation control is undefined");
+    }
+
+    if (dConfig.to !== userControl) {
+      throw new Error("UserOperation control does not match dApp control");
+    }
+
+    const callConfig: number = dConfig.callConfig;
+
     // Set the user operation nonce
-    userOp = await this.setUserOperationNonce(userOp);
+    userOp = await this.setUserOperationNonce(userOp, callConfig);
 
     // Generate a unique session key for this user operation
     userOp = this.generateSessionKey(userOp);
@@ -298,15 +327,24 @@ export class Atlas {
     // Submit the user operation to the relay
     let userOpHash: string;
     let solverOps: SolverOperation[];
-    [userOpHash, solverOps] = await this.submitUserOperation(userOp, hints);
+    [userOpHash, solverOps] = await this.submitUserOperation(
+      userOp,
+      callConfig,
+      hints
+    );
 
     // Sort bids and filter out invalid solver operations
-    const sortedSolverOps = await this.sortSolverOperations(userOp, solverOps);
+    const sortedSolverOps = await this.sortSolverOperations(
+      userOp,
+      solverOps,
+      callConfig
+    );
 
     // Create the dApp operation, signed with the session key
     const dAppOp: DAppOperation = await this.createDAppOperation(
       userOp,
-      sortedSolverOps
+      sortedSolverOps,
+      callConfig
     );
 
     if (isBundlerLocal) {

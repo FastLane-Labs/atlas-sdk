@@ -113,8 +113,7 @@ export abstract class OperationBuilder {
     userOp: UserOperation,
     solverOps: SolverOperation[],
     signer: HDNodeWallet,
-    callConfig: number,
-    dAppControl: string,
+    requirePreOps: boolean,
     chainId: number
   ): DAppOperation {
     const userDeadline = userOp.getField("deadline").value;
@@ -122,13 +121,9 @@ export abstract class OperationBuilder {
       throw new Error("UserOperation deadline is undefined");
     }
 
-    const userControl = userOp.getField("control").value;
-    if (userControl === undefined) {
+    const dAppControl = userOp.getField("control").value;
+    if (dAppControl === undefined) {
       throw new Error("UserOperation control is undefined");
-    }
-
-    if (dAppControl !== userControl) {
-      throw new Error("UserOperation control does not match dApp control");
     }
 
     const dAppOp = new DAppOperation();
@@ -139,14 +134,14 @@ export abstract class OperationBuilder {
       gas: 0n,
       nonce: 0n,
       deadline: userDeadline,
-      control: userControl,
+      control: dAppControl,
       bundler: ZeroAddress,
       userOpHash: keccak256(userOp.abiEncode()),
       callChainHash: getCallChainHash(
-        callConfig,
-        dAppControl,
         userOp,
-        solverOps
+        solverOps,
+        requirePreOps,
+        dAppControl as string
       ),
       signature: ZeroBytes,
     });

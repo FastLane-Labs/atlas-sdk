@@ -10,16 +10,15 @@ import dAppControlAbi from "../abi/DAppControl.json";
  * @returns the call chain hash
  */
 export function getCallChainHash(
-  callConfig: number,
-  dAppControl: string,
   userOp: UserOperation,
-  solverOps: SolverOperation[]
+  solverOps: SolverOperation[],
+  requirePreOps: boolean,
+  dAppControl: string
 ): string {
   let callSequenceHash = zeroPadBytes("0x", 32);
   let counter = 0;
 
-  if ((callConfig & 4) !== 0) {
-    // Require preOps
+  if (requirePreOps) {
     const dAppControlInterface = new Interface(dAppControlAbi);
 
     callSequenceHash = keccak256(

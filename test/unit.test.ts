@@ -66,10 +66,10 @@ describe("Atlas SDK unit tests", () => {
 
   test("callChainHash with required preOps computation", () => {
     const callChainHash = getCallChainHash(
-      4,
-      "0x0000000000000000000000000000000000000004",
       testUserOperation,
-      [testSolverOperation, testSolverOperation, testSolverOperation]
+      [testSolverOperation, testSolverOperation, testSolverOperation],
+      true,
+      "0x0000000000000000000000000000000000000004"
     );
 
     expect(callChainHash).toBe(
@@ -79,10 +79,10 @@ describe("Atlas SDK unit tests", () => {
 
   test("callChainHash without required preOps computation", () => {
     const callChainHash = getCallChainHash(
-      0,
-      "0x0000000000000000000000000000000000000004",
       testUserOperation,
-      [testSolverOperation, testSolverOperation, testSolverOperation]
+      [testSolverOperation, testSolverOperation, testSolverOperation],
+      false,
+      "0x0000000000000000000000000000000000000004"
     );
 
     expect(callChainHash).toBe(
