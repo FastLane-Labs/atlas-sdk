@@ -4,30 +4,34 @@ import {
   HDNodeWallet,
   Interface,
   AbstractSigner,
+  ZeroAddress,
+  Contract,
 } from "ethers";
-import { OperationBuilder } from "./operationBuilder";
-import { OperationsRelay } from "./operationRelay";
-import { Sorter } from "./sorter";
-import { DApp } from "./dApp";
+import { OperationBuilder } from "./operation";
+import { OperationsRelay } from "./relay";
+import { UserOperation, SolverOperation, DAppOperation } from "./operation";
 import {
-  UserOperation,
-  UserOperationParams,
-  SolverOperation,
-  DAppOperation,
-} from "./operation";
+  validateAddress,
+  flagUserNoncesSequenced,
+  flagZeroSolvers,
+  flagRequirePreOps,
+  flagExPostBids,
+} from "./utils";
+import { chainConfig } from "./config";
 import atlasAbi from "./abi/Atlas.json";
-import { atlasAddress } from "./address";
+import atlasVerificationAbi from "./abi/AtlasVerification.json";
+import dAppControlAbi from "./abi/DAppControl.json";
+import sorterAbi from "./abi/Sorter.json";
 
 /**
  * The main class to submit user operations to Atlas.
  */
-export class AtlasSDK {
-  private provider: AbstractProvider;
+export class Atlas {
   private iAtlas: Interface;
-  private operationRelay: OperationsRelay;
-  private operationBuilder: OperationBuilder;
-  private sorter: Sorter;
-  private dApp: DApp;
+  private atlasVerification: Contract;
+  private dAppControl: Contract;
+  private sorter: Contract;
+  private operationsRelay: OperationsRelay;
   private sessionKeys: Map<string, HDNodeWallet> = new Map();
   private chainId: number;
 
@@ -40,29 +44,40 @@ export class AtlasSDK {
   constructor(
     relayApiEndpoint: string,
     provider: AbstractProvider,
-    chainId: number,
+    chainId: number
   ) {
-    this.provider = provider;
     this.chainId = chainId;
     this.iAtlas = new Interface(atlasAbi);
-    this.operationRelay = new OperationsRelay(relayApiEndpoint);
-    this.operationBuilder = new OperationBuilder(this.provider, chainId);
-    this.sorter = new Sorter(this.provider, chainId);
-    this.dApp = new DApp(this.provider, chainId);
+    this.atlasVerification = new Contract(
+      chainConfig[chainId].contracts.atlasVerification.address,
+      atlasVerificationAbi,
+      provider
+    );
+    this.dAppControl = new Contract(ZeroAddress, dAppControlAbi, provider);
+    this.sorter = new Contract(
+      chainConfig[chainId].contracts.sorter.address,
+      sorterAbi,
+      provider
+    );
+    this.operationsRelay = new OperationsRelay(relayApiEndpoint);
   }
 
   /**
-   * Builds a user operation without the 'sessionKey' and 'signature' fields.
-   * @param userOperationParams the parameters to build the user operation
-   * @returns an unsigned user operation
+   * Sets the user operation's nonce.
+   * @param userOp a user operation
+   * @param callConfig the dApp call configuration
+   * @returns the user operation with a valid nonce field
    */
-  public async buildUserOperation(
-    userOperationParams: UserOperationParams
+  public async setUserOperationNonce(
+    userOp: UserOperation,
+    callConfig: number
   ): Promise<UserOperation> {
-    const userOp = await this.operationBuilder.buildUserOperation(
-      userOperationParams
+    const nonce: bigint = await this.atlasVerification.getNextNonce(
+      userOp.getField("from").value as string,
+      flagUserNoncesSequenced(callConfig)
     );
-    OperationBuilder.validateUserOperation(userOp, false, false);
+
+    userOp.setField("nonce", nonce);
     return userOp;
   }
 
@@ -73,8 +88,7 @@ export class AtlasSDK {
    */
   public generateSessionKey(userOp: UserOperation): UserOperation {
     const sessionAccount = Wallet.createRandom();
-    userOp.sessionKey = sessionAccount.address;
-    OperationBuilder.validateUserOperation(userOp, true, false);
+    userOp.setField("sessionKey", sessionAccount.address);
     this.sessionKeys.set(sessionAccount.address, sessionAccount);
     return userOp;
   }
@@ -88,120 +102,133 @@ export class AtlasSDK {
     userOp: UserOperation,
     signer: AbstractSigner
   ): Promise<UserOperation> {
-    OperationBuilder.validateUserOperation(userOp, true, false);
+    // TODO: we need to have the user wallet popup here
 
-    userOp.signature = await signer.signTypedData({
-      name: "Atlas",
-      version: "1",
-      chainId: this.chainId,
-      verifyingContract: atlasAddress[this.chainId]
-    }, {
-      "UserOperation": [
-        { name: "from", type: "address" },
-        { name: "to", type: "address" },
-        { name: "value", type: "uint256" },
-        { name: "gas", type: "uint64" },
-        { name: "maxFeePerGas", type: "uint256" },
-        { name: "nonce", type: "uint64" },
-        { name: "deadline", type: "uint64" },
-        { name: "dapp", type: "address" },
-        { name: "control", type: "address" },
-        { name: "sessionKey", type: "address" },
-        { name: "data", type: "bytes" }
-      ]
-    }, userOp);
+    // userOp.setField(
+    //   "signature",
+    //   await this.provider.send("eth_signTypedData_v4", [
+    //     signer,
+    //     JSON.stringify(userOp.toTypedDataValues()),
+    //   ])
+    // );
 
-    OperationBuilder.validateUserOperation(userOp);
+    userOp.validateSignature(chainConfig[this.chainId].eip712Domain);
     return userOp;
   }
 
   /**
    * Submits a user operation to the operation relay.
    * @param userOp a signed user operation
+   * @param callConfig the dApp call configuration
+   * @param hints an array of addresses used as hints for solvers
    * @returns an array of solver operations
    */
   public async submitUserOperation(
-    userOp: UserOperation
-  ): Promise<SolverOperation[]> {
-    OperationBuilder.validateUserOperation(userOp);
-
-    if (!this.sessionKeys.has(userOp.sessionKey)) {
+    userOp: UserOperation,
+    callConfig: number,
+    hints: string[] = []
+  ): Promise<[string, SolverOperation[]]> {
+    if (!this.sessionKeys.has(userOp.getField("sessionKey").value as string)) {
       throw new Error("Session key not found");
     }
 
-    // Submit the user operation to the relay
-    const solverOps: SolverOperation[] =
-      await this.operationRelay.submitUserOperation(userOp);
-    console.log("returned data", solverOps);
-    if (solverOps.length === 0) {
-      throw new Error(
-        "No solver operations were returned by the operation relay"
-      );
+    userOp.validate(chainConfig[this.chainId].eip712Domain);
+    for (const hint of hints) {
+      if (!validateAddress(hint)) {
+        throw new Error(`Invalid hint address: ${hint}`);
+      }
     }
 
-    OperationBuilder.validateSolverOperations(solverOps);
-    return solverOps;
+    // Submit the user operation to the relay
+    const userOphash: string = await this.operationsRelay.submitUserOperation(
+      userOp,
+      hints
+    );
+
+    // Get the solver operations
+    const solverOps: SolverOperation[] =
+      await this.operationsRelay.getSolverOperations(userOphash, true);
+
+    if (solverOps.length === 0 && !flagZeroSolvers(callConfig)) {
+      throw new Error("No solver operations returned");
+    }
+
+    return [userOphash, solverOps];
   }
 
   /**
    * Sorts solver operations and filter out invalid ones.
+   * @param userOp a user operation
    * @param solverOps an array of solver operations
+   * @param callConfig the dApp call configuration
    * @returns a sorted/filtered array of solver operations
    */
   public async sortSolverOperations(
     userOp: UserOperation,
-    solverOps: SolverOperation[]
+    solverOps: SolverOperation[],
+    callConfig: number
   ): Promise<SolverOperation[]> {
-    OperationBuilder.validateUserOperation(userOp);
-    OperationBuilder.validateSolverOperations(solverOps);
-
-    const sortedSolverOps = await this.sorter.sortSolverOperations(
-      userOp,
-      solverOps
-    );
-
-    if (sortedSolverOps.length === 0) {
-      throw new Error(
-        "No valid solver operations were returned by the Atlas sorter"
-      );
+    if (flagExPostBids(callConfig)) {
+      // Sorting will be done onchain during execution
+      return solverOps;
     }
 
-    OperationBuilder.validateSolverOperations(sortedSolverOps);
+    const sortedSolverOps: SolverOperation[] = await this.sorter.sortBids(
+      userOp.toStruct(),
+      solverOps.map((solverOp) => solverOp.toStruct())
+    );
+
+    if (sortedSolverOps.length === 0 && !flagZeroSolvers(callConfig)) {
+      throw new Error("No solver operations returned");
+    }
+
     return sortedSolverOps;
   }
 
   /**
    * Creates a valid dApp operation.
-   * @param userOp a signed user operation
+   * @param userOp a user operation
    * @param solverOps an array of solver operations
+   * @param callConfig the dApp call configuration
    * @returns a valid dApp operation
    */
   public async createDAppOperation(
     userOp: UserOperation,
-    solverOps: SolverOperation[]
+    solverOps: SolverOperation[],
+    callConfig: number
   ): Promise<DAppOperation> {
-    OperationBuilder.validateUserOperation(userOp);
-    OperationBuilder.validateSolverOperations(solverOps);
+    const sessionKey = userOp.getField("sessionKey").value as string;
 
-    const sessionAccount = this.sessionKeys.get(userOp.sessionKey);
+    const sessionAccount = this.sessionKeys.get(sessionKey);
     if (!sessionAccount) {
       throw new Error("Session key not found");
     }
 
     // Only keep the local copy for the rest of the process
-    this.sessionKeys.delete(userOp.sessionKey);
+    this.sessionKeys.delete(sessionKey);
 
-    if (userOp.sessionKey !== sessionAccount.address) {
+    if (sessionKey !== sessionAccount.address) {
       throw new Error("User operation session key does not match");
     }
 
-    const dAppOp: DAppOperation = await this.dApp.createDAppOperation(
-      userOp,
-      solverOps,
-      sessionAccount
+    const dAppOp: DAppOperation =
+      OperationBuilder.newDAppOperationFromUserSolvers(
+        userOp,
+        solverOps,
+        sessionAccount,
+        flagRequirePreOps(callConfig),
+        this.chainId
+      );
+
+    const signature = await sessionAccount.signTypedData(
+      chainConfig[this.chainId].eip712Domain,
+      dAppOp.toTypedDataTypes(),
+      dAppOp.toTypedDataValues()
     );
 
-    OperationBuilder.validateDAppOperation(dAppOp);
+    dAppOp.setField("signature", signature);
+    dAppOp.validateSignature(chainConfig[this.chainId].eip712Domain);
+
     return dAppOp;
   }
 
@@ -217,14 +244,10 @@ export class AtlasSDK {
     solverOps: SolverOperation[],
     dAppOp: DAppOperation
   ): string {
-    OperationBuilder.validateUserOperation(userOp);
-    OperationBuilder.validateSolverOperations(solverOps);
-    OperationBuilder.validateDAppOperation(dAppOp);
-
     return this.iAtlas.encodeFunctionData("metacall", [
-      userOp,
-      solverOps,
-      dAppOp,
+      userOp.toStruct(),
+      solverOps.map((solverOp) => solverOp.toStruct()),
+      dAppOp.toStruct(),
     ]);
   }
 
@@ -233,48 +256,67 @@ export class AtlasSDK {
    * @param userOp a signed user operation
    * @param solverOps an array of solver operations
    * @param dAppOp a signed dApp operation
+   * @param userOpHash the hash of the user operation
    * @returns the hash of the generated Atlas transaction
    */
-  public async submitAllOperations(
+  public async submitBundle(
     userOp: UserOperation,
     solverOps: SolverOperation[],
-    dAppOp: DAppOperation
+    dAppOp: DAppOperation,
+    userOpHash: string
   ): Promise<string> {
-    OperationBuilder.validateUserOperation(userOp);
-    OperationBuilder.validateSolverOperations(solverOps);
-    OperationBuilder.validateDAppOperation(dAppOp);
-
-    if (userOp.sessionKey !== dAppOp.from) {
+    if (userOp.getField("sessionKey").value !== dAppOp.getField("from").value) {
       throw new Error(
         "User operation session key does not match dApp operation"
       );
     }
 
-    const atlasTxHash: string = await this.operationRelay.submitAllOperations({
-      userOperation: userOp,
-      solverOperations: solverOps,
-      dAppOperation: dAppOp,
-    });
+    const bundle = OperationBuilder.newBundle(userOp, solverOps, dAppOp);
+    bundle.validate(chainConfig[this.chainId].eip712Domain);
+
+    await this.operationsRelay.submitBundle(bundle);
+
+    const atlasTxHash: string = await this.operationsRelay.getBundleHash(
+      userOpHash,
+      true
+    );
 
     return atlasTxHash;
   }
 
   /**
    * Creates an Atlas transaction.
-   * @param userOperationParams the parameters to build the user operation
+   * @param signer the signer to sign the user operation
+   * @param userOp the user operation (without nonce, sessionKey, signature)
+   * @param hints an array of addresses used as hints for solvers
    * @param isBundlerLocal a boolean indicating if the bundler is local
    * @returns the encoded calldata for metacall if isBundlerLocal is true,
    * the hash of the resulting Atlas transaction otherwise
    */
   public async createAtlasTransaction(
-    userOperationParams: UserOperationParams,
     signer: AbstractSigner,
+    userOp: UserOperation,
+    hints: string[] = [],
     isBundlerLocal: boolean = false
   ): Promise<string> {
-    // Build the user operation
-    let userOp: UserOperation = await this.buildUserOperation(
-      userOperationParams
-    );
+    const dConfig = await this.dAppControl
+      .attach(userOp.getField("control").value as string)
+      .getFunction("getDAppConfig")
+      .staticCall(userOp.toStruct());
+
+    const userControl = userOp.getField("control").value;
+    if (userControl === undefined) {
+      throw new Error("UserOperation control is undefined");
+    }
+
+    if (dConfig.to !== userControl) {
+      throw new Error("UserOperation control does not match dApp control");
+    }
+
+    const callConfig: number = dConfig.callConfig;
+
+    // Set the user operation nonce
+    userOp = await this.setUserOperationNonce(userOp, callConfig);
 
     // Generate a unique session key for this user operation
     userOp = this.generateSessionKey(userOp);
@@ -283,15 +325,26 @@ export class AtlasSDK {
     userOp = await this.signUserOperation(userOp, signer);
 
     // Submit the user operation to the relay
-    const solverOps: SolverOperation[] = await this.submitUserOperation(userOp);
+    let userOpHash: string;
+    let solverOps: SolverOperation[];
+    [userOpHash, solverOps] = await this.submitUserOperation(
+      userOp,
+      callConfig,
+      hints
+    );
 
     // Sort bids and filter out invalid solver operations
-    const sortedSolverOps = await this.sortSolverOperations(userOp, solverOps);
+    const sortedSolverOps = await this.sortSolverOperations(
+      userOp,
+      solverOps,
+      callConfig
+    );
 
     // Create the dApp operation, signed with the session key
     const dAppOp: DAppOperation = await this.createDAppOperation(
       userOp,
-      sortedSolverOps
+      sortedSolverOps,
+      callConfig
     );
 
     if (isBundlerLocal) {
@@ -300,10 +353,11 @@ export class AtlasSDK {
     }
 
     // Submit all operations to the relay for bundling
-    const atlasTxHash: string = await this.submitAllOperations(
+    const atlasTxHash: string = await this.submitBundle(
       userOp,
       sortedSolverOps,
-      dAppOp
+      dAppOp,
+      userOpHash
     );
 
     return atlasTxHash;
