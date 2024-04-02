@@ -34,6 +34,7 @@ export class Atlas {
   private operationsRelay: OperationsRelay;
   private sessionKeys: Map<string, HDNodeWallet> = new Map();
   private chainId: number;
+  public builder: OperationBuilder;
 
   /**
    * Creates a new Atlas SDK instance.
@@ -60,6 +61,7 @@ export class Atlas {
       provider
     );
     this.operationsRelay = new OperationsRelay(relayApiEndpoint);
+    this.builder = new OperationBuilder(chainId);
   }
 
   /**
@@ -102,16 +104,11 @@ export class Atlas {
     userOp: UserOperation,
     signer: AbstractSigner
   ): Promise<UserOperation> {
-    // TODO: we need to have the user wallet popup here
-
-    // userOp.setField(
-    //   "signature",
-    //   await this.provider.send("eth_signTypedData_v4", [
-    //     signer,
-    //     JSON.stringify(userOp.toTypedDataValues()),
-    //   ])
-    // );
-
+    userOp.setField(
+      "signature",
+      await signer.signTypedData(chainConfig[this.chainId].eip712Domain, userOp.toTypedDataTypes(), userOp.toTypedDataValues())
+    );
+    console.log(userOp.toTypedDataValues());
     userOp.validateSignature(chainConfig[this.chainId].eip712Domain);
     return userOp;
   }
@@ -212,12 +209,11 @@ export class Atlas {
     }
 
     const dAppOp: DAppOperation =
-      OperationBuilder.newDAppOperationFromUserSolvers(
+      this.builder.newDAppOperationFromUserSolvers(
         userOp,
         solverOps,
         sessionAccount,
-        flagRequirePreOps(callConfig),
-        this.chainId
+        flagRequirePreOps(callConfig)
       );
 
     const signature = await sessionAccount.signTypedData(

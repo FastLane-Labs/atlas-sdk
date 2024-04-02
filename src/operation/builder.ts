@@ -6,10 +6,16 @@ import { chainConfig } from "../config";
 const ZeroUint = 0n;
 const ZeroBytes = "0x00";
 
-export abstract class OperationBuilder {
-  public static newUserOperation(prop: {
+export class OperationBuilder {
+  private chainId: number;
+
+  constructor (chainId: number) {
+    this.chainId = chainId;
+  }
+
+  public newUserOperation(prop: {
     from: string;
-    to: string;
+    to?: string;
     value: bigint;
     gas: bigint;
     maxFeePerGas: bigint;
@@ -24,7 +30,7 @@ export abstract class OperationBuilder {
     const userOp = new UserOperation();
     userOp.setFields({
       from: prop.from,
-      to: prop.to,
+      to: prop.to ? prop.to : chainConfig[this.chainId].contracts.atlas.address,
       value: prop.value,
       gas: prop.gas,
       maxFeePerGas: prop.maxFeePerGas,
@@ -109,12 +115,11 @@ export abstract class OperationBuilder {
     return dAppOp;
   }
 
-  public static newDAppOperationFromUserSolvers(
+  public newDAppOperationFromUserSolvers(
     userOp: UserOperation,
     solverOps: SolverOperation[],
     signer: HDNodeWallet,
-    requirePreOps: boolean,
-    chainId: number
+    requirePreOps: boolean
   ): DAppOperation {
     const userDeadline = userOp.getField("deadline").value;
     if (userDeadline === undefined) {
@@ -129,7 +134,7 @@ export abstract class OperationBuilder {
     const dAppOp = new DAppOperation();
     dAppOp.setFields({
       from: signer.publicKey,
-      to: chainConfig[chainId].contracts.atlas.address,
+      to: chainConfig[this.chainId].contracts.atlas.address,
       value: 0n,
       gas: 0n,
       nonce: 0n,

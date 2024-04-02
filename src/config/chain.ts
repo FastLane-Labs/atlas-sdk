@@ -31,7 +31,7 @@ export const chainConfig: { [chainId: number]: ChainConfig } = {
     },
     eip712Domain: {
       name: "AtlasVerification",
-      version: "0.0.1",
+      version: "1.0",
       chainId: 1,
       verifyingContract: "0x8Be503bcdEd90ED42Eff31f56199399B2b0154CA",
     },
@@ -52,7 +52,7 @@ export const chainConfig: { [chainId: number]: ChainConfig } = {
     },
     eip712Domain: {
       name: "AtlasVerification",
-      version: "0.0.1",
+      version: "1.0",
       chainId: 11155111,
       verifyingContract: "0xf8e760554aB5c7E1Da51fFeD9C48de78bddD4c53",
     },
