@@ -31,7 +31,7 @@ export const chainConfig: { [chainId: number]: ChainConfig } = {
     },
     eip712Domain: {
       name: "AtlasVerification",
-      version: "0.0.1",
+      version: "1.0",
       chainId: 1,
       verifyingContract: "0x8Be503bcdEd90ED42Eff31f56199399B2b0154CA",
     },
@@ -41,20 +41,20 @@ export const chainConfig: { [chainId: number]: ChainConfig } = {
   11155111: {
     contracts: {
       atlas: {
-        address: "0x79d1379195f1Ed373eF8c58aC36F9C1045f8684d",
+        address: "0xa892eb9F79E0D1b6277B3456b0a8FE770386f6DB",
       },
       atlasVerification: {
-        address: "0xf8e760554aB5c7E1Da51fFeD9C48de78bddD4c53",
+        address: "0xeeB91b2d317e3A747E88c1CA542ae31E32B87FDF",
       },
       sorter: {
-        address: "0x165877D0E2646bf7B42621D1551a23b94B14EfF9",
+        address: "0xAAdF6272cCE4121Db92da224C28d1B59C9feF4d5",
       },
     },
     eip712Domain: {
       name: "AtlasVerification",
-      version: "0.0.1",
+      version: "1.0",
       chainId: 11155111,
-      verifyingContract: "0xf8e760554aB5c7E1Da51fFeD9C48de78bddD4c53",
+      verifyingContract: "0xeeB91b2d317e3A747E88c1CA542ae31E32B87FDF",
     },
   },
 };
