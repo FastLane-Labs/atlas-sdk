@@ -13,7 +13,7 @@ export class SolverOperation extends BaseOperation {
     ["userOpHash", { name: "userOpHash", solType: "bytes32" }],
     ["bidToken", { name: "bidToken", solType: "address" }],
     ["bidAmount", { name: "bidAmount", solType: "uint256" }],
-    ["data", { name: "data", solType: "bytes" }],
+    ["data", { name: "data", solType: "bytes32" }],
     ["signature", { name: "signature", solType: "bytes" }],
   ]);
 

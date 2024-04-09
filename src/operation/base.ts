@@ -10,6 +10,7 @@ import {
   validateBytes32,
   validateBytes,
 } from "../utils";
+import { createForcedUserOp } from "../utils/convertFields";
 
 export type OpFieldType = string | bigint;
 export type OpField = { name: string; value?: OpFieldType; solType: string };
@@ -63,10 +64,11 @@ export abstract class BaseOperation {
     if (!validateBytes(f.value as string)) {
       throw new Error("Field signature is not a valid bytes");
     }
+    const [types, values] = createForcedUserOp(this.toTypedDataTypes(), this.toTypedDataValues());
     const signer = verifyTypedData(
       tdDomain,
-      this.toTypedDataTypes(),
-      this.toTypedDataValues(),
+      types,
+      values,
       f.value as string
     );
     if (signer !== this.getField("from").value) {
@@ -85,28 +87,28 @@ export abstract class BaseOperation {
       throw new Error(`Field ${f.name} is not set`);
     }
     switch (f.solType) {
-      case "address":
-        if (!validateAddress(f.value as string)) {
-          throw new Error(`Field ${f.name} is not a valid address`);
-        }
-        break;
-      case "uint256":
-        if (!validateUint256(f.value as bigint)) {
-          throw new Error(`Field ${f.name} is not a valid uint256`);
-        }
-        break;
-      case "bytes32":
-        if (!validateBytes32(f.value as string)) {
-          throw new Error(`Field ${f.name} is not a valid bytes32`);
-        }
-        break;
-      case "bytes":
-        if (!validateBytes(f.value as string)) {
-          throw new Error(`Field ${f.name} is not a valid bytes`);
-        }
-        break;
-      default:
-        throw new Error(`Field ${f.name} has unknown type ${f.solType}`);
+    case "address":
+      if (!validateAddress(f.value as string)) {
+        throw new Error(`Field ${f.name} is not a valid address`);
+      }
+      break;
+    case "uint256":
+      if (!validateUint256(f.value as bigint)) {
+        throw new Error(`Field ${f.name} is not a valid uint256`);
+      }
+      break;
+    case "bytes32":
+      if (!validateBytes32(f.value as string)) {
+        throw new Error(`Field ${f.name} is not a valid bytes32`);
+      }
+      break;
+    case "bytes":
+      if (!validateBytes(f.value as string)) {
+        throw new Error(`Field ${f.name} is not a valid bytes`);
+      }
+      break;
+    default:
+      throw new Error(`Field ${f.name} has unknown type ${f.solType}`);
     }
   }
 

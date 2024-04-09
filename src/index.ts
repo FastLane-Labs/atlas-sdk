@@ -6,6 +6,8 @@ import {
   AbstractSigner,
   ZeroAddress,
   Contract,
+  keccak256,
+  solidityPackedKeccak256
 } from "ethers";
 import { OperationBuilder } from "./operation";
 import { OperationsRelay } from "./relay";
@@ -22,6 +24,7 @@ import atlasAbi from "./abi/Atlas.json";
 import atlasVerificationAbi from "./abi/AtlasVerification.json";
 import dAppControlAbi from "./abi/DAppControl.json";
 import sorterAbi from "./abi/Sorter.json";
+import { createForcedUserOp } from "./utils/convertFields";
 
 /**
  * The main class to submit user operations to Atlas.
@@ -104,9 +107,11 @@ export class Atlas {
     userOp: UserOperation,
     signer: AbstractSigner
   ): Promise<UserOperation> {
+    // TODO: remove this forced incorrect signature
+    const [types, values] = createForcedUserOp(userOp.toTypedDataTypes(), userOp.toTypedDataValues());
     userOp.setField(
       "signature",
-      await signer.signTypedData(chainConfig[this.chainId].eip712Domain, userOp.toTypedDataTypes(), userOp.toTypedDataValues())
+      await signer.signTypedData(chainConfig[this.chainId].eip712Domain, types, values)
     );
     console.log(userOp.toTypedDataValues());
     userOp.validateSignature(chainConfig[this.chainId].eip712Domain);
