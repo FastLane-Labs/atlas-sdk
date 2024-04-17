@@ -1,21 +1,14 @@
 import { HDNodeWallet, ZeroAddress, keccak256 } from "ethers";
 import { UserOperation, SolverOperation, DAppOperation, Bundle } from "./";
 import { getCallChainHash } from "../utils";
-import { chainConfig } from "../config";
 
 const ZeroUint = 0n;
 const ZeroBytes = "0x00";
 
-export class OperationBuilder {
-  private chainId: number;
-
-  constructor (chainId: number) {
-    this.chainId = chainId;
-  }
-
-  public newUserOperation(prop: {
+export abstract class OperationBuilder {
+  public static newUserOperation(prop: {
     from: string;
-    to?: string;
+    to: string;
     value: bigint;
     gas: bigint;
     maxFeePerGas: bigint;
@@ -30,7 +23,7 @@ export class OperationBuilder {
     const userOp = new UserOperation();
     userOp.setFields({
       from: prop.from,
-      to: prop.to ? prop.to : chainConfig[this.chainId].contracts.atlas.address,
+      to: prop.to,
       value: prop.value,
       gas: prop.gas,
       maxFeePerGas: prop.maxFeePerGas,
@@ -115,12 +108,17 @@ export class OperationBuilder {
     return dAppOp;
   }
 
-  public newDAppOperationFromUserSolvers(
+  public static newDAppOperationFromUserSolvers(
     userOp: UserOperation,
     solverOps: SolverOperation[],
     signer: HDNodeWallet,
     requirePreOps: boolean
   ): DAppOperation {
+    const userTo = userOp.getField("to").value;
+    if (userTo === undefined) {
+      throw new Error("UserOperation to is undefined");
+    }
+
     const userDeadline = userOp.getField("deadline").value;
     if (userDeadline === undefined) {
       throw new Error("UserOperation deadline is undefined");
@@ -134,7 +132,7 @@ export class OperationBuilder {
     const dAppOp = new DAppOperation();
     dAppOp.setFields({
       from: signer.publicKey,
-      to: chainConfig[this.chainId].contracts.atlas.address,
+      to: userTo,
       value: 0n,
       gas: 0n,
       nonce: 0n,

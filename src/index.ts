@@ -6,8 +6,6 @@ import {
   AbstractSigner,
   ZeroAddress,
   Contract,
-  keccak256,
-  solidityPackedKeccak256
 } from "ethers";
 import { OperationBuilder } from "./operation";
 import { OperationsRelay } from "./relay";
@@ -24,7 +22,6 @@ import atlasAbi from "./abi/Atlas.json";
 import atlasVerificationAbi from "./abi/AtlasVerification.json";
 import dAppControlAbi from "./abi/DAppControl.json";
 import sorterAbi from "./abi/Sorter.json";
-import { createForcedUserOp } from "./utils/convertFields";
 
 /**
  * The main class to submit user operations to Atlas.
@@ -37,7 +34,6 @@ export class Atlas {
   private operationsRelay: OperationsRelay;
   private sessionKeys: Map<string, HDNodeWallet> = new Map();
   private chainId: number;
-  public builder: OperationBuilder;
 
   /**
    * Creates a new Atlas SDK instance.
@@ -64,7 +60,36 @@ export class Atlas {
       provider
     );
     this.operationsRelay = new OperationsRelay(relayApiEndpoint);
-    this.builder = new OperationBuilder(chainId);
+  }
+
+  public newUserOperation(prop: {
+    from: string;
+    to?: string;
+    value: bigint;
+    gas: bigint;
+    maxFeePerGas: bigint;
+    nonce?: bigint;
+    deadline: bigint;
+    dapp: string;
+    control: string;
+    sessionKey?: string;
+    data: string;
+    signature?: string;
+  }): UserOperation {
+    return OperationBuilder.newUserOperation({
+      from: prop.from,
+      to: prop.to ? prop.to : chainConfig[this.chainId].contracts.atlas.address,
+      value: prop.value,
+      gas: prop.gas,
+      maxFeePerGas: prop.maxFeePerGas,
+      nonce: prop.nonce,
+      deadline: prop.deadline,
+      dapp: prop.dapp,
+      control: prop.control,
+      sessionKey: prop.sessionKey,
+      data: prop.data,
+      signature: prop.signature,
+    });
   }
 
   /**
@@ -107,13 +132,14 @@ export class Atlas {
     userOp: UserOperation,
     signer: AbstractSigner
   ): Promise<UserOperation> {
-    // TODO: remove this forced incorrect signature
-    const [types, values] = createForcedUserOp(userOp.toTypedDataTypes(), userOp.toTypedDataValues());
     userOp.setField(
       "signature",
-      await signer.signTypedData(chainConfig[this.chainId].eip712Domain, types, values)
+      await signer.signTypedData(
+        chainConfig[this.chainId].eip712Domain,
+        userOp.toTypedDataTypes(),
+        userOp.toTypedDataValues()
+      )
     );
-    console.log(userOp.toTypedDataValues());
     userOp.validateSignature(chainConfig[this.chainId].eip712Domain);
     return userOp;
   }
@@ -214,7 +240,7 @@ export class Atlas {
     }
 
     const dAppOp: DAppOperation =
-      this.builder.newDAppOperationFromUserSolvers(
+      OperationBuilder.newDAppOperationFromUserSolvers(
         userOp,
         solverOps,
         sessionAccount,

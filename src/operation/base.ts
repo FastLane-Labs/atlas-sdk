@@ -3,6 +3,7 @@ import {
   TypedDataField,
   TypedDataDomain,
   verifyTypedData,
+  keccak256,
 } from "ethers";
 import {
   validateAddress,
@@ -10,7 +11,6 @@ import {
   validateBytes32,
   validateBytes,
 } from "../utils";
-import { createForcedUserOp } from "../utils/convertFields";
 
 export type OpFieldType = string | bigint;
 export type OpField = { name: string; value?: OpFieldType; solType: string };
@@ -64,11 +64,10 @@ export abstract class BaseOperation {
     if (!validateBytes(f.value as string)) {
       throw new Error("Field signature is not a valid bytes");
     }
-    const [types, values] = createForcedUserOp(this.toTypedDataTypes(), this.toTypedDataValues());
     const signer = verifyTypedData(
       tdDomain,
-      types,
-      values,
+      this.toTypedDataTypes(),
+      this.toTypedDataValues(),
       f.value as string
     );
     if (signer !== this.getField("from").value) {
@@ -87,28 +86,28 @@ export abstract class BaseOperation {
       throw new Error(`Field ${f.name} is not set`);
     }
     switch (f.solType) {
-    case "address":
-      if (!validateAddress(f.value as string)) {
-        throw new Error(`Field ${f.name} is not a valid address`);
-      }
-      break;
-    case "uint256":
-      if (!validateUint256(f.value as bigint)) {
-        throw new Error(`Field ${f.name} is not a valid uint256`);
-      }
-      break;
-    case "bytes32":
-      if (!validateBytes32(f.value as string)) {
-        throw new Error(`Field ${f.name} is not a valid bytes32`);
-      }
-      break;
-    case "bytes":
-      if (!validateBytes(f.value as string)) {
-        throw new Error(`Field ${f.name} is not a valid bytes`);
-      }
-      break;
-    default:
-      throw new Error(`Field ${f.name} has unknown type ${f.solType}`);
+      case "address":
+        if (!validateAddress(f.value as string)) {
+          throw new Error(`Field ${f.name} is not a valid address`);
+        }
+        break;
+      case "uint256":
+        if (!validateUint256(f.value as bigint)) {
+          throw new Error(`Field ${f.name} is not a valid uint256`);
+        }
+        break;
+      case "bytes32":
+        if (!validateBytes32(f.value as string)) {
+          throw new Error(`Field ${f.name} is not a valid bytes32`);
+        }
+        break;
+      case "bytes":
+        if (!validateBytes(f.value as string)) {
+          throw new Error(`Field ${f.name} is not a valid bytes`);
+        }
+        break;
+      default:
+        throw new Error(`Field ${f.name} has unknown type ${f.solType}`);
     }
   }
 
@@ -133,7 +132,8 @@ export abstract class BaseOperation {
         .slice(0, -1)
         .map((f) => ({
           name: f.name,
-          type: f.solType,
+          // type: f.solType, // TODO: replace with the following line (Atlas contract bug fix)
+          type: f.solType !== "bytes" ? f.solType : "bytes32",
         })),
     };
   }
@@ -144,7 +144,9 @@ export abstract class BaseOperation {
       .reduce(
         (acc, f) => ({
           ...acc,
-          [f.name]: f.value,
+          [f.name]:
+            // f.value, // TODO: replace with the following line (Atlas contract bug fix)
+            f.solType !== "bytes" ? f.value : keccak256(f.value as string),
         }),
         {}
       );
