@@ -9,7 +9,7 @@ const ZeroBytes = "0x00";
 export class OperationBuilder {
   private chainId: number;
 
-  constructor (chainId: number) {
+  constructor(chainId: number) {
     this.chainId = chainId;
   }
 
@@ -47,22 +47,25 @@ export class OperationBuilder {
     return userOp;
   }
 
-  public static newSolverOperation(prop: {
-    from: string;
-    to: string;
-    value: bigint;
-    gas: bigint;
-    maxFeePerGas: bigint;
-    deadline: bigint;
-    solver: string;
-    control: string;
-    userOpHash: string;
-    bidToken: string;
-    bidAmount: bigint;
-    data: string;
-    signature: string;
-  }): SolverOperation {
-    const solverOp = new SolverOperation();
+  public static newSolverOperation(
+    prop: {
+      from: string;
+      to: string;
+      value: bigint;
+      gas: bigint;
+      maxFeePerGas: bigint;
+      deadline: bigint;
+      solver: string;
+      control: string;
+      userOpHash: string;
+      bidToken: string;
+      bidAmount: bigint;
+      data: string;
+      signature: string;
+    },
+    score?: number
+  ): SolverOperation {
+    const solverOp = new SolverOperation(score);
     solverOp.setFields({
       from: prop.from,
       to: prop.to,

@@ -292,9 +292,12 @@ export class OperationsRelay {
       localVarFetchArgs.options
     );
     if (response.status >= 200 && response.status < 300) {
-      const solverOpsStruct = await response.json();
-      return solverOpsStruct.map((opStruct: any) =>
-        OperationBuilder.newSolverOperation(opStruct)
+      const solverOpsWithScore = await response.json();
+      return solverOpsWithScore.map((solverOpWithScore: any) =>
+        OperationBuilder.newSolverOperation(
+          solverOpWithScore.solverOperation,
+          solverOpWithScore.score
+        )
       );
     } else {
       const reponseBody = await response.json();
