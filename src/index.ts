@@ -7,7 +7,7 @@ import {
   ZeroAddress,
   Contract,
 } from "ethers";
-import { OperationBuilder } from "./operation";
+import { UserOperationParams, OperationBuilder } from "./operation";
 import { OperationsRelay } from "./relay";
 import { UserOperation, SolverOperation, DAppOperation } from "./operation";
 import {
@@ -34,7 +34,6 @@ export class Atlas {
   private operationsRelay: OperationsRelay;
   private sessionKeys: Map<string, HDNodeWallet> = new Map();
   private chainId: number;
-  public builder: OperationBuilder;
 
   /**
    * Creates a new Atlas SDK instance.
@@ -61,7 +60,52 @@ export class Atlas {
       provider
     );
     this.operationsRelay = new OperationsRelay(relayApiEndpoint);
-    this.builder = new OperationBuilder(chainId);
+  }
+  /**
+   * Creates a new user operation.
+   * @param userOpParams The user operation parameters
+   * @param generateSessionKey Generate a session key for this user operation
+   * @returns The user operation and the call configuration for the target dApp
+   */
+  public async newUserOperation(
+    userOpParams: UserOperationParams,
+    generateSessionKey = false
+  ): Promise<[UserOperation, number]> {
+    let userOp = OperationBuilder.newUserOperation({
+      from: userOpParams.from,
+      to: userOpParams.to
+        ? userOpParams.to
+        : chainConfig[this.chainId].contracts.atlas.address,
+      value: userOpParams.value,
+      gas: userOpParams.gas,
+      maxFeePerGas: userOpParams.maxFeePerGas,
+      nonce: userOpParams.nonce,
+      deadline: userOpParams.deadline,
+      dapp: userOpParams.dapp,
+      control: userOpParams.control,
+      sessionKey: userOpParams.sessionKey,
+      data: userOpParams.data,
+      signature: userOpParams.signature,
+    });
+
+    const dConfig = await this.dAppControl
+      .attach(userOpParams.control)
+      .getFunction("getDAppConfig")
+      .staticCall(userOp.toStruct());
+
+    if (dConfig.to !== userOpParams.control) {
+      throw new Error("UserOperation control does not match dApp control");
+    }
+
+    if (!userOpParams.nonce) {
+      userOp = await this.setUserOperationNonce(userOp, dConfig.callConfig);
+    }
+
+    if (generateSessionKey) {
+      userOp = this.generateSessionKey(userOp);
+    }
+
+    return [userOp, dConfig.callConfig];
   }
 
   /**
@@ -106,9 +150,12 @@ export class Atlas {
   ): Promise<UserOperation> {
     userOp.setField(
       "signature",
-      await signer.signTypedData(chainConfig[this.chainId].eip712Domain, userOp.toTypedDataTypes(), userOp.toTypedDataValues())
+      await signer.signTypedData(
+        chainConfig[this.chainId].eip712Domain,
+        userOp.toTypedDataTypes(),
+        userOp.toTypedDataValues()
+      )
     );
-    console.log(userOp.toTypedDataValues());
     userOp.validateSignature(chainConfig[this.chainId].eip712Domain);
     return userOp;
   }
@@ -209,7 +256,7 @@ export class Atlas {
     }
 
     const dAppOp: DAppOperation =
-      this.builder.newDAppOperationFromUserSolvers(
+      OperationBuilder.newDAppOperationFromUserSolvers(
         userOp,
         solverOps,
         sessionAccount,
@@ -281,9 +328,10 @@ export class Atlas {
   }
 
   /**
-   * Creates an Atlas transaction.
+   * Creates an Atlas transaction from end to end.
    * @param signer the signer to sign the user operation
-   * @param userOp the user operation (without nonce, sessionKey, signature)
+   * @param userOpParams the user operation parameters
+   * @param generateSessionKey a boolean indicating if a session key should be generated
    * @param hints an array of addresses used as hints for solvers
    * @param isBundlerLocal a boolean indicating if the bundler is local
    * @returns the encoded calldata for metacall if isBundlerLocal is true,
@@ -291,31 +339,16 @@ export class Atlas {
    */
   public async createAtlasTransaction(
     signer: AbstractSigner,
-    userOp: UserOperation,
+    userOpParams: UserOperationParams,
+    generateSessionKey: boolean = false,
     hints: string[] = [],
     isBundlerLocal: boolean = false
   ): Promise<string> {
-    const dConfig = await this.dAppControl
-      .attach(userOp.getField("control").value as string)
-      .getFunction("getDAppConfig")
-      .staticCall(userOp.toStruct());
-
-    const userControl = userOp.getField("control").value;
-    if (userControl === undefined) {
-      throw new Error("UserOperation control is undefined");
-    }
-
-    if (dConfig.to !== userControl) {
-      throw new Error("UserOperation control does not match dApp control");
-    }
-
-    const callConfig: number = dConfig.callConfig;
-
-    // Set the user operation nonce
-    userOp = await this.setUserOperationNonce(userOp, callConfig);
-
-    // Generate a unique session key for this user operation
-    userOp = this.generateSessionKey(userOp);
+    // Build the user operation, set the nonce if it's not provided, generate a session key if instructed to
+    let [userOp, callConfig] = await this.newUserOperation(
+      userOpParams,
+      generateSessionKey
+    );
 
     // Prompt the user to sign their operation
     userOp = await this.signUserOperation(userOp, signer);
