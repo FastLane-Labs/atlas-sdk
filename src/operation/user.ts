@@ -20,3 +20,18 @@ export class UserOperation extends BaseOperation {
     super("UserOperation");
   }
 }
+
+export interface UserOperationParams {
+  from: string;
+  to?: string;
+  value: bigint;
+  gas: bigint;
+  maxFeePerGas: bigint;
+  nonce?: bigint;
+  deadline: bigint;
+  dapp: string;
+  control: string;
+  sessionKey?: string;
+  data: string;
+  signature?: string;
+}
