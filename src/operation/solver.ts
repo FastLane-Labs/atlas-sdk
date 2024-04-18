@@ -17,7 +17,10 @@ export class SolverOperation extends BaseOperation {
     ["signature", { name: "signature", solType: "bytes" }],
   ]);
 
-  constructor() {
+  public score: number;
+
+  constructor(score?: number) {
     super("SolverOperation");
+    this.score = score || 0;
   }
 }
