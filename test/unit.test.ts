@@ -90,6 +90,34 @@ describe("Atlas SDK unit tests", () => {
     );
   });
 
+  test("user operation EIP712 signature", async () => {
+    const signer = HDNodeWallet.fromSeed(
+      toUtf8Bytes("bad seed used for this test only")
+    );
+
+    const signature = await signer.signTypedData(
+      chainConfig[0].eip712Domain,
+      testUserOperation.toTypedDataTypes(),
+      testUserOperation.toTypedDataValues()
+    );
+
+    expect(signature).toBe(
+      "0x9cd3a1cffa65dd6ac29fe2a608fd8fafece322317b201120e19ac634aba7568d1773d02c3e859b1a4f66c2429def9f36f0ea741fba018bf9beb2bfd72f2f16181c"
+    );
+  });
+
+  test("validate user operation EIP712 signature", () => {
+    testUserOperation.setFields({
+      from: "0xB764B6545d283C0E547952763F8a843394295da1",
+      signature:
+        "0x6ae171d2c70d69413deb2729d2e94244afcf458d7e086fa162ac3b3293fe187b55e306398f82f791ba92e4589dc2269bfa31d92547066145fba8270aaab67edc1b",
+    });
+
+    expect(() =>
+      testUserOperation.validateSignature(chainConfig[0].eip712Domain)
+    ).not.toThrow();
+  });
+
   test("dApp operation EIP712 signature", async () => {
     const signer = HDNodeWallet.fromSeed(
       toUtf8Bytes("bad seed used for this test only")
@@ -102,15 +130,15 @@ describe("Atlas SDK unit tests", () => {
     );
 
     expect(signature).toBe(
-      "0xa11109455bb5a262eaa0a0718ce0c306e5668e25845ed02324ad286cccdea41038bb2a1772922a427032bd8d622e01131772b32b8d0eedaa4e6dde38988b18621c"
+      "0x0cb01656f63ab3ad25c3014a49f5172d6419250c71cab60367117d5ebda3d6982bbd0f4940f0a4fd54648d0903b9b3bae880d9c1388cf756f2b239723a5ed2ae1c"
     );
   });
 
-  test("validate EIP712 signature", () => {
+  test("validate dApp operation EIP712 signature", () => {
     testDAppOperation.setFields({
       from: "0xB764B6545d283C0E547952763F8a843394295da1",
       signature:
-        "0x0a487d88042d1735c61c3d6b3be15f4d79ae83eed6d2a4d27362ad9469812fae4db8bc1998f0f18f240c78d4903d75ecc934b1a021750c547b7c77a29d4ee4171b",
+        "0xc50439032492e702f2cca7c2d171a3e524d8e5828e39e4c9c735529e090e77693b5b7c1132bc9d79cea06dc59656038f72b4067532b3c7f5e723b18692d0d92c1b",
     });
 
     expect(() =>

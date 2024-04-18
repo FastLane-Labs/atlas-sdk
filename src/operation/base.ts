@@ -3,6 +3,7 @@ import {
   TypedDataField,
   TypedDataDomain,
   verifyTypedData,
+  keccak256,
 } from "ethers";
 import {
   validateAddress,
@@ -131,7 +132,8 @@ export abstract class BaseOperation {
         .slice(0, -1)
         .map((f) => ({
           name: f.name,
-          type: f.solType,
+          // type: f.solType, // TODO: replace with the following line (Atlas contract bug fix)
+          type: f.solType !== "bytes" ? f.solType : "bytes32",
         })),
     };
   }
@@ -142,7 +144,9 @@ export abstract class BaseOperation {
       .reduce(
         (acc, f) => ({
           ...acc,
-          [f.name]: f.value,
+          [f.name]:
+            // f.value, // TODO: replace with the following line (Atlas contract bug fix)
+            f.solType !== "bytes" ? f.value : keccak256(f.value as string),
         }),
         {}
       );

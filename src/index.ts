@@ -34,7 +34,6 @@ export class Atlas {
   private operationsRelay: OperationsRelay;
   private sessionKeys: Map<string, HDNodeWallet> = new Map();
   private chainId: number;
-  public builder: OperationBuilder;
 
   /**
    * Creates a new Atlas SDK instance.
@@ -61,7 +60,36 @@ export class Atlas {
       provider
     );
     this.operationsRelay = new OperationsRelay(relayApiEndpoint);
-    this.builder = new OperationBuilder(chainId);
+  }
+
+  public newUserOperation(prop: {
+    from: string;
+    to?: string;
+    value: bigint;
+    gas: bigint;
+    maxFeePerGas: bigint;
+    nonce?: bigint;
+    deadline: bigint;
+    dapp: string;
+    control: string;
+    sessionKey?: string;
+    data: string;
+    signature?: string;
+  }): UserOperation {
+    return OperationBuilder.newUserOperation({
+      from: prop.from,
+      to: prop.to ? prop.to : chainConfig[this.chainId].contracts.atlas.address,
+      value: prop.value,
+      gas: prop.gas,
+      maxFeePerGas: prop.maxFeePerGas,
+      nonce: prop.nonce,
+      deadline: prop.deadline,
+      dapp: prop.dapp,
+      control: prop.control,
+      sessionKey: prop.sessionKey,
+      data: prop.data,
+      signature: prop.signature,
+    });
   }
 
   /**
@@ -106,9 +134,12 @@ export class Atlas {
   ): Promise<UserOperation> {
     userOp.setField(
       "signature",
-      await signer.signTypedData(chainConfig[this.chainId].eip712Domain, userOp.toTypedDataTypes(), userOp.toTypedDataValues())
+      await signer.signTypedData(
+        chainConfig[this.chainId].eip712Domain,
+        userOp.toTypedDataTypes(),
+        userOp.toTypedDataValues()
+      )
     );
-    console.log(userOp.toTypedDataValues());
     userOp.validateSignature(chainConfig[this.chainId].eip712Domain);
     return userOp;
   }
@@ -209,7 +240,7 @@ export class Atlas {
     }
 
     const dAppOp: DAppOperation =
-      this.builder.newDAppOperationFromUserSolvers(
+      OperationBuilder.newDAppOperationFromUserSolvers(
         userOp,
         solverOps,
         sessionAccount,
