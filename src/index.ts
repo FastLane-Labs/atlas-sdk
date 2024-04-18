@@ -7,7 +7,7 @@ import {
   ZeroAddress,
   Contract,
 } from "ethers";
-import { UserOperationParams, OperationBuilder } from "./operation";
+import { UserOperationParams, OperationBuilder, ZeroBytes } from "./operation";
 import { OperationsRelay } from "./relay";
 import { UserOperation, SolverOperation, DAppOperation } from "./operation";
 import {
@@ -176,7 +176,13 @@ export class Atlas {
       throw new Error("Session key not found");
     }
 
-    userOp.validate(chainConfig[this.chainId].eip712Domain);
+    userOp.validateFields();
+
+    // Check the signature only if it's already set
+    if (userOp.getField("signature").value !== ZeroBytes) {
+      userOp.validateSignature(chainConfig[this.chainId].eip712Domain);
+    }
+
     for (const hint of hints) {
       if (!validateAddress(hint)) {
         throw new Error(`Invalid hint address: ${hint}`);

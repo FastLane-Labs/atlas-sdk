@@ -2,8 +2,8 @@ import { HDNodeWallet, ZeroAddress, keccak256 } from "ethers";
 import { UserOperation, SolverOperation, DAppOperation, Bundle } from "./";
 import { getCallChainHash } from "../utils";
 
-const ZeroUint = 0n;
-const ZeroBytes = "0x00";
+export const ZeroUint = 0n;
+export const ZeroBytes = "0x";
 
 export abstract class OperationBuilder {
   public static newUserOperation(prop: {
