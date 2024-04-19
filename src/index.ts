@@ -245,7 +245,8 @@ export class Atlas {
   public async createDAppOperation(
     userOp: UserOperation,
     solverOps: SolverOperation[],
-    callConfig: number
+    callConfig: number,
+    bundler: string = ZeroAddress
   ): Promise<DAppOperation> {
     const sessionKey = userOp.getField("sessionKey").value as string;
 
@@ -266,7 +267,8 @@ export class Atlas {
         userOp,
         solverOps,
         sessionAccount,
-        flagRequirePreOps(callConfig)
+        flagRequirePreOps(callConfig),
+        bundler
       );
 
     const signature = await sessionAccount.signTypedData(
@@ -348,6 +350,7 @@ export class Atlas {
     userOpParams: UserOperationParams,
     generateSessionKey: boolean = false,
     hints: string[] = [],
+    bundler: string = ZeroAddress,
     isBundlerLocal: boolean = false
   ): Promise<string> {
     // Build the user operation, set the nonce if it's not provided, generate a session key if instructed to
@@ -379,7 +382,8 @@ export class Atlas {
     const dAppOp: DAppOperation = await this.createDAppOperation(
       userOp,
       sortedSolverOps,
-      callConfig
+      callConfig,
+      bundler
     );
 
     if (isBundlerLocal) {
