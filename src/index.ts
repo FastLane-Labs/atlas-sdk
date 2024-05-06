@@ -7,7 +7,7 @@ import {
   ZeroAddress,
   Contract,
 } from "ethers";
-import { UserOperationParams, OperationBuilder } from "./operation";
+import { UserOperationParams, OperationBuilder, ZeroBytes } from "./operation";
 import { OperationsRelay } from "./relay";
 import { UserOperation, SolverOperation, DAppOperation } from "./operation";
 import {
@@ -176,7 +176,13 @@ export class Atlas {
       throw new Error("Session key not found");
     }
 
-    userOp.validate(chainConfig[this.chainId].eip712Domain);
+    userOp.validateFields();
+
+    // Check the signature only if it's already set
+    if (userOp.getField("signature").value !== ZeroBytes) {
+      userOp.validateSignature(chainConfig[this.chainId].eip712Domain);
+    }
+
     for (const hint of hints) {
       if (!validateAddress(hint)) {
         throw new Error(`Invalid hint address: ${hint}`);
@@ -239,7 +245,8 @@ export class Atlas {
   public async createDAppOperation(
     userOp: UserOperation,
     solverOps: SolverOperation[],
-    callConfig: number
+    callConfig: number,
+    bundler: string = ZeroAddress
   ): Promise<DAppOperation> {
     const sessionKey = userOp.getField("sessionKey").value as string;
 
@@ -260,7 +267,8 @@ export class Atlas {
         userOp,
         solverOps,
         sessionAccount,
-        flagRequirePreOps(callConfig)
+        flagRequirePreOps(callConfig),
+        bundler
       );
 
     const signature = await sessionAccount.signTypedData(
@@ -342,6 +350,7 @@ export class Atlas {
     userOpParams: UserOperationParams,
     generateSessionKey: boolean = false,
     hints: string[] = [],
+    bundler: string = ZeroAddress,
     isBundlerLocal: boolean = false
   ): Promise<string> {
     // Build the user operation, set the nonce if it's not provided, generate a session key if instructed to
@@ -373,7 +382,8 @@ export class Atlas {
     const dAppOp: DAppOperation = await this.createDAppOperation(
       userOp,
       sortedSolverOps,
-      callConfig
+      callConfig,
+      bundler
     );
 
     if (isBundlerLocal) {

@@ -2,8 +2,8 @@ import { HDNodeWallet, ZeroAddress, keccak256 } from "ethers";
 import { UserOperation, SolverOperation, DAppOperation, Bundle } from "./";
 import { getCallChainHash } from "../utils";
 
-const ZeroUint = 0n;
-const ZeroBytes = "0x00";
+export const ZeroUint = 0n;
+export const ZeroBytes = "0x";
 
 export abstract class OperationBuilder {
   public static newUserOperation(prop: {
@@ -115,7 +115,8 @@ export abstract class OperationBuilder {
     userOp: UserOperation,
     solverOps: SolverOperation[],
     signer: HDNodeWallet,
-    requirePreOps: boolean
+    requirePreOps: boolean,
+    bundler: string = ZeroAddress
   ): DAppOperation {
     const userTo = userOp.getField("to").value;
     if (userTo === undefined) {
@@ -132,16 +133,15 @@ export abstract class OperationBuilder {
       throw new Error("UserOperation control is undefined");
     }
 
-    const dAppOp = new DAppOperation();
-    dAppOp.setFields({
+    return this.newDAppOperation({
       from: signer.publicKey,
-      to: userTo,
+      to: userTo as string,
       value: 0n,
       gas: 0n,
       nonce: 0n,
-      deadline: userDeadline,
-      control: dAppControl,
-      bundler: ZeroAddress,
+      deadline: userDeadline as bigint,
+      control: dAppControl as string,
+      bundler: bundler,
       userOpHash: keccak256(userOp.abiEncode()),
       callChainHash: getCallChainHash(
         userOp,
@@ -151,8 +151,6 @@ export abstract class OperationBuilder {
       ),
       signature: ZeroBytes,
     });
-
-    return dAppOp;
   }
 
   public static newBundle(
