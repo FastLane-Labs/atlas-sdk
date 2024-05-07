@@ -41,20 +41,20 @@ export const chainConfig: { [chainId: number]: ChainConfig } = {
   11155111: {
     contracts: {
       atlas: {
-        address: "0xa892eb9F79E0D1b6277B3456b0a8FE770386f6DB",
+        address: "0xab654945B45D32465f83bC8B1a13F075c89F7246",
       },
       atlasVerification: {
-        address: "0xeeB91b2d317e3A747E88c1CA542ae31E32B87FDF",
+        address: "0x95c8B9Cff6c3ff7E119B1D70C8E10c07D5160AD6",
       },
       sorter: {
-        address: "0xAAdF6272cCE4121Db92da224C28d1B59C9feF4d5",
+        address: "0x09c69Fefd937d2B05fB8a313120fCA5176b3Aa1d",
       },
     },
     eip712Domain: {
       name: "AtlasVerification",
       version: "1.0",
       chainId: 11155111,
-      verifyingContract: "0xeeB91b2d317e3A747E88c1CA542ae31E32B87FDF",
+      verifyingContract: "0x95c8B9Cff6c3ff7E119B1D70C8E10c07D5160AD6",
     },
   },
 };

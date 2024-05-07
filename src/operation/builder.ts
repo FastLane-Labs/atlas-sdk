@@ -134,11 +134,11 @@ export abstract class OperationBuilder {
     }
 
     return this.newDAppOperation({
-      from: signer.publicKey,
+      from: signer.address,
       to: userTo as string,
       value: 0n,
       gas: 0n,
-      nonce: 0n,
+      nonce: 1n,
       deadline: userDeadline as bigint,
       control: dAppControl as string,
       bundler: bundler,
