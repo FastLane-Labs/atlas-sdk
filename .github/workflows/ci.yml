@@ -27,5 +27,8 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt update && sudo apt install build-essential
 
+      - name: Install dependencies
+        run: npm install
+
       - name: Test
         run: npm test
