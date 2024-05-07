@@ -37,12 +37,12 @@ export class Atlas {
 
   /**
    * Creates a new Atlas SDK instance.
-   * @param relayApiEndpoint the url of the operation relay's API
+   * @param operationsRelay a backend operations relay client
    * @param provider a provider
    * @param chainId the chain ID of the network
    */
   constructor(
-    relayApiEndpoint: string,
+    operationsRelay: OperationsRelay,
     provider: AbstractProvider,
     chainId: number
   ) {
@@ -59,8 +59,9 @@ export class Atlas {
       sorterAbi,
       provider
     );
-    this.operationsRelay = new OperationsRelay(relayApiEndpoint);
+    this.operationsRelay = operationsRelay;
   }
+
   /**
    * Creates a new user operation.
    * @param userOpParams The user operation parameters
@@ -105,7 +106,7 @@ export class Atlas {
       userOp = this.generateSessionKey(userOp);
     }
 
-    return [userOp, dConfig.callConfig];
+    return [userOp, Number(dConfig.callConfig)];
   }
 
   /**
@@ -142,6 +143,7 @@ export class Atlas {
   /**
    * Prompt the user to sign their operation.
    * @param userOp a user operation
+   * @param signer a signer
    * @returns the user operation with a valid signature field
    */
   public async signUserOperation(
@@ -165,14 +167,15 @@ export class Atlas {
    * @param userOp a signed user operation
    * @param callConfig the dApp call configuration
    * @param hints an array of addresses used as hints for solvers
-   * @returns an array of solver operations
+   * @returns the user operation hash and an array of solver operations
    */
   public async submitUserOperation(
     userOp: UserOperation,
     callConfig: number,
     hints: string[] = []
   ): Promise<[string, SolverOperation[]]> {
-    if (!this.sessionKeys.has(userOp.getField("sessionKey").value as string)) {
+    const sessionKey = userOp.getField("sessionKey").value as string;
+    if (sessionKey !== ZeroAddress && !this.sessionKeys.has(sessionKey)) {
       throw new Error("Session key not found");
     }
 
@@ -223,9 +226,13 @@ export class Atlas {
       return solverOps;
     }
 
-    const sortedSolverOps: SolverOperation[] = await this.sorter.sortBids(
+    const sortedSolverOpsResp: any[] = await this.sorter.sortBids(
       userOp.toStruct(),
       solverOps.map((solverOp) => solverOp.toStruct())
+    );
+
+    const sortedSolverOps: SolverOperation[] = sortedSolverOpsResp.map((op) =>
+      OperationBuilder.newSolverOperation(op)
     );
 
     if (sortedSolverOps.length === 0 && !flagZeroSolvers(callConfig)) {
@@ -316,7 +323,11 @@ export class Atlas {
     dAppOp: DAppOperation,
     userOpHash: string
   ): Promise<string> {
-    if (userOp.getField("sessionKey").value !== dAppOp.getField("from").value) {
+    const sessionKey = userOp.getField("sessionKey").value as string;
+    if (
+      sessionKey !== ZeroAddress &&
+      sessionKey !== dAppOp.getField("from").value
+    ) {
       throw new Error(
         "User operation session key does not match dApp operation"
       );
@@ -330,73 +341,6 @@ export class Atlas {
     const atlasTxHash: string = await this.operationsRelay.getBundleHash(
       userOpHash,
       true
-    );
-
-    return atlasTxHash;
-  }
-
-  /**
-   * Creates an Atlas transaction from end to end.
-   * @param signer the signer to sign the user operation
-   * @param userOpParams the user operation parameters
-   * @param generateSessionKey a boolean indicating if a session key should be generated
-   * @param hints an array of addresses used as hints for solvers
-   * @param isBundlerLocal a boolean indicating if the bundler is local
-   * @returns the encoded calldata for metacall if isBundlerLocal is true,
-   * the hash of the resulting Atlas transaction otherwise
-   */
-  public async createAtlasTransaction(
-    signer: AbstractSigner,
-    userOpParams: UserOperationParams,
-    generateSessionKey: boolean = false,
-    hints: string[] = [],
-    bundler: string = ZeroAddress,
-    isBundlerLocal: boolean = false
-  ): Promise<string> {
-    // Build the user operation, set the nonce if it's not provided, generate a session key if instructed to
-    let [userOp, callConfig] = await this.newUserOperation(
-      userOpParams,
-      generateSessionKey
-    );
-
-    // Prompt the user to sign their operation
-    userOp = await this.signUserOperation(userOp, signer);
-
-    // Submit the user operation to the relay
-    let userOpHash: string;
-    let solverOps: SolverOperation[];
-    [userOpHash, solverOps] = await this.submitUserOperation(
-      userOp,
-      callConfig,
-      hints
-    );
-
-    // Sort bids and filter out invalid solver operations
-    const sortedSolverOps = await this.sortSolverOperations(
-      userOp,
-      solverOps,
-      callConfig
-    );
-
-    // Create the dApp operation, signed with the session key
-    const dAppOp: DAppOperation = await this.createDAppOperation(
-      userOp,
-      sortedSolverOps,
-      callConfig,
-      bundler
-    );
-
-    if (isBundlerLocal) {
-      // Return metacall's calldata only, for local bundling
-      return this.getMetacallCalldata(userOp, sortedSolverOps, dAppOp);
-    }
-
-    // Submit all operations to the relay for bundling
-    const atlasTxHash: string = await this.submitBundle(
-      userOp,
-      sortedSolverOps,
-      dAppOp,
-      userOpHash
     );
 
     return atlasTxHash;
