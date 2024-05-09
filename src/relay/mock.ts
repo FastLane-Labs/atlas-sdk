@@ -1,23 +1,28 @@
-import { OperationsRelay } from "./interface";
+import { BaseOperationRelay } from "./base";
 import { OperationBuilder, ZeroBytes } from "../operation/builder";
 import { UserOperation, SolverOperation, Bundle } from "../operation";
-import { keccak256, ZeroAddress, randomBytes } from "ethers";
+import { keccak256, ZeroAddress } from "ethers";
 
-export class MockOperationsRelay implements OperationsRelay {
+export class MockOperationsRelay extends BaseOperationRelay {
   private submittedUserOps: { [key: string]: UserOperation } = {};
   private submittedBundles: { [key: string]: Bundle } = {};
+
+  constructor() {
+    super();
+  }
 
   /**
    * Submit a user operation to the relay
    * @summary Submit a user operation to the relay
    * @param {UserOperation} [userOp] The user operation
    * @param {string[]} [hints] Hints for solvers
-   * @param {*} [options] Override http request option.
+   * @param {*} [extra] Extra parameters
+   * @returns {Promise<string>} The hash of the user operation
    */
-  public async submitUserOperation(
+  public async _submitUserOperation(
     userOp: UserOperation,
     hints: string[],
-    options?: any
+    extra?: any
   ): Promise<string> {
     const userOpHash = keccak256(userOp.abiEncode());
     this.submittedUserOps[userOpHash] = userOp;
@@ -29,12 +34,13 @@ export class MockOperationsRelay implements OperationsRelay {
    * @summary Get solver operations for a user operation previously submitted
    * @param {string} userOpHash The hash of the user operation
    * @param {boolean} [wait] Hold the request until having a response
-   * @param {*} [options] Override http request option.
+   * @param {*} [extra] Extra parameters
+   * @returns {Promise<SolverOperation[]>} The solver operations
    */
-  public async getSolverOperations(
+  public async _getSolverOperations(
     userOpHash: string,
     wait?: boolean,
-    options?: any
+    extra?: any
   ): Promise<SolverOperation[]> {
     const userOp = this.submittedUserOps[userOpHash];
     if (userOp === undefined) {
@@ -69,9 +75,10 @@ export class MockOperationsRelay implements OperationsRelay {
    * Submit user/solvers/dApp operations to the relay for bundling
    * @summary Submit a bundle of user/solvers/dApp operations to the relay
    * @param {Bundle} [bundle] The user/solvers/dApp operations to be bundled
-   * @param {*} [options] Override http request option.
+   * @param {*} [extra] Extra parameters
+   * @returns {Promise<string>} The result message
    */
-  public async submitBundle(bundle: Bundle, options?: any): Promise<string> {
+  public async _submitBundle(bundle: Bundle, extra?: any): Promise<string> {
     const userOpHash = keccak256(bundle.userOperation.abiEncode());
     this.submittedBundles[userOpHash] = bundle;
     return userOpHash;
@@ -82,12 +89,13 @@ export class MockOperationsRelay implements OperationsRelay {
    * @summary Get the Atlas transaction hash from a previously submitted bundle
    * @param {string} userOpHash The hash of the user operation
    * @param {boolean} [wait] Hold the request until having a response
-   * @param {*} [options] Override http request option.
+   * @param {*} [extra] Extra parameters
+   * @returns {Promise<string>} The Atlas transaction hash
    */
-  public async getBundleHash(
+  public async _getBundleHash(
     userOpHash: string,
     wait?: boolean,
-    options?: any
+    extra?: any
   ): Promise<string> {
     const bundle = this.submittedBundles[userOpHash];
     if (bundle === undefined) {

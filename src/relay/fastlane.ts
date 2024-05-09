@@ -1,4 +1,4 @@
-import { OperationsRelay } from "./interface";
+import { BaseOperationRelay } from "./base";
 import { OperationBuilder } from "../operation/builder";
 import { UserOperation, SolverOperation, Bundle } from "../operation";
 import { toQuantity } from "ethers";
@@ -18,8 +18,6 @@ interface FetchArgs {
   url: string;
   options: any;
 }
-
-const BASE_PATH = "/".replace(/\/+$/, "");
 
 const ROUTES: Map<string, Route> = new Map([
   [
@@ -52,32 +50,30 @@ const ROUTES: Map<string, Route> = new Map([
   ],
 ]);
 
-export class FastlaneOperationsRelay implements OperationsRelay {
-  constructor(
-    protected basePath: string = BASE_PATH,
-    protected fetch: FetchAPI = isomorphicFetch
-  ) {}
+export class FastlaneOperationsRelay extends BaseOperationRelay {
+  protected fetch: FetchAPI = isomorphicFetch;
+
+  constructor(params: { [k: string]: string }) {
+    super(params);
+  }
 
   /**
    * Submit a user operation to the relay
    * @summary Submit a user operation to the relay
    * @param {UserOperation} [userOp] The user operation
    * @param {string[]} [hints] Hints for solvers
-   * @param {*} [options] Override http request option.
+   * @param {*} [extra] Extra parameters
+   * @returns {Promise<string>} The hash of the user operation
    */
-  public async submitUserOperation(
+  public async _submitUserOperation(
     userOp: UserOperation,
     hints: string[],
-    options?: any
+    extra?: any
   ): Promise<string> {
     const localVarFetchArgs =
-      FastlaneApiFetchParamCreator().submitUserOperation(
-        userOp,
-        hints,
-        options
-      );
+      FastlaneApiFetchParamCreator().submitUserOperation(userOp, hints, extra);
     const response = await fetch(
-      this.basePath + localVarFetchArgs.url,
+      this.params["basePath"] + localVarFetchArgs.url,
       localVarFetchArgs.options
     );
     if (response.status >= 200 && response.status < 300) {
@@ -85,7 +81,7 @@ export class FastlaneOperationsRelay implements OperationsRelay {
     } else {
       console.log(
         "request error",
-        this.basePath + localVarFetchArgs.url,
+        this.params["basePath"] + localVarFetchArgs.url,
         localVarFetchArgs.options
       );
       const reponseBody = await response.json();
@@ -99,21 +95,22 @@ export class FastlaneOperationsRelay implements OperationsRelay {
    * @summary Get solver operations for a user operation previously submitted
    * @param {string} userOpHash The hash of the user operation
    * @param {boolean} [wait] Hold the request until having a response
-   * @param {*} [options] Override http request option.
+   * @param {*} [extra] Extra parameters
+   * @returns {Promise<SolverOperation[]>} The solver operations
    */
-  public async getSolverOperations(
+  public async _getSolverOperations(
     userOpHash: string,
     wait?: boolean,
-    options?: any
+    extra?: any
   ): Promise<SolverOperation[]> {
     const localVarFetchArgs =
       FastlaneApiFetchParamCreator().getSolverOperations(
         userOpHash,
         wait,
-        options
+        extra
       );
     const response = await fetch(
-      this.basePath + localVarFetchArgs.url,
+      this.params["basePath"] + localVarFetchArgs.url,
       localVarFetchArgs.options
     );
     if (response.status >= 200 && response.status < 300) {
@@ -134,15 +131,16 @@ export class FastlaneOperationsRelay implements OperationsRelay {
    * Submit user/solvers/dApp operations to the relay for bundling
    * @summary Submit a bundle of user/solvers/dApp operations to the relay
    * @param {Bundle} [bundle] The user/solvers/dApp operations to be bundled
-   * @param {*} [options] Override http request option.
+   * @param {*} [extra] Extra parameters
+   * @returns {Promise<string>} The result message
    */
-  public async submitBundle(bundle: Bundle, options?: any): Promise<string> {
+  public async _submitBundle(bundle: Bundle, extra?: any): Promise<string> {
     const localVarFetchArgs = FastlaneApiFetchParamCreator().submitBundle(
       bundle,
-      options
+      extra
     );
     const response = await fetch(
-      this.basePath + localVarFetchArgs.url,
+      this.params["basePath"] + localVarFetchArgs.url,
       localVarFetchArgs.options
     );
     if (response.status >= 200 && response.status < 300) {
@@ -158,20 +156,21 @@ export class FastlaneOperationsRelay implements OperationsRelay {
    * @summary Get the Atlas transaction hash from a previously submitted bundle
    * @param {string} userOpHash The hash of the user operation
    * @param {boolean} [wait] Hold the request until having a response
-   * @param {*} [options] Override http request option.
+   * @param {*} [extra] Extra parameters
+   * @returns {Promise<string>} The Atlas transaction hash
    */
-  public async getBundleHash(
+  public async _getBundleHash(
     userOpHash: string,
     wait?: boolean,
-    options?: any
+    extra?: any
   ): Promise<string> {
     const localVarFetchArgs = FastlaneApiFetchParamCreator().getBundleHash(
       userOpHash,
       wait,
-      options
+      extra
     );
     const response = await fetch(
-      this.basePath + localVarFetchArgs.url,
+      this.params["basePath"] + localVarFetchArgs.url,
       localVarFetchArgs.options
     );
     if (response.status >= 200 && response.status < 300) {

@@ -7,9 +7,16 @@ import {
   ZeroAddress,
   Contract,
 } from "ethers";
-import { UserOperationParams, OperationBuilder, ZeroBytes } from "./operation";
-import { OperationsRelay } from "./relay";
-import { UserOperation, SolverOperation, DAppOperation } from "./operation";
+import {
+  UserOperation,
+  SolverOperation,
+  DAppOperation,
+  UserOperationParams,
+  OperationBuilder,
+  ZeroBytes,
+} from "./operation";
+import { IOperationsRelay } from "./relay";
+import { IHooksControllerConstructable } from "./relay/hooks";
 import {
   validateAddress,
   flagUserNoncesSequenced,
@@ -26,12 +33,12 @@ import sorterAbi from "./abi/Sorter.json";
 /**
  * The main class to submit user operations to Atlas.
  */
-export class Atlas {
+export class AtlasSdk {
   private iAtlas: Interface;
   private atlasVerification: Contract;
   private dAppControl: Contract;
   private sorter: Contract;
-  private operationsRelay: OperationsRelay;
+  private operationsRelay: IOperationsRelay;
   private sessionKeys: Map<string, HDNodeWallet> = new Map();
   private chainId: number;
 
@@ -42,9 +49,10 @@ export class Atlas {
    * @param chainId the chain ID of the network
    */
   constructor(
-    operationsRelay: OperationsRelay,
     provider: AbstractProvider,
-    chainId: number
+    chainId: number,
+    operationsRelay: IOperationsRelay,
+    hooksControllers: IHooksControllerConstructable[] = []
   ) {
     this.chainId = chainId;
     this.iAtlas = new Interface(atlasAbi);
@@ -59,7 +67,11 @@ export class Atlas {
       sorterAbi,
       provider
     );
+    const _hooksControllers = hooksControllers.map(
+      (HookController) => new HookController(provider, chainId)
+    );
     this.operationsRelay = operationsRelay;
+    this.operationsRelay.addHooksControllers(_hooksControllers);
   }
 
   /**
