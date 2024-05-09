@@ -212,7 +212,7 @@ export class AtlasSdk {
 
     // Get the solver operations
     const solverOps: SolverOperation[] =
-      await this.operationsRelay.getSolverOperations(userOphash, true);
+      await this.operationsRelay.getSolverOperations(userOp, userOphash, true);
 
     if (solverOps.length === 0 && !flagZeroSolvers(callConfig)) {
       throw new Error("No solver operations returned");

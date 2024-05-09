@@ -93,12 +93,14 @@ export class FastlaneOperationsRelay extends BaseOperationRelay {
   /**
    * Get solver operations for a user operation previously submitted
    * @summary Get solver operations for a user operation previously submitted
+   * @param {UserOperation} [userOp] The user operation
    * @param {string} userOpHash The hash of the user operation
    * @param {boolean} [wait] Hold the request until having a response
    * @param {*} [extra] Extra parameters
    * @returns {Promise<SolverOperation[]>} The solver operations
    */
   public async _getSolverOperations(
+    _: UserOperation,
     userOpHash: string,
     wait?: boolean,
     extra?: any

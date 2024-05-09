@@ -10,15 +10,12 @@ import { MockOperationsRelay } from "../src/relay/mock";
 import { OperationBuilder, ZeroBytes } from "../src/operation";
 import { validateBytes32 } from "../src/utils";
 import { chainConfig } from "../src/config";
-import { SimulationHooksController } from "../src/relay/hooks/simulation";
 
 describe("Atlas SDK main tests", () => {
   const chainId = 11155111;
   const provider = new JsonRpcProvider("https://rpc.sepolia.org/", chainId);
   const opsRelay = new MockOperationsRelay();
-  const sdk = new AtlasSdk(provider, chainId, opsRelay, [
-    SimulationHooksController,
-  ]);
+  const sdk = new AtlasSdk(provider, chainId, opsRelay);
 
   const testDAppControl = "0xe9c7bEAF3da67d3FB00708ADAE8ab62e578246d7";
   const testCallConfig = 97520;
@@ -34,7 +31,7 @@ describe("Atlas SDK main tests", () => {
     gas: 100000n,
     maxFeePerGas: 30000000000n,
     deadline: 0n,
-    dapp: chainConfig[chainId].contracts.atlas.address,
+    dapp: testDAppControl,
     control: testDAppControl,
     data: "0x83a6992a00000000000000000000000000000000000000000000000000000000000000200000000000000000000000007439e9bb6d8a84dd3a23fe621a30f95403f87fb90000000000000000000000000000000000000000000000000000b5e620f480000000000000000000000000007b79995e5f793a07bc00c21412e50ecae098e7f9000000000000000000000000000000000000000000000000000000e8d4a510000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000000",
   };

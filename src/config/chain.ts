@@ -11,6 +11,12 @@ export interface ChainConfig {
     sorter: {
       address: string;
     };
+    simulator: {
+      address: string;
+    };
+    multicall3: {
+      address: string;
+    };
   };
   eip712Domain: TypedDataDomain;
 }
@@ -26,6 +32,12 @@ export const chainConfig: { [chainId: number]: ChainConfig } = {
         address: "",
       },
       sorter: {
+        address: "",
+      },
+      simulator: {
+        address: "",
+      },
+      multicall3: {
         address: "",
       },
     },
@@ -48,6 +60,12 @@ export const chainConfig: { [chainId: number]: ChainConfig } = {
       },
       sorter: {
         address: "0x09c69Fefd937d2B05fB8a313120fCA5176b3Aa1d",
+      },
+      simulator: {
+        address: "0xa76a0CD24769241F890B322c39ABDd52aa962094",
+      },
+      multicall3: {
+        address: "0xcA11bde05977b3631167028862bE2a173976CA11",
       },
     },
     eip712Domain: {
