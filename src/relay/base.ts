@@ -27,19 +27,22 @@ export interface IOperationsRelay {
   /**
    * Get solver operations for a user operation previously submitted
    * @summary Get solver operations for a user operation previously submitted
+   * @param {UserOperation} userOp The user operation
    * @param {string} userOpHash The hash of the user operation
    * @param {boolean} [wait] Hold the request until having a response
    * @param {*} [extra] Extra parameters
    * @returns {Promise<SolverOperation[]>} The solver operations
    */
   getSolverOperations(
-    userOpHash: any,
+    userOp: UserOperation,
+    userOpHash: string,
     wait?: boolean,
     extra?: any
   ): Promise<SolverOperation[]>;
 
   _getSolverOperations(
-    userOpHash: any,
+    userOp: UserOperation,
+    userOpHash: string,
     wait?: boolean,
     extra?: any
   ): Promise<SolverOperation[]>;
@@ -63,9 +66,17 @@ export interface IOperationsRelay {
    * @param {*} [extra] Extra parameters
    * @returns {Promise<string>} The Atlas transaction hash
    */
-  getBundleHash(userOpHash: any, wait?: boolean, extra?: any): Promise<string>;
+  getBundleHash(
+    userOpHash: string,
+    wait?: boolean,
+    extra?: any
+  ): Promise<string>;
 
-  _getBundleHash(userOpHash: any, wait?: boolean, extra?: any): Promise<string>;
+  _getBundleHash(
+    userOpHash: string,
+    wait?: boolean,
+    extra?: any
+  ): Promise<string>;
 }
 
 export abstract class BaseOperationRelay implements IOperationsRelay {
@@ -105,21 +116,33 @@ export abstract class BaseOperationRelay implements IOperationsRelay {
   }
 
   async getSolverOperations(
-    userOpHash: any,
+    userOp: UserOperation,
+    userOpHash: string,
     wait?: boolean,
     extra?: any
   ): Promise<SolverOperation[]> {
     // Pre hooks
     for (const hooksController of this.hooksControllers) {
-      userOpHash = await hooksController.preGetSolverOperations(userOpHash);
+      [userOp, userOpHash] = await hooksController.preGetSolverOperations(
+        userOp,
+        userOpHash
+      );
     }
 
     // Implemented by subclass
-    let solverOps = await this._getSolverOperations(userOpHash, wait, extra);
+    let solverOps = await this._getSolverOperations(
+      userOp,
+      userOpHash,
+      wait,
+      extra
+    );
 
     // Post hooks
     for (const hooksController of this.hooksControllers) {
-      solverOps = await hooksController.postGetSolverOperations(solverOps);
+      [userOp, solverOps] = await hooksController.postGetSolverOperations(
+        userOp,
+        solverOps
+      );
     }
 
     return solverOps;
@@ -143,7 +166,7 @@ export abstract class BaseOperationRelay implements IOperationsRelay {
   }
 
   async getBundleHash(
-    userOpHash: any,
+    userOpHash: string,
     wait?: boolean,
     extra?: any
   ): Promise<string> {
@@ -172,7 +195,8 @@ export abstract class BaseOperationRelay implements IOperationsRelay {
   }
 
   async _getSolverOperations(
-    userOpHash: any,
+    userOp: UserOperation,
+    userOpHash: string,
     wait?: boolean,
     extra?: any
   ): Promise<SolverOperation[]> {
@@ -184,7 +208,7 @@ export abstract class BaseOperationRelay implements IOperationsRelay {
   }
 
   async _getBundleHash(
-    userOpHash: any,
+    userOpHash: string,
     wait?: boolean,
     extra?: any
   ): Promise<string> {

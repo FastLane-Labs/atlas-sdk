@@ -12,11 +12,15 @@ export interface IHooksController {
     userOphash: string
   ): Promise<[UserOperation, string]>;
 
-  preGetSolverOperations(userOphash: string): Promise<string>;
+  preGetSolverOperations(
+    userOp: UserOperation,
+    userOphash: string
+  ): Promise<[UserOperation, string]>;
 
   postGetSolverOperations(
+    userOp: UserOperation,
     solverOps: SolverOperation[]
-  ): Promise<SolverOperation[]>;
+  ): Promise<[UserOperation, SolverOperation[]]>;
 
   preSubmitBundle(bundleOps: Bundle): Promise<Bundle>;
 
@@ -51,14 +55,18 @@ export abstract class BaseHooksController implements IHooksController {
     return [userOp, userOphash];
   }
 
-  async preGetSolverOperations(userOphash: string): Promise<string> {
-    return userOphash;
+  async preGetSolverOperations(
+    userOp: UserOperation,
+    userOphash: string
+  ): Promise<[UserOperation, string]> {
+    return [userOp, userOphash];
   }
 
   async postGetSolverOperations(
+    userOp: UserOperation,
     solverOps: SolverOperation[]
-  ): Promise<SolverOperation[]> {
-    return solverOps;
+  ): Promise<[UserOperation, SolverOperation[]]> {
+    return [userOp, solverOps];
   }
 
   async preSubmitBundle(bundleOps: Bundle): Promise<Bundle> {
