@@ -59,7 +59,7 @@ export const chainConfig: { [chainId: number]: ChainConfig } = {
         address: "0x95c8B9Cff6c3ff7E119B1D70C8E10c07D5160AD6",
       },
       sorter: {
-        address: "0x09c69Fefd937d2B05fB8a313120fCA5176b3Aa1d",
+        address: "0xd401992cEf2a6a481E1c0631f8ad6c062386d3A7",
       },
       simulator: {
         address: "0xa76a0CD24769241F890B322c39ABDd52aa962094",
