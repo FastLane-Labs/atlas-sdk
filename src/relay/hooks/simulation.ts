@@ -1,10 +1,4 @@
-import {
-  AbstractProvider,
-  Contract,
-  VoidSigner,
-  ZeroAddress,
-  ZeroHash,
-} from "ethers";
+import { ethers } from "ethers";
 import {
   UserOperation,
   SolverOperation,
@@ -19,24 +13,27 @@ import simulatorAbi from "../../abi/Simulator.json";
 import multicall3Abi from "../../abi/Multicall3.json";
 
 export class SimulationHooksController extends BaseHooksController {
-  private atlas: Contract;
-  private simulator: Contract;
-  private multicall3: Contract;
+  private atlas: ethers.Contract;
+  private simulator: ethers.Contract;
+  private multicall3: ethers.Contract;
   private maxSolutions: number = 10;
 
-  constructor(provider: AbstractProvider, chainId: number) {
+  constructor(
+    provider: ethers.providers.Web3Provider | ethers.providers.JsonRpcProvider,
+    chainId: number
+  ) {
     super(provider, chainId);
-    this.atlas = new Contract(
+    this.atlas = new ethers.Contract(
       chainConfig[chainId].contracts.atlas.address,
       atlasAbi,
       provider
     );
-    this.simulator = new Contract(
+    this.simulator = new ethers.Contract(
       chainConfig[chainId].contracts.simulator.address,
       simulatorAbi,
       provider
     );
-    this.multicall3 = new Contract(
+    this.multicall3 = new ethers.Contract(
       chainConfig[chainId].contracts.multicall3.address,
       multicall3Abi,
       provider
@@ -113,16 +110,16 @@ export class SimulationHooksController extends BaseHooksController {
           userOp.toStruct(),
           solverOp.toStruct(),
           OperationBuilder.newDAppOperation({
-            from: ZeroAddress,
-            to: ZeroAddress,
+            from: ethers.constants.AddressZero,
+            to: ethers.constants.AddressZero,
             value: 0n,
             gas: 0n,
             nonce: 0n,
             deadline: userOp.getField("deadline").value as bigint,
             control: userOp.getField("control").value as string,
-            bundler: ZeroAddress,
-            userOpHash: ZeroHash,
-            callChainHash: ZeroHash,
+            bundler: ethers.constants.AddressZero,
+            userOpHash: ethers.constants.HashZero,
+            callChainHash: ethers.constants.HashZero,
             signature: ZeroBytes,
           }).toStruct(),
         ]),
@@ -151,7 +148,7 @@ export class SimulationHooksController extends BaseHooksController {
     // Simulation will throw if the bundle is invalid
     await this.atlas
       .connect(
-        new VoidSigner(
+        new ethers.VoidSigner(
           bundleOps.dAppOperation.getField("bundler").value as string,
           this.provider
         )

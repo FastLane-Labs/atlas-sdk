@@ -1,12 +1,4 @@
-import {
-  AbstractProvider,
-  Wallet,
-  HDNodeWallet,
-  Interface,
-  AbstractSigner,
-  ZeroAddress,
-  Contract,
-} from "ethers";
+import { ethers } from "ethers";
 import {
   UserOperation,
   SolverOperation,
@@ -34,12 +26,12 @@ import sorterAbi from "./abi/Sorter.json";
  * The main class to submit user operations to Atlas.
  */
 export class AtlasSdk {
-  private iAtlas: Interface;
-  private atlasVerification: Contract;
-  private dAppControl: Contract;
-  private sorter: Contract;
+  private iAtlas: ethers.utils.Interface;
+  private atlasVerification: ethers.Contract;
+  private dAppControl: ethers.Contract;
+  private sorter: ethers.Contract;
   private operationsRelay: IOperationsRelay;
-  private sessionKeys: Map<string, HDNodeWallet> = new Map();
+  private sessionKeys: Map<string, ethers.Wallet> = new Map();
   private chainId: number;
 
   /**
@@ -49,20 +41,24 @@ export class AtlasSdk {
    * @param chainId the chain ID of the network
    */
   constructor(
-    provider: AbstractProvider,
+    provider: ethers.providers.Web3Provider | ethers.providers.JsonRpcProvider,
     chainId: number,
     operationsRelay: IOperationsRelay,
     hooksControllers: IHooksControllerConstructable[] = []
   ) {
     this.chainId = chainId;
-    this.iAtlas = new Interface(atlasAbi);
-    this.atlasVerification = new Contract(
+    this.iAtlas = new ethers.utils.Interface(atlasAbi);
+    this.atlasVerification = new ethers.Contract(
       chainConfig[chainId].contracts.atlasVerification.address,
       atlasVerificationAbi,
       provider
     );
-    this.dAppControl = new Contract(ZeroAddress, dAppControlAbi, provider);
-    this.sorter = new Contract(
+    this.dAppControl = new ethers.Contract(
+      ethers.constants.AddressZero,
+      dAppControlAbi,
+      provider
+    );
+    this.sorter = new ethers.Contract(
       chainConfig[chainId].contracts.sorter.address,
       sorterAbi,
       provider
@@ -103,8 +99,7 @@ export class AtlasSdk {
 
     const dConfig = await this.dAppControl
       .attach(userOpParams.control)
-      .getFunction("getDAppConfig")
-      .staticCall(userOp.toStruct());
+      .getDAppConfig(userOp.toStruct());
 
     if (dConfig.to !== userOpParams.control) {
       throw new Error("UserOperation control does not match dApp control");
@@ -131,12 +126,12 @@ export class AtlasSdk {
     userOp: UserOperation,
     callConfig: number
   ): Promise<UserOperation> {
-    const nonce: bigint = await this.atlasVerification.getNextNonce(
+    const nonce: ethers.BigNumber = await this.atlasVerification.getNextNonce(
       userOp.getField("from").value as string,
       flagUserNoncesSequenced(callConfig)
     );
 
-    userOp.setField("nonce", nonce);
+    userOp.setField("nonce", nonce.toBigInt());
     return userOp;
   }
 
@@ -146,7 +141,7 @@ export class AtlasSdk {
    * @returns the user operation with a valid sessionKey field
    */
   public generateSessionKey(userOp: UserOperation): UserOperation {
-    const sessionAccount = Wallet.createRandom();
+    const sessionAccount = ethers.Wallet.createRandom();
     userOp.setField("sessionKey", sessionAccount.address);
     this.sessionKeys.set(sessionAccount.address, sessionAccount);
     return userOp;
@@ -160,11 +155,11 @@ export class AtlasSdk {
    */
   public async signUserOperation(
     userOp: UserOperation,
-    signer: AbstractSigner
+    signer: ethers.Wallet
   ): Promise<UserOperation> {
     userOp.setField(
       "signature",
-      await signer.signTypedData(
+      await signer._signTypedData(
         chainConfig[this.chainId].eip712Domain,
         userOp.toTypedDataTypes(),
         userOp.toTypedDataValues()
@@ -187,7 +182,10 @@ export class AtlasSdk {
     hints: string[] = []
   ): Promise<[string, SolverOperation[]]> {
     const sessionKey = userOp.getField("sessionKey").value as string;
-    if (sessionKey !== ZeroAddress && !this.sessionKeys.has(sessionKey)) {
+    if (
+      sessionKey !== ethers.constants.AddressZero &&
+      !this.sessionKeys.has(sessionKey)
+    ) {
       throw new Error("Session key not found");
     }
 
@@ -265,7 +263,7 @@ export class AtlasSdk {
     userOp: UserOperation,
     solverOps: SolverOperation[],
     callConfig: number,
-    bundler: string = ZeroAddress
+    bundler: string = ethers.constants.AddressZero
   ): Promise<DAppOperation> {
     const sessionKey = userOp.getField("sessionKey").value as string;
 
@@ -290,7 +288,7 @@ export class AtlasSdk {
         bundler
       );
 
-    const signature = await sessionAccount.signTypedData(
+    const signature = await sessionAccount._signTypedData(
       chainConfig[this.chainId].eip712Domain,
       dAppOp.toTypedDataTypes(),
       dAppOp.toTypedDataValues()
@@ -337,7 +335,7 @@ export class AtlasSdk {
   ): Promise<string> {
     const sessionKey = userOp.getField("sessionKey").value as string;
     if (
-      sessionKey !== ZeroAddress &&
+      sessionKey !== ethers.constants.AddressZero &&
       sessionKey !== dAppOp.getField("from").value
     ) {
       throw new Error(

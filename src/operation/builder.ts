@@ -1,4 +1,4 @@
-import { HDNodeWallet, ZeroAddress, keccak256 } from "ethers";
+import { ethers } from "ethers";
 import { UserOperation, SolverOperation, DAppOperation, Bundle } from "./";
 import { getCallChainHash } from "../utils";
 
@@ -9,11 +9,11 @@ export abstract class OperationBuilder {
   public static newUserOperation(prop: {
     from: string;
     to: string;
-    value: bigint;
-    gas: bigint;
-    maxFeePerGas: bigint;
-    nonce?: bigint;
-    deadline: bigint;
+    value: bigint | ethers.BigNumber;
+    gas: bigint | ethers.BigNumber;
+    maxFeePerGas: bigint | ethers.BigNumber;
+    nonce?: bigint | ethers.BigNumber;
+    deadline: bigint | ethers.BigNumber;
     dapp: string;
     control: string;
     sessionKey?: string;
@@ -24,14 +24,26 @@ export abstract class OperationBuilder {
     userOp.setFields({
       from: prop.from,
       to: prop.to,
-      value: prop.value,
-      gas: prop.gas,
-      maxFeePerGas: prop.maxFeePerGas,
-      nonce: prop.nonce || ZeroUint,
-      deadline: prop.deadline,
+      value: ethers.BigNumber.isBigNumber(prop.value)
+        ? prop.value.toBigInt()
+        : prop.value,
+      gas: ethers.BigNumber.isBigNumber(prop.gas)
+        ? prop.gas.toBigInt()
+        : prop.gas,
+      maxFeePerGas: ethers.BigNumber.isBigNumber(prop.maxFeePerGas)
+        ? prop.maxFeePerGas.toBigInt()
+        : prop.maxFeePerGas,
+      nonce: prop.nonce
+        ? ethers.BigNumber.isBigNumber(prop.nonce)
+          ? prop.nonce.toBigInt()
+          : prop.nonce
+        : ZeroUint,
+      deadline: ethers.BigNumber.isBigNumber(prop.deadline)
+        ? prop.deadline.toBigInt()
+        : prop.deadline,
       dapp: prop.dapp,
       control: prop.control,
-      sessionKey: prop.sessionKey || ZeroAddress,
+      sessionKey: prop.sessionKey || ethers.constants.AddressZero,
       data: prop.data,
       signature: prop.signature || ZeroBytes,
     });
@@ -44,15 +56,15 @@ export abstract class OperationBuilder {
     prop: {
       from: string;
       to: string;
-      value: bigint;
-      gas: bigint;
-      maxFeePerGas: bigint;
-      deadline: bigint;
+      value: bigint | ethers.BigNumber;
+      gas: bigint | ethers.BigNumber;
+      maxFeePerGas: bigint | ethers.BigNumber;
+      deadline: bigint | ethers.BigNumber;
       solver: string;
       control: string;
       userOpHash: string;
       bidToken: string;
-      bidAmount: bigint;
+      bidAmount: bigint | ethers.BigNumber;
       data: string;
       signature: string;
     },
@@ -62,15 +74,25 @@ export abstract class OperationBuilder {
     solverOp.setFields({
       from: prop.from,
       to: prop.to,
-      value: prop.value,
-      gas: prop.gas,
-      maxFeePerGas: prop.maxFeePerGas,
-      deadline: prop.deadline,
+      value: ethers.BigNumber.isBigNumber(prop.value)
+        ? prop.value.toBigInt()
+        : prop.value,
+      gas: ethers.BigNumber.isBigNumber(prop.gas)
+        ? prop.gas.toBigInt()
+        : prop.gas,
+      maxFeePerGas: ethers.BigNumber.isBigNumber(prop.maxFeePerGas)
+        ? prop.maxFeePerGas.toBigInt()
+        : prop.maxFeePerGas,
+      deadline: ethers.BigNumber.isBigNumber(prop.deadline)
+        ? prop.deadline.toBigInt()
+        : prop.deadline,
       solver: prop.solver,
       control: prop.control,
       userOpHash: prop.userOpHash,
       bidToken: prop.bidToken,
-      bidAmount: prop.bidAmount,
+      bidAmount: ethers.BigNumber.isBigNumber(prop.bidAmount)
+        ? prop.bidAmount.toBigInt()
+        : prop.bidAmount,
       data: prop.data,
       signature: prop.signature,
     });
@@ -82,10 +104,10 @@ export abstract class OperationBuilder {
   public static newDAppOperation(prop: {
     from: string;
     to: string;
-    value: bigint;
-    gas: bigint;
-    nonce: bigint;
-    deadline: bigint;
+    value: bigint | ethers.BigNumber;
+    gas: bigint | ethers.BigNumber;
+    nonce: bigint | ethers.BigNumber;
+    deadline: bigint | ethers.BigNumber;
     control: string;
     bundler?: string;
     userOpHash: string;
@@ -96,12 +118,20 @@ export abstract class OperationBuilder {
     dAppOp.setFields({
       from: prop.from,
       to: prop.to,
-      value: prop.value,
-      gas: prop.gas,
-      nonce: prop.nonce,
-      deadline: prop.deadline,
+      value: ethers.BigNumber.isBigNumber(prop.value)
+        ? prop.value.toBigInt()
+        : prop.value,
+      gas: ethers.BigNumber.isBigNumber(prop.gas)
+        ? prop.gas.toBigInt()
+        : prop.gas,
+      nonce: ethers.BigNumber.isBigNumber(prop.nonce)
+        ? prop.nonce.toBigInt()
+        : prop.nonce,
+      deadline: ethers.BigNumber.isBigNumber(prop.deadline)
+        ? prop.deadline.toBigInt()
+        : prop.deadline,
       control: prop.control,
-      bundler: prop.bundler || ZeroAddress,
+      bundler: prop.bundler || ethers.constants.AddressZero,
       userOpHash: prop.userOpHash,
       callChainHash: prop.callChainHash,
       signature: prop.signature,
@@ -114,9 +144,9 @@ export abstract class OperationBuilder {
   public static newDAppOperationFromUserSolvers(
     userOp: UserOperation,
     solverOps: SolverOperation[],
-    signer: HDNodeWallet,
+    signer: ethers.Wallet,
     requirePreOps: boolean,
-    bundler: string = ZeroAddress
+    bundler: string = ethers.constants.AddressZero
   ): DAppOperation {
     const userTo = userOp.getField("to").value;
     if (userTo === undefined) {
@@ -142,7 +172,7 @@ export abstract class OperationBuilder {
       deadline: userDeadline as bigint,
       control: dAppControl as string,
       bundler: bundler,
-      userOpHash: keccak256(userOp.abiEncode()),
+      userOpHash: ethers.utils.keccak256(userOp.abiEncode()),
       callChainHash: getCallChainHash(
         userOp,
         solverOps,

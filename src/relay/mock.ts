@@ -1,7 +1,7 @@
+import { ethers } from "ethers";
 import { BaseOperationRelay } from "./base";
 import { OperationBuilder, ZeroBytes } from "../operation/builder";
 import { UserOperation, SolverOperation, Bundle } from "../operation";
-import { keccak256, ZeroAddress } from "ethers";
 
 export class MockOperationsRelay extends BaseOperationRelay {
   private submittedBundles: { [key: string]: Bundle } = {};
@@ -23,7 +23,7 @@ export class MockOperationsRelay extends BaseOperationRelay {
     hints: string[],
     extra?: any
   ): Promise<string> {
-    return keccak256(userOp.abiEncode());
+    return ethers.utils.keccak256(userOp.abiEncode());
   }
 
   /**
@@ -45,16 +45,16 @@ export class MockOperationsRelay extends BaseOperationRelay {
     for (let i = 0; i < Math.floor(Math.random() * 5 + 1); i++) {
       solverOps.push(
         OperationBuilder.newSolverOperation({
-          from: ZeroAddress,
+          from: ethers.constants.AddressZero,
           to: userOp.getField("to").value as string,
           value: 0n,
           gas: BigInt(10000 * (i + 1)),
           maxFeePerGas: userOp.getField("maxFeePerGas").value as bigint,
           deadline: userOp.getField("deadline").value as bigint,
-          solver: ZeroAddress,
+          solver: ethers.constants.AddressZero,
           control: userOp.getField("control").value as string,
           userOpHash: userOpHash,
-          bidToken: ZeroAddress,
+          bidToken: ethers.constants.AddressZero,
           bidAmount: BigInt(30000 * (i + 1)),
           data: ZeroBytes,
           signature: ZeroBytes,
@@ -73,7 +73,7 @@ export class MockOperationsRelay extends BaseOperationRelay {
    * @returns {Promise<string>} The result message
    */
   public async _submitBundle(bundle: Bundle, extra?: any): Promise<string> {
-    const userOpHash = keccak256(bundle.userOperation.abiEncode());
+    const userOpHash = ethers.utils.keccak256(bundle.userOperation.abiEncode());
     this.submittedBundles[userOpHash] = bundle;
     return userOpHash;
   }
@@ -97,6 +97,6 @@ export class MockOperationsRelay extends BaseOperationRelay {
     }
 
     // Simulate a random transaction hash
-    return keccak256(bundle.dAppOperation.abiEncode());
+    return ethers.utils.keccak256(bundle.dAppOperation.abiEncode());
   }
 }

@@ -1,10 +1,4 @@
-import {
-  AbiCoder,
-  TypedDataField,
-  TypedDataDomain,
-  verifyTypedData,
-  keccak256,
-} from "ethers";
+import { ethers } from "ethers";
 import {
   validateAddress,
   validateUint256,
@@ -18,11 +12,11 @@ export type OpField = { name: string; value?: OpFieldType; solType: string };
 export abstract class BaseOperation {
   protected fields: Map<string, OpField> = new Map();
   private TYPE_HASH_PREFIX: string;
-  private abiCoder: AbiCoder;
+  private abiCoder: ethers.utils.AbiCoder;
 
   constructor(thPrefix: string) {
     this.TYPE_HASH_PREFIX = thPrefix;
-    this.abiCoder = new AbiCoder();
+    this.abiCoder = new ethers.utils.AbiCoder();
   }
 
   public setFields(fields: { [key: string]: OpFieldType }) {
@@ -48,12 +42,12 @@ export abstract class BaseOperation {
     return f;
   }
 
-  public validate(tdDomain: TypedDataDomain) {
+  public validate(tdDomain: ethers.TypedDataDomain) {
     this.validateFields();
     this.validateSignature(tdDomain);
   }
 
-  public validateSignature(tdDomain: TypedDataDomain) {
+  public validateSignature(tdDomain: ethers.TypedDataDomain) {
     const f = this.fields.get("signature");
     if (f === undefined) {
       throw new Error("Field signature does not exist");
@@ -64,7 +58,7 @@ export abstract class BaseOperation {
     if (!validateBytes(f.value as string)) {
       throw new Error("Field signature is not a valid bytes");
     }
-    const signer = verifyTypedData(
+    const signer = ethers.utils.verifyTypedData(
       tdDomain,
       this.toTypedDataTypes(),
       this.toTypedDataValues(),
@@ -126,7 +120,7 @@ export abstract class BaseOperation {
     );
   }
 
-  public toTypedDataTypes(): { [key: string]: TypedDataField[] } {
+  public toTypedDataTypes(): { [key: string]: ethers.TypedDataField[] } {
     return {
       [this.TYPE_HASH_PREFIX]: Array.from(this.fields.values())
         .slice(0, -1)
@@ -146,7 +140,9 @@ export abstract class BaseOperation {
           ...acc,
           [f.name]:
             // f.value, // TODO: replace with the following line (Atlas contract bug fix)
-            f.solType !== "bytes" ? f.value : keccak256(f.value as string),
+            f.solType !== "bytes"
+              ? f.value
+              : ethers.utils.keccak256(f.value as string),
         }),
         {}
       );

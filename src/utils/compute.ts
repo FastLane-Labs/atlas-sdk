@@ -1,4 +1,4 @@
-import { keccak256, solidityPacked, Interface, zeroPadBytes } from "ethers";
+import { ethers } from "ethers";
 import { UserOperation, SolverOperation } from "../operation";
 import dAppControlAbi from "../abi/DAppControl.json";
 /**
@@ -15,14 +15,14 @@ export function getCallChainHash(
   requirePreOps: boolean,
   dAppControl: string
 ): string {
-  let callSequenceHash = zeroPadBytes("0x", 32);
+  let callSequenceHash = ethers.constants.HashZero;
   let counter = 0;
 
   if (requirePreOps) {
-    const dAppControlInterface = new Interface(dAppControlAbi);
+    const dAppControlInterface = new ethers.utils.Interface(dAppControlAbi);
 
-    callSequenceHash = keccak256(
-      solidityPacked(
+    callSequenceHash = ethers.utils.keccak256(
+      ethers.utils.solidityPack(
         ["bytes32", "address", "bytes", "uint256"],
         [
           callSequenceHash,
@@ -37,8 +37,8 @@ export function getCallChainHash(
   }
 
   // User call
-  callSequenceHash = keccak256(
-    solidityPacked(
+  callSequenceHash = ethers.utils.keccak256(
+    ethers.utils.solidityPack(
       ["bytes32", "bytes", "uint256"],
       [callSequenceHash, userOp.abiEncode(), counter++]
     )
@@ -46,8 +46,8 @@ export function getCallChainHash(
 
   // Solver calls
   for (const solverOp of solverOps) {
-    callSequenceHash = keccak256(
-      solidityPacked(
+    callSequenceHash = ethers.utils.keccak256(
+      ethers.utils.solidityPack(
         ["bytes32", "bytes", "uint256"],
         [callSequenceHash, solverOp.abiEncode(), counter++]
       )

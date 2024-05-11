@@ -1,4 +1,4 @@
-import { hexlify, toUtf8Bytes, HDNodeWallet } from "ethers";
+import { ethers } from "ethers";
 import { OperationBuilder } from "../src/operation";
 import { getCallChainHash } from "../src/utils";
 import { chainConfig } from "../src/config";
@@ -15,8 +15,8 @@ describe("Atlas SDK unit tests", () => {
     dapp: "0x0000000000000000000000000000000000000003",
     control: "0x0000000000000000000000000000000000000004",
     sessionKey: "0x0000000000000000000000000000000000000005",
-    data: hexlify(toUtf8Bytes("data")),
-    signature: hexlify(toUtf8Bytes("signature")),
+    data: ethers.utils.hexlify(ethers.utils.toUtf8Bytes("data")),
+    signature: ethers.utils.hexlify(ethers.utils.toUtf8Bytes("signature")),
   });
 
   const testSolverOperation = OperationBuilder.newSolverOperation({
@@ -32,8 +32,8 @@ describe("Atlas SDK unit tests", () => {
       "0x9999999999999999999999999999999999999999999999999999999999999999",
     bidToken: "0x0000000000000000000000000000000000000005",
     bidAmount: BigInt(500),
-    data: hexlify(toUtf8Bytes("data")),
-    signature: hexlify(toUtf8Bytes("signature")),
+    data: ethers.utils.hexlify(ethers.utils.toUtf8Bytes("data")),
+    signature: ethers.utils.hexlify(ethers.utils.toUtf8Bytes("signature")),
   });
 
   const testDAppOperation = OperationBuilder.newDAppOperation({
@@ -49,7 +49,7 @@ describe("Atlas SDK unit tests", () => {
       "0x9999999999999999999999999999999999999999999999999999999999999999",
     callChainHash:
       "0x8888888888888888888888888888888888888888888888888888888888888888",
-    signature: hexlify(toUtf8Bytes("signature")),
+    signature: ethers.utils.hexlify(ethers.utils.toUtf8Bytes("signature")),
   });
 
   test("abi encode user operation", () => {
@@ -91,11 +91,12 @@ describe("Atlas SDK unit tests", () => {
   });
 
   test("user operation EIP712 signature", async () => {
-    const signer = HDNodeWallet.fromSeed(
-      toUtf8Bytes("bad seed used for this test only")
+    const hdNode = ethers.utils.HDNode.fromSeed(
+      ethers.utils.toUtf8Bytes("bad seed used for this test only")
     );
+    const signer = new ethers.Wallet(hdNode.privateKey);
 
-    const signature = await signer.signTypedData(
+    const signature = await signer._signTypedData(
       chainConfig[0].eip712Domain,
       testUserOperation.toTypedDataTypes(),
       testUserOperation.toTypedDataValues()
@@ -119,11 +120,12 @@ describe("Atlas SDK unit tests", () => {
   });
 
   test("dApp operation EIP712 signature", async () => {
-    const signer = HDNodeWallet.fromSeed(
-      toUtf8Bytes("bad seed used for this test only")
+    const hdNode = ethers.utils.HDNode.fromSeed(
+      ethers.utils.toUtf8Bytes("bad seed used for this test only")
     );
+    const signer = new ethers.Wallet(hdNode.privateKey);
 
-    const signature = await signer.signTypedData(
+    const signature = await signer._signTypedData(
       chainConfig[0].eip712Domain,
       testDAppOperation.toTypedDataTypes(),
       testDAppOperation.toTypedDataValues()

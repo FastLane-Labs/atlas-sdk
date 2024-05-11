@@ -1,10 +1,4 @@
-import {
-  JsonRpcProvider,
-  toUtf8Bytes,
-  HDNodeWallet,
-  ZeroAddress,
-  keccak256,
-} from "ethers";
+import { ethers } from "ethers";
 import { AtlasSdk } from "../src";
 import { MockOperationsRelay } from "../src/relay/mock";
 import { OperationBuilder, ZeroBytes } from "../src/operation";
@@ -13,16 +7,20 @@ import { chainConfig } from "../src/config";
 
 describe("Atlas SDK main tests", () => {
   const chainId = 11155111;
-  const provider = new JsonRpcProvider("https://rpc.sepolia.org/", chainId);
+  const provider = new ethers.providers.JsonRpcProvider(
+    "https://rpc.sepolia.org/",
+    chainId
+  );
   const opsRelay = new MockOperationsRelay();
   const sdk = new AtlasSdk(provider, chainId, opsRelay);
 
   const testDAppControl = "0xe9c7bEAF3da67d3FB00708ADAE8ab62e578246d7";
   const testCallConfig = 97520;
 
-  const signer = HDNodeWallet.fromSeed(
-    toUtf8Bytes("bad seed used for this test only")
+  const hdNode = ethers.utils.HDNode.fromSeed(
+    ethers.utils.toUtf8Bytes("bad seed used for this test only")
   );
+  const signer = new ethers.Wallet(hdNode.privateKey);
 
   const userOpParams = {
     from: signer.address,
@@ -46,7 +44,9 @@ describe("Atlas SDK main tests", () => {
     expect(userOp.getField("nonce").value).toBe(1n);
 
     // Session key should not have been set
-    expect(userOp.getField("sessionKey").value).toBe(ZeroAddress);
+    expect(userOp.getField("sessionKey").value).toBe(
+      ethers.constants.AddressZero
+    );
   });
 
   test("newUserOperation with sessionKey generation", async () => {
@@ -59,7 +59,9 @@ describe("Atlas SDK main tests", () => {
     expect(userOp.getField("nonce").value).toBe(1n);
 
     // Session key should have been set
-    expect(userOp.getField("sessionKey").value).not.toBe(ZeroAddress);
+    expect(userOp.getField("sessionKey").value).not.toBe(
+      ethers.constants.AddressZero
+    );
   });
 
   test("setUserOperationNonce", async () => {
@@ -79,13 +81,17 @@ describe("Atlas SDK main tests", () => {
     let userOp = OperationBuilder.newUserOperation(userOpParams);
 
     // Session key not yet set
-    expect(userOp.getField("sessionKey").value).toBe(ZeroAddress);
+    expect(userOp.getField("sessionKey").value).toBe(
+      ethers.constants.AddressZero
+    );
 
     // Generate session key
     userOp = sdk.generateSessionKey(userOp);
 
     // Session key should have been set
-    expect(userOp.getField("sessionKey").value).not.toBe(ZeroAddress);
+    expect(userOp.getField("sessionKey").value).not.toBe(
+      ethers.constants.AddressZero
+    );
   });
 
   test("signUserOperation", async () => {
@@ -139,7 +145,7 @@ describe("Atlas SDK main tests", () => {
     );
 
     // Validate userOpHash
-    expect(userOpHash).toBe(keccak256(userOp.abiEncode()));
+    expect(userOpHash).toBe(ethers.utils.keccak256(userOp.abiEncode()));
 
     // Validate solverOps
     expect(solverOps.length).toBeGreaterThan(0);
@@ -306,7 +312,7 @@ describe("Atlas SDK main tests", () => {
           userOp,
           solverOps,
           dAppOp,
-          keccak256(userOp.abiEncode())
+          ethers.utils.keccak256(userOp.abiEncode())
         )
     ).rejects.toThrow(
       "User operation session key does not match dApp operation"
@@ -335,7 +341,7 @@ describe("Atlas SDK main tests", () => {
       userOp,
       solverOps,
       dAppOp,
-      keccak256(userOp.abiEncode())
+      ethers.utils.keccak256(userOp.abiEncode())
     );
 
     // Validate atlasTxHash
