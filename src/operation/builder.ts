@@ -2,7 +2,7 @@ import { ethers } from "ethers";
 import { UserOperation, SolverOperation, DAppOperation, Bundle } from "./";
 import { getCallChainHash } from "../utils";
 
-export const ZeroUint = 0n;
+export const ZeroUint = BigInt(0);
 export const ZeroBytes = "0x";
 
 export abstract class OperationBuilder {
@@ -166,9 +166,9 @@ export abstract class OperationBuilder {
     return this.newDAppOperation({
       from: signer.address,
       to: userTo as string,
-      value: 0n,
-      gas: 0n,
-      nonce: 1n,
+      value: BigInt(0),
+      gas: BigInt(0),
+      nonce: BigInt(1),
       deadline: userDeadline as bigint,
       control: dAppControl as string,
       bundler: bundler,

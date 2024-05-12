@@ -1,5 +1,10 @@
 import { ethers } from "ethers";
 import {
+  TypedDataDomain,
+  TypedDataField,
+} from "@ethersproject/abstract-signer";
+import { verifyTypedData } from "@ethersproject/wallet";
+import {
   validateAddress,
   validateUint256,
   validateBytes32,
@@ -42,12 +47,12 @@ export abstract class BaseOperation {
     return f;
   }
 
-  public validate(tdDomain: ethers.TypedDataDomain) {
+  public validate(tdDomain: TypedDataDomain) {
     this.validateFields();
     this.validateSignature(tdDomain);
   }
 
-  public validateSignature(tdDomain: ethers.TypedDataDomain) {
+  public validateSignature(tdDomain: TypedDataDomain) {
     const f = this.fields.get("signature");
     if (f === undefined) {
       throw new Error("Field signature does not exist");
@@ -58,7 +63,7 @@ export abstract class BaseOperation {
     if (!validateBytes(f.value as string)) {
       throw new Error("Field signature is not a valid bytes");
     }
-    const signer = ethers.utils.verifyTypedData(
+    const signer = verifyTypedData(
       tdDomain,
       this.toTypedDataTypes(),
       this.toTypedDataValues(),
@@ -120,7 +125,7 @@ export abstract class BaseOperation {
     );
   }
 
-  public toTypedDataTypes(): { [key: string]: ethers.TypedDataField[] } {
+  public toTypedDataTypes(): { [key: string]: TypedDataField[] } {
     return {
       [this.TYPE_HASH_PREFIX]: Array.from(this.fields.values())
         .slice(0, -1)

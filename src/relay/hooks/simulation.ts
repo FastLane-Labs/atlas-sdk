@@ -112,9 +112,9 @@ export class SimulationHooksController extends BaseHooksController {
           OperationBuilder.newDAppOperation({
             from: ethers.constants.AddressZero,
             to: ethers.constants.AddressZero,
-            value: 0n,
-            gas: 0n,
-            nonce: 0n,
+            value: BigInt(0),
+            gas: BigInt(0),
+            nonce: BigInt(0),
             deadline: userOp.getField("deadline").value as bigint,
             control: userOp.getField("control").value as string,
             bundler: ethers.constants.AddressZero,

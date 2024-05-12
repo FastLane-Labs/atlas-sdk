@@ -19,16 +19,14 @@
   "homepage": "https://github.com/FastLane-Labs/atlas-sdk#readme",
   "devDependencies": {
     "@types/isomorphic-fetch": "^0.0.39",
-    "@types/jest": "^29.5.12",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "eslint": "^8.56.0",
-    "ts-jest": "^29.1.2",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
+    "typescript": "^3.8.3"
   },
   "dependencies": {
-    "ethers": "^5.7.2",
+    "ethers": "^5.0.7",
     "isomorphic-fetch": "^3.0.0"
   }
 }

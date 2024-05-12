@@ -1,4 +1,4 @@
-import { TypedDataDomain } from "ethers";
+import { TypedDataDomain } from "@ethersproject/abstract-signer";
 
 export interface ChainConfig {
   contracts: {

@@ -47,7 +47,7 @@ export class MockOperationsRelay extends BaseOperationRelay {
         OperationBuilder.newSolverOperation({
           from: ethers.constants.AddressZero,
           to: userOp.getField("to").value as string,
-          value: 0n,
+          value: BigInt(0),
           gas: BigInt(10000 * (i + 1)),
           maxFeePerGas: userOp.getField("maxFeePerGas").value as bigint,
           deadline: userOp.getField("deadline").value as bigint,
