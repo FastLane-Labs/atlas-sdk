@@ -1,4 +1,5 @@
 import { ethers } from "ethers";
+import { JsonRpcSigner } from "@ethersproject/providers";
 import {
   UserOperation,
   SolverOperation,
@@ -155,7 +156,7 @@ export class AtlasSdk {
    */
   public async signUserOperation(
     userOp: UserOperation,
-    signer: ethers.Wallet
+    signer: JsonRpcSigner
   ): Promise<UserOperation> {
     userOp.setField(
       "signature",
