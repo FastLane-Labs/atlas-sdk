@@ -1,3 +1,4 @@
+import { ethers } from "ethers";
 import { BaseOperation, OpField } from "./base";
 
 export class UserOperation extends BaseOperation {
@@ -24,11 +25,11 @@ export class UserOperation extends BaseOperation {
 export interface UserOperationParams {
   from: string;
   to?: string;
-  value: bigint;
-  gas: bigint;
-  maxFeePerGas: bigint;
-  nonce?: bigint;
-  deadline: bigint;
+  value: bigint | ethers.BigNumber;
+  gas: bigint | ethers.BigNumber;
+  maxFeePerGas: bigint | ethers.BigNumber;
+  nonce?: bigint | ethers.BigNumber;
+  deadline: bigint | ethers.BigNumber;
   dapp: string;
   control: string;
   sessionKey?: string;
