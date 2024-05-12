@@ -223,7 +223,7 @@ const FastlaneApiFetchParamCreator = function () {
         localVarRequestOptions.headers["Content-Type"] === "application/json";
       localVarRequestOptions.body = needsSerialization
         ? JSON.stringify(body || {}, (_, v) =>
-            typeof v === "bigint" ? ethers.utils.hexlify(v) : v
+            typeof v === "bigint" ? `0x${v.toString(16)}` : v
           )
         : body || "";
 
@@ -260,7 +260,7 @@ const FastlaneApiFetchParamCreator = function () {
       const localVarQueryParameter = {} as any;
 
       if (userOpHash !== undefined) {
-        localVarQueryParameter["userOpHash"] = userOpHash;
+        localVarQueryParameter["operationHash"] = userOpHash;
       }
 
       if (wait !== undefined) {
@@ -329,7 +329,7 @@ const FastlaneApiFetchParamCreator = function () {
         localVarRequestOptions.headers["Content-Type"] === "application/json";
       localVarRequestOptions.body = needsSerialization
         ? JSON.stringify(bundleStruct || {}, (_, v) =>
-            typeof v === "bigint" ? ethers.utils.hexlify(v) : v
+            typeof v === "bigint" ? `0x${v.toString(16)}` : v
           )
         : bundleStruct || "";
 
@@ -366,7 +366,7 @@ const FastlaneApiFetchParamCreator = function () {
       const localVarQueryParameter = {} as any;
 
       if (userOpHash !== undefined) {
-        localVarQueryParameter["userOpHash"] = userOpHash;
+        localVarQueryParameter["operationHash"] = userOpHash;
       }
 
       if (wait !== undefined) {

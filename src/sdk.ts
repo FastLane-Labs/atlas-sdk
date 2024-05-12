@@ -1,5 +1,4 @@
 import { ethers } from "ethers";
-import { JsonRpcSigner } from "@ethersproject/providers";
 import {
   UserOperation,
   SolverOperation,
@@ -132,7 +131,7 @@ export class AtlasSdk {
       flagUserNoncesSequenced(callConfig)
     );
 
-    userOp.setField("nonce", nonce.toBigInt());
+    userOp.setField("nonce", BigInt(nonce.toString()));
     return userOp;
   }
 
@@ -156,8 +155,10 @@ export class AtlasSdk {
    */
   public async signUserOperation(
     userOp: UserOperation,
-    signer: JsonRpcSigner
+    signerAccount: string,
+    provider: ethers.providers.JsonRpcProvider
   ): Promise<UserOperation> {
+    const signer = new ethers.VoidSigner(signerAccount, provider);
     userOp.setField(
       "signature",
       await signer._signTypedData(
