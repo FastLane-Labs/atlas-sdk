@@ -142,6 +142,7 @@ export abstract class OperationBuilder {
   }
 
   public static newDAppOperationFromUserSolvers(
+    userOpHash: string,
     userOp: UserOperation,
     solverOps: SolverOperation[],
     signer: ethers.Wallet,
@@ -172,7 +173,7 @@ export abstract class OperationBuilder {
       deadline: userDeadline as bigint,
       control: dAppControl as string,
       bundler: bundler,
-      userOpHash: ethers.utils.keccak256(userOp.abiEncode()),
+      userOpHash: userOpHash,
       callChainHash: getCallChainHash(
         userOp,
         solverOps,

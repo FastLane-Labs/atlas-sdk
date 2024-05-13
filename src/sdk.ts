@@ -1,4 +1,6 @@
 import { ethers } from "ethers";
+import { signTypedData_signer } from "./typed-data/json-rpc-signer";
+import { signTypedData_wallet } from "./typed-data/wallet";
 import {
   UserOperation,
   SolverOperation,
@@ -155,13 +157,13 @@ export class AtlasSdk {
    */
   public async signUserOperation(
     userOp: UserOperation,
-    signerAccount: string,
-    provider: ethers.providers.JsonRpcProvider
+    signer: ethers.providers.JsonRpcSigner
   ): Promise<UserOperation> {
-    const signer = new ethers.VoidSigner(signerAccount, provider);
+    // const signer = new ethers.VoidSigner(signerAccount, provider);
     userOp.setField(
       "signature",
-      await signer._signTypedData(
+      await signTypedData_signer(
+        signer,
         chainConfig[this.chainId].eip712Domain,
         userOp.toTypedDataTypes(),
         userOp.toTypedDataValues()
@@ -262,6 +264,7 @@ export class AtlasSdk {
    * @returns a valid dApp operation
    */
   public async createDAppOperation(
+    userOpHash: string,
     userOp: UserOperation,
     solverOps: SolverOperation[],
     callConfig: number,
@@ -283,6 +286,7 @@ export class AtlasSdk {
 
     const dAppOp: DAppOperation =
       OperationBuilder.newDAppOperationFromUserSolvers(
+        userOpHash,
         userOp,
         solverOps,
         sessionAccount,
@@ -290,7 +294,8 @@ export class AtlasSdk {
         bundler
       );
 
-    const signature = await sessionAccount._signTypedData(
+    const signature = await signTypedData_wallet(
+      sessionAccount,
       chainConfig[this.chainId].eip712Domain,
       dAppOp.toTypedDataTypes(),
       dAppOp.toTypedDataValues()
