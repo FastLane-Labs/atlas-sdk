@@ -1,6 +1,26 @@
 import { keccak256, solidityPacked, Interface, zeroPadBytes } from "ethers";
 import { UserOperation, SolverOperation } from "../operation";
 import dAppControlAbi from "../abi/DAppControl.json";
+
+export function getUserOperationHash(userOp: UserOperation): string {
+  return keccak256(userOp.abiEncode());
+}
+
+export function getAltOperationHash(userOp: UserOperation): string {
+  return keccak256(
+    solidityPacked(
+      ["address", "address", "address", "address", "address"],
+      [
+        userOp.getField("from"),
+        userOp.getField("to"),
+        userOp.getField("dapp"),
+        userOp.getField("control"),
+        userOp.getField("sessionKey"),
+      ]
+    )
+  );
+}
+
 /**
  * Compute the call chain hash.
  * @param callConfig the dApp call configuration
