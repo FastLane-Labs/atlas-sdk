@@ -19,10 +19,13 @@ import { IOperationsRelay } from "./relay";
 import { IHooksControllerConstructable } from "./relay/hooks";
 import {
   validateAddress,
+  getUserOperationHash,
+  getAltOperationHash,
   flagUserNoncesSequenced,
   flagZeroSolvers,
   flagRequirePreOps,
   flagExPostBids,
+  flagTrustedOpHash,
 } from "./utils";
 import { chainConfig } from "./config";
 import atlasAbi from "./abi/Atlas.json";
@@ -281,8 +284,16 @@ export class AtlasSdk {
       throw new Error("User operation session key does not match");
     }
 
+    let userOpHash: string;
+    if (flagTrustedOpHash(callConfig)) {
+      userOpHash = getAltOperationHash(userOp);
+    } else {
+      userOpHash = getUserOperationHash(userOp);
+    }
+
     const dAppOp: DAppOperation =
       OperationBuilder.newDAppOperationFromUserSolvers(
+        userOpHash,
         userOp,
         solverOps,
         sessionAccount,
