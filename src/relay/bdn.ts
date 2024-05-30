@@ -1,83 +1,161 @@
+import { toQuantity, keccak256 } from "ethers";
+import { WebSocket } from "ws";
+import { createECDH, createSign } from "crypto";
 import { BaseOperationRelay } from "./base";
 import { OperationBuilder } from "../operation/builder";
 import { UserOperation, SolverOperation, Bundle } from "../operation";
-import { WebSocket } from "ws";
-import * as crypto from "crypto";
-
-interface IntentSolutionsReply {
-  intentId: string;
-  intentSolution: string; // byte[] in the doc spec, but we'll handle it as a base64-encoded string for JSON parsing
-}
+import { getUserOperationHash } from "../utils/compute";
 
 export class BdnOperationsRelay extends BaseOperationRelay {
-  protected ws: WebSocket;
-  private collectedSolutions: IntentSolutionsReply[] = [];
-  private dappAddress;
-  
+  private wsConn: WebSocket;
+  private dAppPrivateKey: string;
+  private dAppPublicKey: string;
+  private userOpHashToIntentId: { [userOpHash: string]: string } = {};
+  private collectedSolverOps: { [intentId: string]: SolverOperation[] } = {};
+  private rpcResponseHandlers: { [msgId: string]: (data: any) => void } = {};
+  private rpcSubscriptionHandlers: { [subId: string]: (data: any) => void } =
+    {};
+  private rpcIdCounter: number = 0;
+
   constructor(params: { [k: string]: string }) {
     super(params);
 
-    this.dappAddress = params["dappAddress"];
+    // Generate dApp private key
+    const pk = createECDH("secp256k1");
+    this.dAppPublicKey = pk.generateKeys("hex", "compressed");
+    this.dAppPrivateKey = pk.getPrivateKey("hex");
 
-    this.ws = new WebSocket(this.params["opsRelayWsUrl"], {
-        headers: {
-          Authorization: this.params["auth-header"],
-        },
-      });
-  
-    this.ws.on("open", () => {
-    console.log("WebSocket connection established.");
+    this.wsConn = this.initWebsocket();
+  }
+
+  private initWebsocket(): WebSocket {
+    // Init websocket connection
+    const wsConn = new WebSocket(this.params["basePath"], {
+      headers: {
+        Authorization: this.params["auth"],
+      },
+    });
+
+    // Subscribe to solutions when ready
+    wsConn.on("open", () => {
+      console.log("BdnOperationsRelay: WebSocket connection established.");
       this.subscribeToSolutions();
     });
 
-    this.ws.on("message", (data) => {
-      const response = JSON.parse(data.toString());
-      if (response.method === "userIntentSolutionsFeed") {
-        this.collectedSolutions.push(response.params);
+    // Handle incoming messages
+    wsConn.on("message", (data) => {
+      console.log(
+        "BdnOperationsRelay: WebSocket message received:",
+        data.toString()
+      );
+
+      let response: any;
+
+      try {
+        response = JSON.parse(data.toString());
+      } catch (e) {
+        console.error(
+          "BdnOperationsRelay: Error parsing WebSocket message:",
+          e
+        );
+        return;
       }
-      console.log("WebSocket message received:", data.toString());
+
+      // This is a response to one of our calls
+      if (response.id) {
+        const handler = this.rpcResponseHandlers[response.id];
+        if (handler) {
+          handler(response.result);
+          delete this.rpcResponseHandlers[response.id];
+        } else {
+          console.error(
+            "BdnOperationsRelay: No handler for response with id:",
+            response.id
+          );
+        }
+      }
+
+      // This is a subscription message
+      else if (response.method === "subscription") {
+        const handler =
+          this.rpcSubscriptionHandlers[response.params.subscription];
+        if (handler) {
+          handler(response.params.result);
+          delete this.rpcSubscriptionHandlers[response.params.subscription];
+        } else {
+          console.error(
+            "BdnOperationsRelay: No handler for subscription with id:",
+            response.params.subscription
+          );
+        }
+      }
+
+      // Unhandled message
+      else {
+        console.error("BdnOperationsRelay: Unhandled message:", response);
+      }
     });
 
-    this.ws.on("error", (error) => {
-      console.error("WebSocket error:", error);
+    // Handle errors
+    wsConn.on("error", (error) => {
+      console.error("BdnOperationsRelay: WebSocket error:", error);
+      // Reconnect
+      wsConn.close();
+      this.wsConn = this.initWebsocket();
     });
 
-    this.ws.on("close", () => {
-      console.log("WebSocket connection closed.");
-    });
+    return wsConn;
   }
 
   private subscribeToSolutions(): void {
-    const { createSign } = crypto;
-
-    const privateKey = crypto.createECDH('secp256k1');
-    privateKey.generateKeys();
-    const privateKeyHex = privateKey.getPrivateKey('hex');
-    
-    const hash = crypto.createHash('keccak256').update(Buffer.from(this.dappAddress)).digest();
-  
-    const sign = createSign('SHA256');
-    sign.update(hash);
-    sign.end();
-    const signature = sign.sign(privateKeyHex, 'hex');
-  
+    const hash = keccak256(this.dAppPublicKey);
     const m = {
-      dapp_address: this.dappAddress,
-      hash: hash.toString('hex'),
-      signature: signature
+      dappAddress: this.dAppPublicKey,
+      hash: hash,
+      signature: createSign("SHA256")
+        .update(hash)
+        .end()
+        .sign(this.dAppPrivateKey, "hex"),
     };
-  
+
+    const msgId = ++this.rpcIdCounter;
+    const respHandler = (data: any) => {
+      // data is the subscription ID
+      console.log("BdnOperationsRelay: Subscribed to solutions with ID:", data);
+      this.rpcSubscriptionHandlers[data] =
+        this.solutionsSubscriptionHandler.bind(this);
+    };
+
+    this.rpcResponseHandlers[msgId] = respHandler.bind(this);
+
     const req = JSON.stringify({
-      id: '2',
-      method: 'subscribe',
-      params: ['userIntentSolutionsFeed', m]
+      id: msgId,
+      method: "subscribe",
+      params: ["userIntentSolutionsFeed", m],
     });
-  
-    this.ws.send(req, (err) => {
+
+    this.wsConn.send(req, (err) => {
       if (err) {
-        console.error('Failed to subscribe to solutions:', err);
+        console.error(
+          "BdnOperationsRelay: Failed to subscribe to solutions:",
+          err
+        );
       }
     });
+  }
+
+  private solutionsSubscriptionHandler(data: any): void {
+    console.log("BdnOperationsRelay: Received solution:", data);
+
+    let solverOp: SolverOperation;
+    try {
+      solverOp = OperationBuilder.newSolverOperation(data.intentSolution);
+    } catch (e) {
+      console.error("BdnOperationsRelay: Error parsing solution:", e);
+      return;
+    }
+
+    this.collectedSolverOps[data.intentId].push(solverOp);
   }
 
   /**
@@ -94,24 +172,58 @@ export class BdnOperationsRelay extends BaseOperationRelay {
     extra?: any
   ): Promise<string> {
     return new Promise((resolve, reject) => {
-        const req = genSubmitIntent(userOp);
-  
-        this.ws.send(req, (err) => {
-          if (err) {
-            return reject(err);
-          }
-  
-          this.ws.on("message", (data) => {
-            const response = JSON.parse(data.toString());
-            if (response.error) {
-              reject(response.error.message);
-            } else {
-              resolve(response.result);
-            }
-          });
-        });
+      const intent = Buffer.from(
+        JSON.stringify(
+          {
+            userOperation: userOp.toStruct(),
+            hints: hints,
+          },
+          (_, v) => (typeof v === "bigint" ? toQuantity(v) : v)
+        )
+      );
+      const hash = keccak256(intent);
+
+      // Generate sender private key
+      const pk = createECDH("secp256k1");
+      const pubKey = pk.generateKeys("hex", "compressed");
+
+      const m = {
+        dappAddress: this.dAppPublicKey,
+        senderAddress: pubKey,
+        intent: intent.toString("hex"),
+        hash: hash,
+        signature: createSign("SHA256")
+          .update(hash)
+          .end()
+          .sign(pk.getPrivateKey("hex"), "hex"),
+      };
+
+      const msgId = ++this.rpcIdCounter;
+      const respHandler = (data: any) => {
+        console.log("BdnOperationsRelay: Submitted intent, resp:", data);
+        const userOpHash = getUserOperationHash(userOp);
+        this.userOpHashToIntentId[userOpHash] = data.intentId;
+        resolve(userOpHash);
+      };
+
+      this.rpcResponseHandlers[msgId] = respHandler.bind(this, [
+        resolve,
+        reject,
+      ]);
+
+      const req = JSON.stringify({
+        id: msgId,
+        method: "blxr_submit_intent",
+        params: m,
       });
-    }
+
+      this.wsConn.send(req, (err) => {
+        if (err) {
+          return reject(err);
+        }
+      });
+    });
+  }
 
   /**
    * Get solver operations for a user operation previously submitted
@@ -128,19 +240,16 @@ export class BdnOperationsRelay extends BaseOperationRelay {
     wait?: boolean,
     extra?: any
   ): Promise<SolverOperation[]> {
-    return new Promise((resolve) => {
-      const filteredSolutions = this.collectedSolutions.filter(
-        (solution) => solution.intentId === userOpHash
-      );
+    const intentId = this.userOpHashToIntentId[userOpHash];
+    if (!intentId) {
+      throw "No intent ID found for user operation hash";
+    }
 
-      const parsedSolutions = filteredSolutions.map((solution) => {
-        const intentSolutionJson = Buffer.from(solution.intentSolution, 'base64').toString('utf-8');
-        const intentSolution = JSON.parse(intentSolutionJson);
-        return OperationBuilder.newSolverOperation(intentSolution);
-      });
+    const solverOps = this.collectedSolverOps[intentId];
+    delete this.collectedSolverOps[intentId];
+    delete this.userOpHashToIntentId[userOpHash];
 
-      resolve(parsedSolutions);
-    });
+    return solverOps;
   }
 
   /**
@@ -171,24 +280,4 @@ export class BdnOperationsRelay extends BaseOperationRelay {
     //TODO:
     return "Not implemented";
   }
-}
-
-function genSubmitIntent(userOp: UserOperation): string {
-    const intent = Buffer.from(JSON.stringify(userOp.toStruct()));
-  
-    const m = {
-      dapp_address: userOp.getField("dapp"),
-      sender_address: userOp.getField("from"),
-      intent: intent.toString("hex"),
-      hash: "0x0",
-      signature: userOp.getField("signature"),
-    };
-  
-    const req = JSON.stringify({
-      id: "1",
-      method: "blxr_submit_intent",
-      params: m,
-    });
-
-    return req;
 }
