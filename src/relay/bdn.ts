@@ -50,12 +50,15 @@ export class BdnOperationsRelay extends BaseOperationRelay {
   private subscribeToSolutions(): void {
     const { createSign } = crypto;
 
+    const privateKey = crypto.createECDH('secp256k1');
+    privateKey.generateKeys();
+    const privateKeyHex = privateKey.getPrivateKey('hex');
+    
     const hash = crypto.createHash('keccak256').update(Buffer.from(this.dappAddress)).digest();
   
     const sign = createSign('SHA256');
     sign.update(hash);
     sign.end();
-    const privateKeyHex = "YOUR_PRIVATE_KEY_HEX"; // Replace with the actual private key
     const signature = sign.sign(privateKeyHex, 'hex');
   
     const m = {
