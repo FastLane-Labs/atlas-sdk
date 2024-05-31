@@ -4,19 +4,29 @@ import { createECDH, createSign } from "crypto";
 import { BaseOperationRelay } from "./base";
 import { OperationBuilder } from "../operation/builder";
 import { UserOperation, SolverOperation, Bundle } from "../operation";
-import { getUserOperationHash } from "../utils/compute";
+import { getUserOperationHash } from "../utils";
+
+const DEFAULT_AUCTION_DURATION = 2000; // 2 seconds
 
 export class BdnOperationsRelay extends BaseOperationRelay {
   private wsConn: WebSocket;
   private dAppPrivateKey: string;
   private dAppPublicKey: string;
+  private auctionDuration: number; // Milliseconds
   private userOpHashToIntentId: { [userOpHash: string]: string } = {};
+  private auctionsStartTime: { [intentId: string]: number } = {};
   private collectedSolverOps: { [intentId: string]: SolverOperation[] } = {};
   private rpcResponseHandlers: { [msgId: string]: (data: any) => void } = {};
   private rpcSubscriptionHandlers: { [subId: string]: (data: any) => void } =
     {};
   private rpcIdCounter: number = 0;
 
+  /**
+   *
+   * @param params [wsEndpoint] The WebSocket endpoint of the BDN
+   *               [auth] The authorization token for the BDN
+   *               [auctionDuration] The duration of the auction in milliseconds
+   */
   constructor(params: { [k: string]: string }) {
     super(params);
 
@@ -25,12 +35,17 @@ export class BdnOperationsRelay extends BaseOperationRelay {
     this.dAppPublicKey = pk.generateKeys("hex", "compressed");
     this.dAppPrivateKey = pk.getPrivateKey("hex");
 
+    // Set auction duration
+    this.auctionDuration =
+      parseInt(params["auctionDuration"]) || DEFAULT_AUCTION_DURATION;
+
+    // Init connection to the BDN
     this.wsConn = this.initWebsocket();
   }
 
   private initWebsocket(): WebSocket {
     // Init websocket connection
-    const wsConn = new WebSocket(this.params["basePath"], {
+    const wsConn = new WebSocket(this.params["wsEndpoint"], {
       headers: {
         Authorization: this.params["auth"],
       },
@@ -147,6 +162,18 @@ export class BdnOperationsRelay extends BaseOperationRelay {
   private solutionsSubscriptionHandler(data: any): void {
     console.log("BdnOperationsRelay: Received solution:", data);
 
+    const auctionStartTime = this.auctionsStartTime[data.intentId];
+    if (!auctionStartTime) {
+      console.error("BdnOperationsRelay: No auction start time found");
+      return;
+    }
+
+    const elapsed = Date.now() - auctionStartTime;
+    if (elapsed > this.auctionDuration) {
+      console.error("BdnOperationsRelay: Auction expired");
+      return;
+    }
+
     let solverOp: SolverOperation;
     try {
       solverOp = OperationBuilder.newSolverOperation(data.intentSolution);
@@ -203,6 +230,7 @@ export class BdnOperationsRelay extends BaseOperationRelay {
         console.log("BdnOperationsRelay: Submitted intent, resp:", data);
         const userOpHash = getUserOperationHash(userOp);
         this.userOpHashToIntentId[userOpHash] = data.intentId;
+        this.auctionsStartTime[data.intentId] = Date.now();
         resolve(userOpHash);
       };
 
@@ -245,9 +273,27 @@ export class BdnOperationsRelay extends BaseOperationRelay {
       throw "No intent ID found for user operation hash";
     }
 
+    const auctionStartTime = this.auctionsStartTime[intentId];
+    if (!auctionStartTime) {
+      throw "No auction start time found";
+    }
+
+    let elapsed = Date.now() - auctionStartTime;
+    while (wait && elapsed < this.auctionDuration) {
+      await new Promise((resolve) =>
+        setTimeout(resolve, this.auctionDuration - elapsed)
+      );
+    }
+
+    elapsed = Date.now() - auctionStartTime;
+    if (elapsed < this.auctionDuration) {
+      throw "Auction still ongoing";
+    }
+
     const solverOps = this.collectedSolverOps[intentId];
     delete this.collectedSolverOps[intentId];
     delete this.userOpHashToIntentId[userOpHash];
+    delete this.auctionsStartTime[intentId];
 
     return solverOps;
   }
