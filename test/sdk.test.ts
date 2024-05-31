@@ -14,7 +14,7 @@ import { chainConfig } from "../src/config";
 describe("Atlas SDK main tests", () => {
   const chainId = 11155111;
   const provider = new JsonRpcProvider("https://rpc.sepolia.org/", chainId);
-  const opsRelay = new MockOperationsRelay();
+  const opsRelay = new MockOperationsRelay(chainId);
   const sdk = new AtlasSdk(provider, chainId, opsRelay);
 
   const testDAppControl = "0xe9c7bEAF3da67d3FB00708ADAE8ab62e578246d7";

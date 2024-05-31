@@ -27,8 +27,8 @@ export class BdnOperationsRelay extends BaseOperationRelay {
    *               [auth] The authorization token for the BDN
    *               [auctionDuration] The duration of the auction in milliseconds
    */
-  constructor(params: { [k: string]: string }) {
-    super(params);
+  constructor(chainId: number, params: { [k: string]: string }) {
+    super(chainId, params);
 
     // Generate dApp private key
     const pk = createECDH("secp256k1");
@@ -202,6 +202,7 @@ export class BdnOperationsRelay extends BaseOperationRelay {
       const intent = Buffer.from(
         JSON.stringify(
           {
+            chainId: toQuantity(this.chainId),
             userOperation: userOp.toStruct(),
             hints: hints,
           },

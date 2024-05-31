@@ -53,8 +53,8 @@ const ROUTES: Map<string, Route> = new Map([
 export class FastlaneOperationsRelay extends BaseOperationRelay {
   protected fetch: FetchAPI = isomorphicFetch;
 
-  constructor(params: { [k: string]: string }) {
-    super(params);
+  constructor(chainId: number, params: { [k: string]: string }) {
+    super(chainId, params);
   }
 
   /**
@@ -71,7 +71,12 @@ export class FastlaneOperationsRelay extends BaseOperationRelay {
     extra?: any
   ): Promise<string> {
     const localVarFetchArgs =
-      FastlaneApiFetchParamCreator().submitUserOperation(userOp, hints, extra);
+      FastlaneApiFetchParamCreator().submitUserOperation(
+        this.chainId,
+        userOp,
+        hints,
+        extra
+      );
     const response = await fetch(
       this.params["basePath"] + localVarFetchArgs.url,
       localVarFetchArgs.options
@@ -138,6 +143,7 @@ export class FastlaneOperationsRelay extends BaseOperationRelay {
    */
   public async _submitBundle(bundle: Bundle, extra?: any): Promise<string> {
     const localVarFetchArgs = FastlaneApiFetchParamCreator().submitBundle(
+      this.chainId,
       bundle,
       extra
     );
@@ -194,11 +200,13 @@ const FastlaneApiFetchParamCreator = function () {
      * @param {*} [options] Override http request option.
      */
     submitUserOperation(
+      chainId: number,
       userOp: UserOperation,
       hints: string[],
       options: any = {}
     ): FetchArgs {
       let body: any = {
+        chainId: toQuantity(chainId),
         userOperation: userOp.toStruct(),
       };
       if (hints.length > 0) {
@@ -304,8 +312,13 @@ const FastlaneApiFetchParamCreator = function () {
      * @param {Bundle} [bundle] The user/solvers/dApp operations to be bundled
      * @param {*} [options] Override http request option.
      */
-    submitBundle(bundle: Bundle, options: any = {}): FetchArgs {
+    submitBundle(
+      chainId: number,
+      bundle: Bundle,
+      options: any = {}
+    ): FetchArgs {
       const bundleStruct = {
+        chainId: toQuantity(chainId),
         userOperation: bundle.userOperation.toStruct(),
         solverOperations: bundle.solverOperations.map((op) => op.toStruct()),
         dAppOperation: bundle.dAppOperation.toStruct(),

@@ -6,8 +6,8 @@ import { keccak256, ZeroAddress } from "ethers";
 export class MockOperationsRelay extends BaseOperationRelay {
   private submittedBundles: { [key: string]: Bundle } = {};
 
-  constructor() {
-    super();
+  constructor(chainId: number) {
+    super(chainId);
   }
 
   /**
