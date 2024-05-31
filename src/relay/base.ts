@@ -80,9 +80,12 @@ export interface IOperationsRelay {
 }
 
 export abstract class BaseOperationRelay implements IOperationsRelay {
+  protected chainId: number;
   protected hooksControllers: IHooksController[] = [];
 
-  constructor(protected params: { [k: string]: string } = {}) {}
+  constructor(chainId: number, protected params: { [k: string]: string } = {}) {
+    this.chainId = chainId;
+  }
 
   addHooksControllers(hooksControllers: IHooksController[]): void {
     this.hooksControllers.push(...hooksControllers);
