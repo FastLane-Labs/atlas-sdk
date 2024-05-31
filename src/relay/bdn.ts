@@ -4,18 +4,55 @@ import { createECDH, createSign } from "crypto";
 import { BaseOperationRelay } from "./base";
 import { OperationBuilder } from "../operation/builder";
 import { UserOperation, SolverOperation, Bundle } from "../operation";
-import { getUserOperationHash } from "../utils";
+import { getUserOperationHash, validateBytes32 } from "../utils";
 
 const DEFAULT_AUCTION_DURATION = 2000; // 2 seconds
+
+enum IntentType {
+  USER_OPERATION,
+  BUNDLE,
+}
+
+interface SubmitIntentRequest {
+  dappAddress: string;
+  senderAddress: string;
+  intent: string;
+  hash: string;
+  signature: string;
+}
+
+function buildIntentRequest(
+  intent: Buffer,
+  dAppPublicKey: string
+): SubmitIntentRequest {
+  const hash = keccak256(intent);
+
+  // Generate sender private key
+  const pk = createECDH("secp256k1");
+  const pubKey = pk.generateKeys("hex", "compressed");
+
+  return {
+    dappAddress: dAppPublicKey,
+    senderAddress: pubKey,
+    intent: intent.toString("hex"),
+    hash: hash,
+    signature: createSign("SHA256")
+      .update(hash)
+      .end()
+      .sign(pk.getPrivateKey("hex"), "hex"),
+  };
+}
 
 export class BdnOperationsRelay extends BaseOperationRelay {
   private wsConn: WebSocket;
   private dAppPrivateKey: string;
   private dAppPublicKey: string;
   private auctionDuration: number; // Milliseconds
-  private userOpHashToIntentId: { [userOpHash: string]: string } = {};
+  private userOpHashToIntentIdUserOp: { [userOpHash: string]: string } = {};
+  private userOpHashToIntentIdBundle: { [userOpHash: string]: string } = {};
   private auctionsStartTime: { [intentId: string]: number } = {};
   private collectedSolverOps: { [intentId: string]: SolverOperation[] } = {};
+  private collectedBundleHashes: { [intentId: string]: string } = {};
   private rpcResponseHandlers: { [msgId: string]: (data: any) => void } = {};
   private rpcSubscriptionHandlers: { [subId: string]: (data: any) => void } =
     {};
@@ -162,27 +199,77 @@ export class BdnOperationsRelay extends BaseOperationRelay {
   private solutionsSubscriptionHandler(data: any): void {
     console.log("BdnOperationsRelay: Received solution:", data);
 
-    const auctionStartTime = this.auctionsStartTime[data.intentId];
-    if (!auctionStartTime) {
-      console.error("BdnOperationsRelay: No auction start time found");
-      return;
-    }
+    // We're expecting either a bundle hash or a solver operation
 
-    const elapsed = Date.now() - auctionStartTime;
-    if (elapsed > this.auctionDuration) {
-      console.error("BdnOperationsRelay: Auction expired");
-      return;
-    }
-
-    let solverOp: SolverOperation;
+    // Check if it's a bundle hash
     try {
-      solverOp = OperationBuilder.newSolverOperation(data.intentSolution);
-    } catch (e) {
-      console.error("BdnOperationsRelay: Error parsing solution:", e);
+      if (!validateBytes32(data.intentSolution)) throw "Invalid bundle hash";
+      this.collectedBundleHashes[data.intentId] = data.intentSolution;
       return;
-    }
+    } catch (e) {}
 
-    this.collectedSolverOps[data.intentId].push(solverOp);
+    // Check if it's a solver operation
+    try {
+      // Will throw if invalid
+      const solverOp = OperationBuilder.newSolverOperation(data.intentSolution);
+
+      const auctionStartTime = this.auctionsStartTime[data.intentId];
+      if (!auctionStartTime) {
+        console.error("BdnOperationsRelay: No auction start time found");
+        return;
+      }
+
+      const elapsed = Date.now() - auctionStartTime;
+      if (elapsed > this.auctionDuration) {
+        console.error("BdnOperationsRelay: Auction expired");
+        return;
+      }
+
+      this.collectedSolverOps[data.intentId].push(solverOp);
+    } catch (e) {}
+
+    console.error("BdnOperationsRelay: Unhandled solution:", data);
+  }
+
+  private sendIntentRequest(
+    intentType: IntentType,
+    userOpHash: string,
+    intentRequest: SubmitIntentRequest
+  ): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const msgId = ++this.rpcIdCounter;
+      const respHandler = (data: any) => {
+        console.log(
+          `BdnOperationsRelay: Submitted intent type ${IntentType[intentType]}, resp:`,
+          data
+        );
+        if (intentType === IntentType.USER_OPERATION) {
+          this.userOpHashToIntentIdUserOp[userOpHash] = data.intentId;
+          this.auctionsStartTime[data.intentId] = Date.now();
+          resolve(userOpHash);
+        } else if (intentType === IntentType.BUNDLE) {
+          this.userOpHashToIntentIdBundle[userOpHash] = data.intentId;
+          resolve("Bundle submitted");
+        }
+      };
+
+      this.rpcResponseHandlers[msgId] = respHandler.bind(this, [
+        resolve,
+        reject,
+      ]);
+
+      const req = JSON.stringify({
+        id: msgId,
+        method: "blxr_submit_intent",
+        params: intentRequest,
+      });
+
+      this.wsConn.send(req, (err) => {
+        if (err) {
+          return reject(err);
+        }
+      });
+    });
   }
 
   /**
@@ -198,60 +285,22 @@ export class BdnOperationsRelay extends BaseOperationRelay {
     hints: string[],
     extra?: any
   ): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const intent = Buffer.from(
-        JSON.stringify(
-          {
-            chainId: toQuantity(this.chainId),
-            userOperation: userOp.toStruct(),
-            hints: hints,
-          },
-          (_, v) => (typeof v === "bigint" ? toQuantity(v) : v)
-        )
-      );
-      const hash = keccak256(intent);
+    const intent = Buffer.from(
+      JSON.stringify(
+        {
+          chainId: toQuantity(this.chainId),
+          userOperation: userOp.toStruct(),
+          hints: hints,
+        },
+        (_, v) => (typeof v === "bigint" ? toQuantity(v) : v)
+      )
+    );
 
-      // Generate sender private key
-      const pk = createECDH("secp256k1");
-      const pubKey = pk.generateKeys("hex", "compressed");
-
-      const m = {
-        dappAddress: this.dAppPublicKey,
-        senderAddress: pubKey,
-        intent: intent.toString("hex"),
-        hash: hash,
-        signature: createSign("SHA256")
-          .update(hash)
-          .end()
-          .sign(pk.getPrivateKey("hex"), "hex"),
-      };
-
-      const msgId = ++this.rpcIdCounter;
-      const respHandler = (data: any) => {
-        console.log("BdnOperationsRelay: Submitted intent, resp:", data);
-        const userOpHash = getUserOperationHash(userOp);
-        this.userOpHashToIntentId[userOpHash] = data.intentId;
-        this.auctionsStartTime[data.intentId] = Date.now();
-        resolve(userOpHash);
-      };
-
-      this.rpcResponseHandlers[msgId] = respHandler.bind(this, [
-        resolve,
-        reject,
-      ]);
-
-      const req = JSON.stringify({
-        id: msgId,
-        method: "blxr_submit_intent",
-        params: m,
-      });
-
-      this.wsConn.send(req, (err) => {
-        if (err) {
-          return reject(err);
-        }
-      });
-    });
+    return this.sendIntentRequest(
+      IntentType.USER_OPERATION,
+      getUserOperationHash(userOp),
+      buildIntentRequest(intent, this.dAppPublicKey)
+    );
   }
 
   /**
@@ -269,7 +318,7 @@ export class BdnOperationsRelay extends BaseOperationRelay {
     wait?: boolean,
     extra?: any
   ): Promise<SolverOperation[]> {
-    const intentId = this.userOpHashToIntentId[userOpHash];
+    const intentId = this.userOpHashToIntentIdUserOp[userOpHash];
     if (!intentId) {
       throw "No intent ID found for user operation hash";
     }
@@ -293,7 +342,7 @@ export class BdnOperationsRelay extends BaseOperationRelay {
 
     const solverOps = this.collectedSolverOps[intentId];
     delete this.collectedSolverOps[intentId];
-    delete this.userOpHashToIntentId[userOpHash];
+    delete this.userOpHashToIntentIdUserOp[userOpHash];
     delete this.auctionsStartTime[intentId];
 
     return solverOps;
@@ -307,8 +356,23 @@ export class BdnOperationsRelay extends BaseOperationRelay {
    * @returns {Promise<string>} The result message
    */
   public async _submitBundle(bundle: Bundle, extra?: any): Promise<string> {
-    //TODO:
-    return "Not implemented";
+    const intent = Buffer.from(
+      JSON.stringify(
+        {
+          chainId: toQuantity(this.chainId),
+          userOperation: bundle.userOperation.toStruct(),
+          solverOperations: bundle.solverOperations.map((op) => op.toStruct()),
+          dAppOperation: bundle.dAppOperation.toStruct(),
+        },
+        (_, v) => (typeof v === "bigint" ? toQuantity(v) : v)
+      )
+    );
+
+    return this.sendIntentRequest(
+      IntentType.BUNDLE,
+      getUserOperationHash(bundle.userOperation),
+      buildIntentRequest(intent, this.dAppPublicKey)
+    );
   }
 
   /**
@@ -324,7 +388,26 @@ export class BdnOperationsRelay extends BaseOperationRelay {
     wait?: boolean,
     extra?: any
   ): Promise<string> {
-    //TODO:
-    return "Not implemented";
+    const intentId = this.userOpHashToIntentIdBundle[userOpHash];
+    if (!intentId) {
+      throw "No intent ID found for user operation hash";
+    }
+
+    let bundleHash: string;
+
+    while (true) {
+      bundleHash = this.collectedBundleHashes[intentId];
+      if (bundleHash || !wait) break;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    if (!bundleHash) {
+      throw "No bundle hash found";
+    }
+
+    delete this.collectedBundleHashes[intentId];
+    delete this.userOpHashToIntentIdBundle[userOpHash];
+
+    return bundleHash;
   }
 }
