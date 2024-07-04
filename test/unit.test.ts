@@ -14,6 +14,7 @@ describe("Atlas SDK unit tests", () => {
     value: BigInt(500),
     dapp: "0x0000000000000000000000000000000000000003",
     control: "0x0000000000000000000000000000000000000004",
+    callConfig: BigInt(600),
     sessionKey: "0x0000000000000000000000000000000000000005",
     data: hexlify(toUtf8Bytes("data")),
     signature: hexlify(toUtf8Bytes("signature")),
@@ -39,10 +40,8 @@ describe("Atlas SDK unit tests", () => {
   const testDAppOperation = OperationBuilder.newDAppOperation({
     from: "0x0000000000000000000000000000000000000001",
     to: "0x0000000000000000000000000000000000000002",
-    value: BigInt(100),
-    gas: BigInt(200),
-    nonce: BigInt(300),
-    deadline: BigInt(400),
+    nonce: BigInt(100),
+    deadline: BigInt(200),
     control: "0x0000000000000000000000000000000000000003",
     bundler: "0x0000000000000000000000000000000000000004",
     userOpHash:

@@ -11,14 +11,11 @@ export class UserOperation extends BaseOperation {
     ["deadline", { name: "deadline", solType: "uint256" }],
     ["dapp", { name: "dapp", solType: "address" }],
     ["control", { name: "control", solType: "address" }],
+    ["callConfig", { name: "callConfig", solType: "uint32" }],
     ["sessionKey", { name: "sessionKey", solType: "address" }],
     ["data", { name: "data", solType: "bytes" }],
     ["signature", { name: "signature", solType: "bytes" }],
   ]);
-
-  constructor() {
-    super("UserOperation");
-  }
 }
 
 export interface UserOperationParams {
@@ -31,6 +28,7 @@ export interface UserOperationParams {
   deadline: bigint;
   dapp: string;
   control: string;
+  callConfig?: bigint;
   sessionKey?: string;
   data: string;
   signature?: string;

@@ -115,8 +115,6 @@ export class SimulationHooksController extends BaseHooksController {
           OperationBuilder.newDAppOperation({
             from: ZeroAddress,
             to: ZeroAddress,
-            value: 0n,
-            gas: 0n,
             nonce: 0n,
             deadline: userOp.getField("deadline").value as bigint,
             control: userOp.getField("control").value as string,

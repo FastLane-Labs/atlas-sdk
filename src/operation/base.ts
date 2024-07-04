@@ -7,6 +7,7 @@ import {
 } from "ethers";
 import {
   validateAddress,
+  validateUint32,
   validateUint256,
   validateBytes32,
   validateBytes,
@@ -17,13 +18,7 @@ export type OpField = { name: string; value?: OpFieldType; solType: string };
 
 export abstract class BaseOperation {
   protected fields: Map<string, OpField> = new Map();
-  private TYPE_HASH_PREFIX: string;
-  private abiCoder: AbiCoder;
-
-  constructor(thPrefix: string) {
-    this.TYPE_HASH_PREFIX = thPrefix;
-    this.abiCoder = new AbiCoder();
-  }
+  private abiCoder = new AbiCoder();
 
   public setFields(fields: { [key: string]: OpFieldType }) {
     Object.entries(fields).forEach(([name, value]) => {
@@ -91,6 +86,11 @@ export abstract class BaseOperation {
           throw new Error(`Field ${f.name} is not a valid address`);
         }
         break;
+      case "uint32":
+        if (!validateUint32(f.value as bigint)) {
+          throw new Error(`Field ${f.name} is not a valid uint32`);
+        }
+        break;
       case "uint256":
         if (!validateUint256(f.value as bigint)) {
           throw new Error(`Field ${f.name} is not a valid uint256`);
@@ -128,7 +128,7 @@ export abstract class BaseOperation {
 
   public toTypedDataTypes(): { [key: string]: TypedDataField[] } {
     return {
-      [this.TYPE_HASH_PREFIX]: Array.from(this.fields.values())
+      [this.constructor.name]: Array.from(this.fields.values())
         .slice(0, -1)
         .map((f) => ({
           name: f.name,

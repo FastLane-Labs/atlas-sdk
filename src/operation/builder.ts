@@ -16,6 +16,7 @@ export abstract class OperationBuilder {
     deadline: bigint;
     dapp: string;
     control: string;
+    callConfig?: bigint;
     sessionKey?: string;
     data: string;
     signature?: string;
@@ -31,6 +32,7 @@ export abstract class OperationBuilder {
       deadline: prop.deadline,
       dapp: prop.dapp,
       control: prop.control,
+      callConfig: prop.callConfig || ZeroUint,
       sessionKey: prop.sessionKey || ZeroAddress,
       data: prop.data,
       signature: prop.signature || ZeroBytes,
@@ -82,8 +84,6 @@ export abstract class OperationBuilder {
   public static newDAppOperation(prop: {
     from: string;
     to: string;
-    value: bigint;
-    gas: bigint;
     nonce: bigint;
     deadline: bigint;
     control: string;
@@ -96,8 +96,6 @@ export abstract class OperationBuilder {
     dAppOp.setFields({
       from: prop.from,
       to: prop.to,
-      value: prop.value,
-      gas: prop.gas,
       nonce: prop.nonce,
       deadline: prop.deadline,
       control: prop.control,
@@ -137,8 +135,6 @@ export abstract class OperationBuilder {
     return this.newDAppOperation({
       from: signer.address,
       to: userTo as string,
-      value: 0n,
-      gas: 0n,
       nonce: 1n,
       deadline: userDeadline as bigint,
       control: dAppControl as string,

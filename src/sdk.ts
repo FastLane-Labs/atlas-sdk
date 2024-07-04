@@ -99,6 +99,7 @@ export class AtlasSdk {
       deadline: userOpParams.deadline,
       dapp: userOpParams.dapp,
       control: userOpParams.control,
+      callConfig: userOpParams.callConfig,
       sessionKey: userOpParams.sessionKey,
       data: userOpParams.data,
       signature: userOpParams.signature,
@@ -108,6 +109,16 @@ export class AtlasSdk {
       .attach(userOpParams.control)
       .getFunction("getDAppConfig")
       .staticCall(userOp.toStruct());
+
+    if (!userOpParams.callConfig) {
+      userOp.setField("callConfig", dConfig.callConfig);
+    } else {
+      if (dConfig.callConfig !== userOpParams.callConfig) {
+        throw new Error(
+          "UserOperation callConfig does not match dApp callConfig"
+        );
+      }
+    }
 
     if (dConfig.to !== userOpParams.control) {
       throw new Error("UserOperation control does not match dApp control");

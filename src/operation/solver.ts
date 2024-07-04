@@ -20,7 +20,7 @@ export class SolverOperation extends BaseOperation {
   public score: number;
 
   constructor(score?: number) {
-    super("SolverOperation");
+    super();
     this.score = score || 0;
   }
 }
