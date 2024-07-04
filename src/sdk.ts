@@ -21,7 +21,7 @@ import {
   validateAddress,
   getUserOperationHash,
   getAltOperationHash,
-  flagUserNoncesSequenced,
+  flagUserNoncesSequential,
   flagZeroSolvers,
   flagRequirePreOps,
   flagExPostBids,
@@ -147,7 +147,7 @@ export class AtlasSdk {
   ): Promise<UserOperation> {
     const nonce: bigint = await this.atlasVerification.getNextNonce(
       userOp.getField("from").value as string,
-      flagUserNoncesSequenced(callConfig)
+      flagUserNoncesSequential(callConfig)
     );
 
     userOp.setField("nonce", nonce);
