@@ -15,8 +15,8 @@ import {
   OperationBuilder,
   ZeroBytes,
 } from "./operation";
-import { IOperationsRelay } from "./relay";
-import { IHooksControllerConstructable } from "./relay/hooks";
+import { IBackend } from "./backend";
+import { IHooksControllerConstructable } from "./backend/hooks";
 import {
   validateAddress,
   flagUserNoncesSequential,
@@ -39,21 +39,21 @@ export class AtlasSdk {
   private atlasVerification: Contract;
   private dAppControl: Contract;
   private sorter: Contract;
-  private operationsRelay: IOperationsRelay;
+  private backend: IBackend;
   private sessionKeys: Map<string, HDNodeWallet> = new Map();
   private usersLastNonSequentialNonce: Map<string, bigint> = new Map();
   private chainId: number;
 
   /**
    * Creates a new Atlas SDK instance.
-   * @param operationsRelay a backend operations relay client
+   * @param backend a backend client
    * @param provider a provider
    * @param chainId the chain ID of the network
    */
   constructor(
     provider: AbstractProvider,
     chainId: number,
-    operationsRelay: IOperationsRelay,
+    backend: IBackend,
     hooksControllers: IHooksControllerConstructable[] = []
   ) {
     this.chainId = chainId;
@@ -72,8 +72,8 @@ export class AtlasSdk {
     const _hooksControllers = hooksControllers.map(
       (HookController) => new HookController(provider, chainId)
     );
-    this.operationsRelay = operationsRelay;
-    this.operationsRelay.addHooksControllers(_hooksControllers);
+    this.backend = backend;
+    this.backend.addHooksControllers(_hooksControllers);
   }
 
   /**
@@ -200,7 +200,7 @@ export class AtlasSdk {
   }
 
   /**
-   * Submits a user operation to the operation relay.
+   * Submits a user operation to the backend.
    * @param userOp a signed user operation
    * @param callConfig the dApp call configuration
    * @param hints an array of addresses used as hints for solvers
@@ -229,15 +229,18 @@ export class AtlasSdk {
       }
     }
 
-    // Submit the user operation to the relay
-    const userOphash: string = await this.operationsRelay.submitUserOperation(
+    // Submit the user operation to the backend
+    const userOphash: string = await this.backend.submitUserOperation(
       userOp,
       hints
     );
 
     // Get the solver operations
-    const solverOps: SolverOperation[] =
-      await this.operationsRelay.getSolverOperations(userOp, userOphash, true);
+    const solverOps: SolverOperation[] = await this.backend.getSolverOperations(
+      userOp,
+      userOphash,
+      true
+    );
 
     if (solverOps.length === 0 && !flagZeroSolvers(callConfig)) {
       throw new Error("No solver operations returned");
@@ -353,7 +356,7 @@ export class AtlasSdk {
   }
 
   /**
-   * Submits all operations to the operations relay for bundling.
+   * Submits all operations to the backend for bundling.
    * @param userOp a signed user operation
    * @param solverOps an array of solver operations
    * @param dAppOp a signed dApp operation
@@ -379,9 +382,9 @@ export class AtlasSdk {
     const bundle = OperationBuilder.newBundle(userOp, solverOps, dAppOp);
     bundle.validate(chainConfig[this.chainId].eip712Domain);
 
-    await this.operationsRelay.submitBundle(bundle);
+    await this.backend.submitBundle(bundle);
 
-    const atlasTxHash: string = await this.operationsRelay.getBundleHash(
+    const atlasTxHash: string = await this.backend.getBundleHash(
       userOpHash,
       true
     );

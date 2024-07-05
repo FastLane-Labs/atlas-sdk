@@ -1,12 +1,12 @@
 import { UserOperation, SolverOperation, Bundle } from "../operation";
 import { IHooksController } from "./hooks";
 
-export interface IOperationsRelay {
+export interface IBackend {
   addHooksControllers(hooksControllers: IHooksController[]): void;
 
   /**
-   * Submit a user operation to the relay
-   * @summary Submit a user operation to the relay
+   * Submit a user operation to the backend
+   * @summary Submit a user operation to the backend
    * @param {UserOperation} [userOp] The user operation
    * @param {string[]} [hints] Hints for solvers
    * @param {*} [extra] Extra parameters
@@ -48,8 +48,8 @@ export interface IOperationsRelay {
   ): Promise<SolverOperation[]>;
 
   /**
-   * Submit user/solvers/dApp operations to the relay for bundling
-   * @summary Submit a bundle of user/solvers/dApp operations to the relay
+   * Submit user/solvers/dApp operations to the backend for bundling
+   * @summary Submit a bundle of user/solvers/dApp operations to the backend
    * @param {Bundle} [bundle] The user/solvers/dApp operations to be bundled
    * @param {*} [extra] Extra parameters
    * @returns {Promise<string>} The result message
@@ -79,7 +79,7 @@ export interface IOperationsRelay {
   ): Promise<string>;
 }
 
-export abstract class BaseOperationRelay implements IOperationsRelay {
+export abstract class BaseBackend implements IBackend {
   protected hooksControllers: IHooksController[] = [];
 
   constructor(protected params: { [k: string]: string } = {}) {}

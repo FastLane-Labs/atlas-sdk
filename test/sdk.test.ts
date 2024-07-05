@@ -6,16 +6,18 @@ import {
   keccak256,
 } from "ethers";
 import { AtlasSdk } from "../src";
-import { MockOperationsRelay } from "../src/relay/mock";
+import { MockBackend } from "../src/backend";
 import { OperationBuilder, ZeroBytes } from "../src/operation";
 import { validateBytes32 } from "../src/utils";
 import { chainConfig } from "../src/config";
 
 describe("Atlas SDK main tests", () => {
   const chainId = 11155111;
-  const provider = new JsonRpcProvider("https://rpc.sepolia.org/", chainId);
-  const opsRelay = new MockOperationsRelay();
-  const sdk = new AtlasSdk(provider, chainId, opsRelay);
+  const sdk = new AtlasSdk(
+    new JsonRpcProvider("https://rpc.sepolia.org/", chainId),
+    chainId,
+    new MockBackend()
+  );
 
   const testDAppControl = "0xe9c7bEAF3da67d3FB00708ADAE8ab62e578246d7";
   const testCallConfig = 97520;

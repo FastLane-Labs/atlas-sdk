@@ -1,4 +1,4 @@
-import { BaseOperationRelay } from "./base";
+import { BaseBackend } from "./base";
 import { OperationBuilder } from "../operation/builder";
 import { UserOperation, SolverOperation, Bundle } from "../operation";
 import { toQuantity } from "ethers";
@@ -50,7 +50,7 @@ const ROUTES: Map<string, Route> = new Map([
   ],
 ]);
 
-export class FastlaneOperationsRelay extends BaseOperationRelay {
+export class FastlaneBackend extends BaseBackend {
   protected fetch: FetchAPI = isomorphicFetch;
 
   constructor(params: { [k: string]: string }) {
@@ -58,8 +58,8 @@ export class FastlaneOperationsRelay extends BaseOperationRelay {
   }
 
   /**
-   * Submit a user operation to the relay
-   * @summary Submit a user operation to the relay
+   * Submit a user operation to the backend
+   * @summary Submit a user operation to the backend
    * @param {UserOperation} [userOp] The user operation
    * @param {string[]} [hints] Hints for solvers
    * @param {*} [extra] Extra parameters
@@ -130,8 +130,8 @@ export class FastlaneOperationsRelay extends BaseOperationRelay {
   }
 
   /**
-   * Submit user/solvers/dApp operations to the relay for bundling
-   * @summary Submit a bundle of user/solvers/dApp operations to the relay
+   * Submit user/solvers/dApp operations to the backend for bundling
+   * @summary Submit a bundle of user/solvers/dApp operations to the backend
    * @param {Bundle} [bundle] The user/solvers/dApp operations to be bundled
    * @param {*} [extra] Extra parameters
    * @returns {Promise<string>} The result message
@@ -187,8 +187,8 @@ export class FastlaneOperationsRelay extends BaseOperationRelay {
 const FastlaneApiFetchParamCreator = function () {
   return {
     /**
-     * Submit a user operation to the relay
-     * @summary Submit a user operation to the relay
+     * Submit a user operation to the backend
+     * @summary Submit a user operation to the backend
      * @param {UserOperation} [userOp] The user operation
      * @param {string[]} [hints] Hints for solvers
      * @param {*} [options] Override http request option.
@@ -299,8 +299,8 @@ const FastlaneApiFetchParamCreator = function () {
       };
     },
     /**
-     * Submit user/solvers/dApp operations to the relay for bundling
-     * @summary Submit a bundle of user/solvers/dApp operations to the relay
+     * Submit user/solvers/dApp operations to the backend for bundling
+     * @summary Submit a bundle of user/solvers/dApp operations to the backend
      * @param {Bundle} [bundle] The user/solvers/dApp operations to be bundled
      * @param {*} [options] Override http request option.
      */

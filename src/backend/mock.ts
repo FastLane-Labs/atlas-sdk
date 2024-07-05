@@ -1,9 +1,9 @@
-import { BaseOperationRelay } from "./base";
+import { BaseBackend } from "./base";
 import { OperationBuilder, ZeroBytes } from "../operation/builder";
 import { UserOperation, SolverOperation, Bundle } from "../operation";
 import { keccak256, ZeroAddress } from "ethers";
 
-export class MockOperationsRelay extends BaseOperationRelay {
+export class MockBackend extends BaseBackend {
   private submittedBundles: { [key: string]: Bundle } = {};
 
   constructor() {
@@ -11,8 +11,8 @@ export class MockOperationsRelay extends BaseOperationRelay {
   }
 
   /**
-   * Submit a user operation to the relay
-   * @summary Submit a user operation to the relay
+   * Submit a user operation to the backend
+   * @summary Submit a user operation to the backend
    * @param {UserOperation} [userOp] The user operation
    * @param {string[]} [hints] Hints for solvers
    * @param {*} [extra] Extra parameters
@@ -66,8 +66,8 @@ export class MockOperationsRelay extends BaseOperationRelay {
   }
 
   /**
-   * Submit user/solvers/dApp operations to the relay for bundling
-   * @summary Submit a bundle of user/solvers/dApp operations to the relay
+   * Submit user/solvers/dApp operations to the backend for bundling
+   * @summary Submit a bundle of user/solvers/dApp operations to the backend
    * @param {Bundle} [bundle] The user/solvers/dApp operations to be bundled
    * @param {*} [extra] Extra parameters
    * @returns {Promise<string>} The result message
