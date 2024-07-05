@@ -21,6 +21,7 @@
           { "name": "deadline", "type": "uint256", "internalType": "uint256" },
           { "name": "dapp", "type": "address", "internalType": "address" },
           { "name": "control", "type": "address", "internalType": "address" },
+          { "name": "callConfig", "type": "uint32", "internalType": "uint32" },
           {
             "name": "sessionKey",
             "type": "address",
