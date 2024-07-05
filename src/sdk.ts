@@ -41,6 +41,7 @@ export class AtlasSdk {
   private sorter: Contract;
   private operationsRelay: IOperationsRelay;
   private sessionKeys: Map<string, HDNodeWallet> = new Map();
+  private usersLastNonSequentialNonce: Map<string, bigint> = new Map();
   private chainId: number;
 
   /**
@@ -143,10 +144,22 @@ export class AtlasSdk {
     userOp: UserOperation,
     callConfig: number
   ): Promise<UserOperation> {
-    const nonce: bigint = await this.atlasVerification.getNextNonce(
-      userOp.getField("from").value as string,
-      flagUserNoncesSequential(callConfig)
-    );
+    const user = userOp.getField("from").value as string;
+    let nonce: bigint;
+
+    if (flagUserNoncesSequential(callConfig)) {
+      nonce = await this.atlasVerification.getNextNonce(user, true);
+    } else {
+      if (this.usersLastNonSequentialNonce.has(user)) {
+        nonce = await this.atlasVerification.getUserNextNonSeqNonceAfter(
+          user,
+          this.usersLastNonSequentialNonce.get(user) as bigint
+        );
+      } else {
+        nonce = await this.atlasVerification.getNextNonce(user, false);
+      }
+      this.usersLastNonSequentialNonce.set(user, nonce);
+    }
 
     userOp.setField("nonce", nonce);
     return userOp;
