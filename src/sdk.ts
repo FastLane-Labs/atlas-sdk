@@ -19,8 +19,6 @@ import { IOperationsRelay } from "./relay";
 import { IHooksControllerConstructable } from "./relay/hooks";
 import {
   validateAddress,
-  getUserOperationHash,
-  getAltOperationHash,
   flagUserNoncesSequential,
   flagZeroSolvers,
   flagRequirePreOps,
@@ -295,12 +293,10 @@ export class AtlasSdk {
       throw new Error("User operation session key does not match");
     }
 
-    let userOpHash: string;
-    if (flagTrustedOpHash(callConfig)) {
-      userOpHash = getAltOperationHash(userOp);
-    } else {
-      userOpHash = getUserOperationHash(userOp);
-    }
+    const userOpHash = userOp.hash(
+      chainConfig[this.chainId].eip712Domain,
+      flagTrustedOpHash(callConfig)
+    );
 
     const dAppOp: DAppOperation =
       OperationBuilder.newDAppOperationFromUserSolvers(

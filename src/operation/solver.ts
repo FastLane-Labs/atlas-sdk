@@ -23,4 +23,13 @@ export class SolverOperation extends BaseOperation {
     super();
     this.score = score || 0;
   }
+
+  public static abiEncodeArray(solverOps: SolverOperation[]) {
+    const s = new SolverOperation();
+    const f = Array.from(s.fields.values());
+    return s.abiCoder.encode(
+      [`tuple(${f.map((f) => f.solType).join(", ")})[]`],
+      [solverOps.map((op) => f.map((f) => op.fields.get(f.name)?.value))]
+    );
+  }
 }

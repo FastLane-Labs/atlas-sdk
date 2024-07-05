@@ -3,7 +3,6 @@ import {
   TypedDataField,
   TypedDataDomain,
   verifyTypedData,
-  keccak256,
 } from "ethers";
 import {
   validateAddress,
@@ -18,7 +17,7 @@ export type OpField = { name: string; value?: OpFieldType; solType: string };
 
 export abstract class BaseOperation {
   protected fields: Map<string, OpField> = new Map();
-  private abiCoder = new AbiCoder();
+  protected abiCoder = new AbiCoder();
 
   public setFields(fields: { [key: string]: OpFieldType }) {
     Object.entries(fields).forEach(([name, value]) => {
@@ -127,26 +126,41 @@ export abstract class BaseOperation {
   }
 
   public toTypedDataTypes(): { [key: string]: TypedDataField[] } {
+    return this.toTypedDataTypesCustomFields(
+      // All fields except the last one (signature)
+      Array.from(this.fields.keys()).slice(0, -1)
+    );
+  }
+
+  public toTypedDataTypesCustomFields(fields: string[]): {
+    [key: string]: TypedDataField[];
+  } {
     return {
-      [this.constructor.name]: Array.from(this.fields.values())
-        .slice(0, -1)
+      [this.constructor.name]: fields
+        .map((f) => this.fields.get(f) as OpField)
         .map((f) => ({
           name: f.name,
-          // type: f.solType, // TODO: replace with the following line (Atlas contract bug fix)
-          type: f.solType !== "bytes" ? f.solType : "bytes32",
+          type: f.solType,
         })),
     };
   }
 
   public toTypedDataValues(): { [key: string]: OpFieldType } {
-    return Array.from(this.fields.values())
-      .slice(0, -1)
+    return this.toTypedDataValuesCustomFields(
+      // All fields except the last one (signature)
+      Array.from(this.fields.keys()).slice(0, -1)
+    );
+  }
+
+  public toTypedDataValuesCustomFields(fields: string[]): {
+    [key: string]: OpFieldType;
+  } {
+    return fields
+      .map((f) => this.fields.get(f) as OpField)
       .reduce(
         (acc, f) => ({
           ...acc,
-          [f.name]:
-            // f.value, // TODO: replace with the following line (Atlas contract bug fix)
-            f.solType !== "bytes" ? f.value : keccak256(f.value as string),
+          [f.name]: f.value,
         }),
         {}
       );
