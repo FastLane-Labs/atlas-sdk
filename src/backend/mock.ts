@@ -1,7 +1,11 @@
+import { keccak256, ZeroAddress } from "ethers";
 import { BaseBackend } from "./base";
 import { OperationBuilder, ZeroBytes } from "../operation/builder";
 import { UserOperation, SolverOperation, Bundle } from "../operation";
-import { keccak256, ZeroAddress } from "ethers";
+import { flagTrustedOpHash } from "../utils";
+import { chainConfig } from "../config";
+
+const chainId = 11155111;
 
 export class MockBackend extends BaseBackend {
   private submittedBundles: { [key: string]: Bundle } = {};
@@ -23,7 +27,11 @@ export class MockBackend extends BaseBackend {
     hints: string[],
     extra?: any
   ): Promise<string> {
-    return keccak256(userOp.abiEncode());
+    const callConfig = userOp.getField("callConfig").value as bigint;
+    return userOp.hash(
+      chainConfig[chainId].eip712Domain,
+      flagTrustedOpHash(Number(callConfig))
+    );
   }
 
   /**
@@ -48,7 +56,7 @@ export class MockBackend extends BaseBackend {
           from: ZeroAddress,
           to: userOp.getField("to").value as string,
           value: 0n,
-          gas: BigInt(10000 * (i + 1)),
+          gas: userOp.getField("gas").value as bigint,
           maxFeePerGas: userOp.getField("maxFeePerGas").value as bigint,
           deadline: userOp.getField("deadline").value as bigint,
           solver: ZeroAddress,

@@ -45,6 +45,11 @@ export class UserOperation extends BaseOperation {
 
     return TypedDataEncoder.hash(eip712Domain, typedDataTypes, typedDataValues);
   }
+
+  public callConfig(): number {
+    const callConfig = this.getField("callConfig").value as bigint;
+    return Number(callConfig);
+  }
 }
 
 export interface UserOperationParams {

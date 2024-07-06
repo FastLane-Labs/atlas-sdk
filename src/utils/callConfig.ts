@@ -1,4 +1,4 @@
-enum CallConfigIndex {
+export enum CallConfigIndex {
   UserNoncesSequential,
   DAppNoncesSequential,
   RequirePreOps,

@@ -53,16 +53,16 @@ export const chainConfig: { [chainId: number]: ChainConfig } = {
   11155111: {
     contracts: {
       atlas: {
-        address: "0xb90B75C2e84cEFeB237266b1cd46E9E5eEdc2dA5",
+        address: "0x1Be854EeA3D753db001aC7A1aaE7Eb30f9B1166a",
       },
       atlasVerification: {
-        address: "0xa4D727dF141e2e8b0001242e54E33DBACA860fb8",
+        address: "0x26Bb4e798116Bb01f26A47EDA2597814BDC18467",
       },
       sorter: {
-        address: "0x4F7F8e6E53E995935De0Cd72199690A56B5AdB00",
+        address: "0x557Fc08FFaBf3CEACDca2f0E91F6958CF29a149d",
       },
       simulator: {
-        address: "0x45C7432ca6dc674Dcc9e387cF523D438572A8ac2",
+        address: "0xCF9Db077FFC7Ae39210e00468bf94021adFb51a0",
       },
       multicall3: {
         address: "0xcA11bde05977b3631167028862bE2a173976CA11",
@@ -72,7 +72,7 @@ export const chainConfig: { [chainId: number]: ChainConfig } = {
       name: "AtlasVerification",
       version: "1.0",
       chainId: 11155111,
-      verifyingContract: "0xa4D727dF141e2e8b0001242e54E33DBACA860fb8",
+      verifyingContract: "0x26Bb4e798116Bb01f26A47EDA2597814BDC18467",
     },
   },
 };

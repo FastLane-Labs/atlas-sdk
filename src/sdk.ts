@@ -80,12 +80,12 @@ export class AtlasSdk {
    * Creates a new user operation.
    * @param userOpParams The user operation parameters
    * @param generateSessionKey Generate a session key for this user operation
-   * @returns The user operation and the call configuration for the target dApp
+   * @returns The user operation
    */
   public async newUserOperation(
     userOpParams: UserOperationParams,
     generateSessionKey = false
-  ): Promise<[UserOperation, number]> {
+  ): Promise<UserOperation> {
     let userOp = OperationBuilder.newUserOperation({
       from: userOpParams.from,
       to: userOpParams.to
@@ -111,12 +111,10 @@ export class AtlasSdk {
 
     if (!userOpParams.callConfig) {
       userOp.setField("callConfig", dConfig.callConfig);
-    } else {
-      if (dConfig.callConfig !== userOpParams.callConfig) {
-        throw new Error(
-          "UserOperation callConfig does not match dApp callConfig"
-        );
-      }
+    } else if (dConfig.callConfig !== userOpParams.callConfig) {
+      throw new Error(
+        "UserOperation callConfig does not match dApp callConfig"
+      );
     }
 
     if (dConfig.to !== userOpParams.control) {
@@ -124,31 +122,29 @@ export class AtlasSdk {
     }
 
     if (!userOpParams.nonce) {
-      userOp = await this.setUserOperationNonce(userOp, dConfig.callConfig);
+      userOp = await this.setUserOperationNonce(userOp);
     }
 
     if (generateSessionKey) {
       userOp = this.generateSessionKey(userOp);
     }
 
-    return [userOp, Number(dConfig.callConfig)];
+    return userOp;
   }
 
   /**
    * Sets the user operation's nonce.
    * @param userOp a user operation
-   * @param callConfig the dApp call configuration
    * @returns the user operation with a valid nonce field
    */
   public async setUserOperationNonce(
-    userOp: UserOperation,
-    callConfig: number
+    userOp: UserOperation
   ): Promise<UserOperation> {
     const user = userOp.getField("from").value as string;
     let nonce: bigint;
 
-    if (flagUserNoncesSequential(callConfig)) {
-      nonce = await this.atlasVerification.getNextNonce(user, true);
+    if (flagUserNoncesSequential(userOp.callConfig())) {
+      nonce = await this.atlasVerification.getUserNextNonce(user, true);
     } else {
       if (this.usersLastNonSequentialNonce.has(user)) {
         nonce = await this.atlasVerification.getUserNextNonSeqNonceAfter(
@@ -156,7 +152,7 @@ export class AtlasSdk {
           this.usersLastNonSequentialNonce.get(user) as bigint
         );
       } else {
-        nonce = await this.atlasVerification.getNextNonce(user, false);
+        nonce = await this.atlasVerification.getUserNextNonce(user, false);
       }
       this.usersLastNonSequentialNonce.set(user, nonce);
     }
@@ -202,13 +198,11 @@ export class AtlasSdk {
   /**
    * Submits a user operation to the backend.
    * @param userOp a signed user operation
-   * @param callConfig the dApp call configuration
    * @param hints an array of addresses used as hints for solvers
    * @returns the user operation hash and an array of solver operations
    */
   public async submitUserOperation(
     userOp: UserOperation,
-    callConfig: number,
     hints: string[] = []
   ): Promise<[string, SolverOperation[]]> {
     const sessionKey = userOp.getField("sessionKey").value as string;
@@ -242,7 +236,7 @@ export class AtlasSdk {
       true
     );
 
-    if (solverOps.length === 0 && !flagZeroSolvers(callConfig)) {
+    if (solverOps.length === 0 && !flagZeroSolvers(userOp.callConfig())) {
       throw new Error("No solver operations returned");
     }
 
@@ -253,14 +247,14 @@ export class AtlasSdk {
    * Sorts solver operations and filter out invalid ones.
    * @param userOp a user operation
    * @param solverOps an array of solver operations
-   * @param callConfig the dApp call configuration
    * @returns a sorted/filtered array of solver operations
    */
   public async sortSolverOperations(
     userOp: UserOperation,
-    solverOps: SolverOperation[],
-    callConfig: number
+    solverOps: SolverOperation[]
   ): Promise<SolverOperation[]> {
+    const callConfig = userOp.callConfig();
+
     if (flagExPostBids(callConfig)) {
       // Sorting will be done onchain during execution
       return solverOps;
@@ -286,13 +280,11 @@ export class AtlasSdk {
    * Creates a valid dApp operation.
    * @param userOp a user operation
    * @param solverOps an array of solver operations
-   * @param callConfig the dApp call configuration
    * @returns a valid dApp operation
    */
   public async createDAppOperation(
     userOp: UserOperation,
     solverOps: SolverOperation[],
-    callConfig: number,
     bundler: string = ZeroAddress
   ): Promise<DAppOperation> {
     const sessionKey = userOp.getField("sessionKey").value as string;
@@ -308,6 +300,8 @@ export class AtlasSdk {
     if (sessionKey !== sessionAccount.address) {
       throw new Error("User operation session key does not match");
     }
+
+    const callConfig = userOp.callConfig();
 
     const userOpHash = userOp.hash(
       chainConfig[this.chainId].eip712Domain,
