@@ -2,7 +2,7 @@ import { ethers } from "ethers";
 import { UserOperation, SolverOperation, DAppOperation, Bundle } from "./";
 import { getCallChainHash } from "../utils";
 
-export const ZeroUint = 0n;
+export const ZeroUint = BigInt(0);
 export const ZeroBytes = "0x";
 
 export abstract class OperationBuilder {
@@ -26,27 +26,27 @@ export abstract class OperationBuilder {
       from: prop.from,
       to: prop.to,
       value: ethers.BigNumber.isBigNumber(prop.value)
-        ? prop.value.toBigInt()
+        ? BigInt(prop.value.toString())
         : prop.value,
       gas: ethers.BigNumber.isBigNumber(prop.gas)
-        ? prop.gas.toBigInt()
+        ? BigInt(prop.gas.toString())
         : prop.gas,
       maxFeePerGas: ethers.BigNumber.isBigNumber(prop.maxFeePerGas)
-        ? prop.maxFeePerGas.toBigInt()
+        ? BigInt(prop.maxFeePerGas.toString())
         : prop.maxFeePerGas,
       nonce: prop.nonce
         ? ethers.BigNumber.isBigNumber(prop.nonce)
-          ? prop.nonce.toBigInt()
+          ? BigInt(prop.nonce.toString())
           : prop.nonce
         : ZeroUint,
       deadline: ethers.BigNumber.isBigNumber(prop.deadline)
-        ? prop.deadline.toBigInt()
+        ? BigInt(prop.deadline.toString())
         : prop.deadline,
       dapp: prop.dapp,
       control: prop.control,
       callConfig: prop.callConfig
         ? ethers.BigNumber.isBigNumber(prop.callConfig)
-          ? prop.callConfig.toBigInt()
+          ? BigInt(prop.callConfig.toString())
           : prop.callConfig
         : ZeroUint,
       sessionKey: prop.sessionKey || ethers.constants.AddressZero,
@@ -81,23 +81,23 @@ export abstract class OperationBuilder {
       from: prop.from,
       to: prop.to,
       value: ethers.BigNumber.isBigNumber(prop.value)
-        ? prop.value.toBigInt()
+        ? BigInt(prop.value.toString())
         : prop.value,
       gas: ethers.BigNumber.isBigNumber(prop.gas)
-        ? prop.gas.toBigInt()
+        ? BigInt(prop.gas.toString())
         : prop.gas,
       maxFeePerGas: ethers.BigNumber.isBigNumber(prop.maxFeePerGas)
-        ? prop.maxFeePerGas.toBigInt()
+        ? BigInt(prop.maxFeePerGas.toString())
         : prop.maxFeePerGas,
       deadline: ethers.BigNumber.isBigNumber(prop.deadline)
-        ? prop.deadline.toBigInt()
+        ? BigInt(prop.deadline.toString())
         : prop.deadline,
       solver: prop.solver,
       control: prop.control,
       userOpHash: prop.userOpHash,
       bidToken: prop.bidToken,
       bidAmount: ethers.BigNumber.isBigNumber(prop.bidAmount)
-        ? prop.bidAmount.toBigInt()
+        ? BigInt(prop.bidAmount.toString())
         : prop.bidAmount,
       data: prop.data,
       signature: prop.signature,
@@ -123,10 +123,10 @@ export abstract class OperationBuilder {
       from: prop.from,
       to: prop.to,
       nonce: ethers.BigNumber.isBigNumber(prop.nonce)
-        ? prop.nonce.toBigInt()
+        ? BigInt(prop.nonce.toString())
         : prop.nonce,
       deadline: ethers.BigNumber.isBigNumber(prop.deadline)
-        ? prop.deadline.toBigInt()
+        ? BigInt(prop.deadline.toString())
         : prop.deadline,
       control: prop.control,
       bundler: prop.bundler || ethers.constants.AddressZero,
@@ -165,7 +165,7 @@ export abstract class OperationBuilder {
     return this.newDAppOperation({
       from: signer.address,
       to: userTo as string,
-      nonce: 1n,
+      nonce: BigInt(1),
       deadline: userDeadline as bigint,
       control: dAppControl as string,
       bundler: bundler,

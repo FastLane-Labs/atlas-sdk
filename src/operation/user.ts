@@ -1,4 +1,9 @@
 import { ethers } from "ethers";
+import {
+  TypedDataField,
+  TypedDataDomain,
+} from "@ethersproject/abstract-signer";
+import { TypedDataEncoder } from "../typed-data/json-rpc-signer";
 import { BaseOperation, OpField } from "./base";
 
 export class UserOperation extends BaseOperation {
@@ -27,8 +32,8 @@ export class UserOperation extends BaseOperation {
     "sessionKey",
   ];
 
-  public hash(eip712Domain: ethers.TypedDataDomain, trusted: boolean): string {
-    let typedDataTypes: Record<string, ethers.TypedDataField[]>;
+  public hash(eip712Domain: TypedDataDomain, trusted: boolean): string {
+    let typedDataTypes: Record<string, TypedDataField[]>;
     let typedDataValues: Record<string, any>;
 
     if (trusted) {
@@ -43,11 +48,7 @@ export class UserOperation extends BaseOperation {
       typedDataValues = this.toTypedDataValues();
     }
 
-    return ethers.utils._TypedDataEncoder.hash(
-      eip712Domain,
-      typedDataTypes,
-      typedDataValues
-    );
+    return TypedDataEncoder.hash(eip712Domain, typedDataTypes, typedDataValues);
   }
 
   public callConfig(): number {

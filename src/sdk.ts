@@ -1,4 +1,6 @@
 import { ethers } from "ethers";
+import { signTypedData_signer } from "./typed-data/json-rpc-signer";
+import { signTypedData_wallet } from "./typed-data/wallet";
 import {
   UserOperation,
   SolverOperation,
@@ -106,7 +108,7 @@ export class AtlasSdk {
       .getDAppConfig(userOp.toStruct());
 
     if (!userOpParams.callConfig) {
-      userOp.setField("callConfig", dConfig.callConfig);
+      userOp.setField("callConfig", BigInt(dConfig.callConfig));
     } else if (BigInt(dConfig.callConfig) !== userOpParams.callConfig) {
       throw new Error(
         "UserOperation callConfig does not match dApp callConfig"
@@ -153,7 +155,7 @@ export class AtlasSdk {
       this.usersLastNonSequentialNonce.set(user, nonce);
     }
 
-    userOp.setField("nonce", nonce.toBigInt());
+    userOp.setField("nonce", BigInt(nonce.toString()));
     return userOp;
   }
 
@@ -177,11 +179,12 @@ export class AtlasSdk {
    */
   public async signUserOperation(
     userOp: UserOperation,
-    signer: ethers.Wallet
+    signer: ethers.providers.JsonRpcSigner
   ): Promise<UserOperation> {
     userOp.setField(
       "signature",
-      await signer._signTypedData(
+      await signTypedData_signer(
+        signer,
         chainConfig[this.chainId].eip712Domain,
         userOp.toTypedDataTypes(),
         userOp.toTypedDataValues()
@@ -317,7 +320,8 @@ export class AtlasSdk {
         bundler
       );
 
-    const signature = await sessionAccount._signTypedData(
+    const signature = await signTypedData_wallet(
+      sessionAccount,
       chainConfig[this.chainId].eip712Domain,
       dAppOp.toTypedDataTypes(),
       dAppOp.toTypedDataValues()

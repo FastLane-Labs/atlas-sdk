@@ -55,7 +55,7 @@ export class MockBackend extends BaseBackend {
         OperationBuilder.newSolverOperation({
           from: ethers.constants.AddressZero,
           to: userOp.getField("to").value as string,
-          value: 0n,
+          value: BigInt(0),
           gas: userOp.getField("gas").value as bigint,
           maxFeePerGas: userOp.getField("maxFeePerGas").value as bigint,
           deadline: userOp.getField("deadline").value as bigint,

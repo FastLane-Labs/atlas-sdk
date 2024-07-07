@@ -6,11 +6,11 @@ export function validateAddress(address: string): boolean {
 }
 
 export function validateUint32(value: bigint): boolean {
-  return value <= 2n ** 32n - 1n;
+  return value <= BigInt(2 ** 32 - 1);
 }
 
 export function validateUint256(value: bigint): boolean {
-  return value <= 2n ** 256n - 1n;
+  return value <= BigInt(2 ** 256 - 1);
 }
 
 export function validateBytes32(value: string): boolean {

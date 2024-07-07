@@ -1,5 +1,10 @@
 import { ethers } from "ethers";
 import {
+  TypedDataField,
+  TypedDataDomain,
+} from "@ethersproject/abstract-signer";
+import { verifyTypedData } from "@ethersproject/wallet";
+import {
   validateAddress,
   validateUint32,
   validateUint256,
@@ -37,12 +42,12 @@ export abstract class BaseOperation {
     return f;
   }
 
-  public validate(tdDomain: ethers.TypedDataDomain) {
+  public validate(tdDomain: TypedDataDomain) {
     this.validateFields();
     this.validateSignature(tdDomain);
   }
 
-  public validateSignature(tdDomain: ethers.TypedDataDomain) {
+  public validateSignature(tdDomain: TypedDataDomain) {
     const f = this.fields.get("signature");
     if (f === undefined) {
       throw new Error("Field signature does not exist");
@@ -53,7 +58,7 @@ export abstract class BaseOperation {
     if (!validateBytes(f.value as string)) {
       throw new Error("Field signature is not a valid bytes");
     }
-    const signer = ethers.utils.verifyTypedData(
+    const signer = verifyTypedData(
       tdDomain,
       this.toTypedDataTypes(),
       this.toTypedDataValues(),
@@ -120,7 +125,7 @@ export abstract class BaseOperation {
     );
   }
 
-  public toTypedDataTypes(): { [key: string]: ethers.TypedDataField[] } {
+  public toTypedDataTypes(): { [key: string]: TypedDataField[] } {
     return this.toTypedDataTypesCustomFields(
       // All fields except the last one (signature)
       Array.from(this.fields.keys()).slice(0, -1)
@@ -128,7 +133,7 @@ export abstract class BaseOperation {
   }
 
   public toTypedDataTypesCustomFields(fields: string[]): {
-    [key: string]: ethers.TypedDataField[];
+    [key: string]: TypedDataField[];
   } {
     return {
       [this.constructor.name]: fields
