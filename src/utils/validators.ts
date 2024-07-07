@@ -1,8 +1,8 @@
-import { isAddress } from "ethers";
+import { ethers } from "ethers";
 
 export function validateAddress(address: string): boolean {
   // isAddress returns true for ICAP addresses, add a length check to exclude them
-  return isAddress(address) && address.length === 42;
+  return ethers.utils.isAddress(address) && address.length === 42;
 }
 
 export function validateUint32(value: bigint): boolean {

@@ -1,4 +1,4 @@
-import { keccak256, solidityPacked } from "ethers";
+import { ethers } from "ethers";
 import { UserOperation, SolverOperation } from "../operation";
 
 /**
@@ -18,10 +18,10 @@ export function getCallChainHash(
   let callSequence = "0x";
 
   if (requirePreOps) {
-    callSequence = solidityPacked(["address"], [dAppControl]);
+    callSequence = ethers.utils.solidityPack(["address"], [dAppControl]);
   }
 
-  callSequence = solidityPacked(
+  callSequence = ethers.utils.solidityPack(
     ["bytes", "bytes", "bytes"],
     [
       callSequence,
@@ -30,5 +30,5 @@ export function getCallChainHash(
     ]
   );
 
-  return keccak256(callSequence);
+  return ethers.utils.keccak256(callSequence);
 }

@@ -1,4 +1,4 @@
-import { AbstractProvider } from "ethers";
+import { ethers } from "ethers";
 import { UserOperation, SolverOperation, Bundle } from "../../operation";
 
 export interface IHooksController {
@@ -32,12 +32,17 @@ export interface IHooksController {
 }
 
 export interface IHooksControllerConstructable {
-  new (provider: AbstractProvider, chainId: number): IHooksController;
+  new (
+    provider: ethers.providers.Web3Provider | ethers.providers.JsonRpcProvider,
+    chainId: number
+  ): IHooksController;
 }
 
 export abstract class BaseHooksController implements IHooksController {
   constructor(
-    protected provider: AbstractProvider,
+    protected provider:
+      | ethers.providers.Web3Provider
+      | ethers.providers.JsonRpcProvider,
     protected chainId: number
   ) {}
 

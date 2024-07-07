@@ -1,9 +1,4 @@
-import {
-  AbiCoder,
-  TypedDataField,
-  TypedDataDomain,
-  verifyTypedData,
-} from "ethers";
+import { ethers } from "ethers";
 import {
   validateAddress,
   validateUint32,
@@ -17,7 +12,7 @@ export type OpField = { name: string; value?: OpFieldType; solType: string };
 
 export abstract class BaseOperation {
   protected fields: Map<string, OpField> = new Map();
-  protected abiCoder = new AbiCoder();
+  protected abiCoder = new ethers.utils.AbiCoder();
 
   public setFields(fields: { [key: string]: OpFieldType }) {
     Object.entries(fields).forEach(([name, value]) => {
@@ -42,12 +37,12 @@ export abstract class BaseOperation {
     return f;
   }
 
-  public validate(tdDomain: TypedDataDomain) {
+  public validate(tdDomain: ethers.TypedDataDomain) {
     this.validateFields();
     this.validateSignature(tdDomain);
   }
 
-  public validateSignature(tdDomain: TypedDataDomain) {
+  public validateSignature(tdDomain: ethers.TypedDataDomain) {
     const f = this.fields.get("signature");
     if (f === undefined) {
       throw new Error("Field signature does not exist");
@@ -58,7 +53,7 @@ export abstract class BaseOperation {
     if (!validateBytes(f.value as string)) {
       throw new Error("Field signature is not a valid bytes");
     }
-    const signer = verifyTypedData(
+    const signer = ethers.utils.verifyTypedData(
       tdDomain,
       this.toTypedDataTypes(),
       this.toTypedDataValues(),
@@ -125,7 +120,7 @@ export abstract class BaseOperation {
     );
   }
 
-  public toTypedDataTypes(): { [key: string]: TypedDataField[] } {
+  public toTypedDataTypes(): { [key: string]: ethers.TypedDataField[] } {
     return this.toTypedDataTypesCustomFields(
       // All fields except the last one (signature)
       Array.from(this.fields.keys()).slice(0, -1)
@@ -133,7 +128,7 @@ export abstract class BaseOperation {
   }
 
   public toTypedDataTypesCustomFields(fields: string[]): {
-    [key: string]: TypedDataField[];
+    [key: string]: ethers.TypedDataField[];
   } {
     return {
       [this.constructor.name]: fields

@@ -1,4 +1,4 @@
-import { TypedDataEncoder, TypedDataDomain, TypedDataField } from "ethers";
+import { ethers } from "ethers";
 import { BaseOperation, OpField } from "./base";
 
 export class UserOperation extends BaseOperation {
@@ -27,8 +27,8 @@ export class UserOperation extends BaseOperation {
     "sessionKey",
   ];
 
-  public hash(eip712Domain: TypedDataDomain, trusted: boolean): string {
-    let typedDataTypes: Record<string, TypedDataField[]>;
+  public hash(eip712Domain: ethers.TypedDataDomain, trusted: boolean): string {
+    let typedDataTypes: Record<string, ethers.TypedDataField[]>;
     let typedDataValues: Record<string, any>;
 
     if (trusted) {
@@ -43,7 +43,11 @@ export class UserOperation extends BaseOperation {
       typedDataValues = this.toTypedDataValues();
     }
 
-    return TypedDataEncoder.hash(eip712Domain, typedDataTypes, typedDataValues);
+    return ethers.utils._TypedDataEncoder.hash(
+      eip712Domain,
+      typedDataTypes,
+      typedDataValues
+    );
   }
 
   public callConfig(): number {
@@ -55,14 +59,14 @@ export class UserOperation extends BaseOperation {
 export interface UserOperationParams {
   from: string;
   to?: string;
-  value: bigint;
-  gas: bigint;
-  maxFeePerGas: bigint;
-  nonce?: bigint;
-  deadline: bigint;
+  value: bigint | ethers.BigNumber;
+  gas: bigint | ethers.BigNumber;
+  maxFeePerGas: bigint | ethers.BigNumber;
+  nonce?: bigint | ethers.BigNumber;
+  deadline: bigint | ethers.BigNumber;
   dapp: string;
   control: string;
-  callConfig?: bigint;
+  callConfig?: bigint | ethers.BigNumber;
   sessionKey?: string;
   data: string;
   signature?: string;

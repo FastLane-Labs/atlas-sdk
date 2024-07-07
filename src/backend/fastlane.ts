@@ -1,7 +1,7 @@
+import { ethers } from "ethers";
 import { BaseBackend } from "./base";
 import { OperationBuilder } from "../operation/builder";
 import { UserOperation, SolverOperation, Bundle } from "../operation";
-import { toQuantity } from "ethers";
 import isomorphicFetch from "isomorphic-fetch";
 import * as url from "url";
 
@@ -19,36 +19,24 @@ interface FetchArgs {
   options: any;
 }
 
-const ROUTES: Map<string, Route> = new Map([
-  [
-    "submitUserOperation",
-    {
-      method: "POST",
-      path: "/userOperation",
-    },
-  ],
-  [
-    "getSolverOperations",
-    {
-      method: "GET",
-      path: "/solverOperations",
-    },
-  ],
-  [
-    "submitBundle",
-    {
-      method: "POST",
-      path: "/bundleOperations",
-    },
-  ],
-  [
-    "getBundleHash",
-    {
-      method: "GET",
-      path: "/bundleHash",
-    },
-  ],
-]);
+const ROUTES: { [name: string]: any } = {
+  submitUserOperation: {
+    method: "POST",
+    path: "/userOperation",
+  },
+  getSolverOperations: {
+    method: "GET",
+    path: "/solverOperations",
+  },
+  submitBundle: {
+    method: "POST",
+    path: "/bundleOperations",
+  },
+  getBundleHash: {
+    method: "GET",
+    path: "/bundleHash",
+  },
+};
 
 export class FastlaneBackend extends BaseBackend {
   protected fetch: FetchAPI = isomorphicFetch;
@@ -205,11 +193,11 @@ const FastlaneApiFetchParamCreator = function () {
         body["hints"] = hints;
       }
       const localVarUrlObj = url.parse(
-        ROUTES.get("submitUserOperation")?.path as string,
+        ROUTES["submitUserOperation"].path as string,
         true
       );
       const localVarRequestOptions = Object.assign(
-        { method: ROUTES.get("submitUserOperation")?.method as string },
+        { method: ROUTES["submitUserOperation"].method as string },
         options
       );
       const localVarHeaderParameter = {} as any;
@@ -235,7 +223,7 @@ const FastlaneApiFetchParamCreator = function () {
         localVarRequestOptions.headers["Content-Type"] === "application/json";
       localVarRequestOptions.body = needsSerialization
         ? JSON.stringify(body || {}, (_, v) =>
-            typeof v === "bigint" ? toQuantity(v) : v
+            typeof v === "bigint" ? ethers.utils.hexlify(v) : v
           )
         : body || "";
 
@@ -261,11 +249,11 @@ const FastlaneApiFetchParamCreator = function () {
         throw "Required parameter userOpHash was null or undefined when calling solverOperations.";
       }
       const localVarUrlObj = url.parse(
-        ROUTES.get("getSolverOperations")?.path as string,
+        ROUTES["getSolverOperations"].path as string,
         true
       );
       const localVarRequestOptions = Object.assign(
-        { method: ROUTES.get("getSolverOperations")?.method as string },
+        { method: ROUTES["getSolverOperations"].method as string },
         options
       );
       const localVarHeaderParameter = {} as any;
@@ -311,11 +299,11 @@ const FastlaneApiFetchParamCreator = function () {
         dAppOperation: bundle.dAppOperation.toStruct(),
       };
       const localVarUrlObj = url.parse(
-        ROUTES.get("submitBundle")?.path as string,
+        ROUTES["submitBundle"].path as string,
         true
       );
       const localVarRequestOptions = Object.assign(
-        { method: ROUTES.get("submitBundle")?.method as string },
+        { method: ROUTES["submitBundle"].method as string },
         options
       );
       const localVarHeaderParameter = {} as any;
@@ -341,7 +329,7 @@ const FastlaneApiFetchParamCreator = function () {
         localVarRequestOptions.headers["Content-Type"] === "application/json";
       localVarRequestOptions.body = needsSerialization
         ? JSON.stringify(bundleStruct || {}, (_, v) =>
-            typeof v === "bigint" ? toQuantity(v) : v
+            typeof v === "bigint" ? ethers.utils.hexlify(v) : v
           )
         : bundleStruct || "";
 
@@ -367,11 +355,11 @@ const FastlaneApiFetchParamCreator = function () {
         throw "Required parameter userOpHash was null or undefined when calling getBundleHash.";
       }
       const localVarUrlObj = url.parse(
-        ROUTES.get("getBundleHash")?.path as string,
+        ROUTES["getBundleHash"].path as string,
         true
       );
       const localVarRequestOptions = Object.assign(
-        { method: ROUTES.get("getBundleHash")?.method as string },
+        { method: ROUTES["getBundleHash"].method as string },
         options
       );
       const localVarHeaderParameter = {} as any;
