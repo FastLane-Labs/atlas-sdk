@@ -12,4 +12,8 @@ export class DAppOperation extends BaseOperation {
     ["callChainHash", { name: "callChainHash", solType: "bytes32" }],
     ["signature", { name: "signature", solType: "bytes" }],
   ]);
+
+  constructor() {
+    super("DAppOperation");
+  }
 }

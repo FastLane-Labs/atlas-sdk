@@ -46,9 +46,10 @@ export class AtlasSdk {
 
   /**
    * Creates a new Atlas SDK instance.
-   * @param backend a backend client
    * @param provider a provider
    * @param chainId the chain ID of the network
+   * @param backend a backend client
+   * @param hooksControllers an array of hooks controllers
    */
   constructor(
     provider: AbstractProvider,
@@ -133,6 +134,18 @@ export class AtlasSdk {
   }
 
   /**
+   * Gets the hash of a user operation.
+   * @param userOp a user operation
+   * @returns the hash of the user operation
+   */
+  public getUserOperationHash(userOp: UserOperation): string {
+    return userOp.hash(
+      chainConfig[this.chainId].eip712Domain,
+      flagTrustedOpHash(userOp.callConfig())
+    );
+  }
+
+  /**
    * Sets the user operation's nonce.
    * @param userOp a user operation
    * @returns the user operation with a valid nonce field
@@ -199,12 +212,12 @@ export class AtlasSdk {
    * Submits a user operation to the backend.
    * @param userOp a signed user operation
    * @param hints an array of addresses used as hints for solvers
-   * @returns the user operation hash and an array of solver operations
+   * @returns an array of solver operations
    */
   public async submitUserOperation(
     userOp: UserOperation,
     hints: string[] = []
-  ): Promise<[string, SolverOperation[]]> {
+  ): Promise<SolverOperation[]> {
     const sessionKey = userOp.getField("sessionKey").value as string;
     if (sessionKey !== ZeroAddress && !this.sessionKeys.has(sessionKey)) {
       throw new Error("Session key not found");
@@ -224,15 +237,24 @@ export class AtlasSdk {
     }
 
     // Submit the user operation to the backend
-    const userOphash: string = await this.backend.submitUserOperation(
+    const remoteUserOphash: string = await this.backend.submitUserOperation(
       userOp,
       hints
     );
 
+    const userOpHash = userOp.hash(
+      chainConfig[this.chainId].eip712Domain,
+      flagTrustedOpHash(userOp.callConfig())
+    );
+
+    if (userOpHash !== remoteUserOphash) {
+      throw new Error("User operation hash mismatch");
+    }
+
     // Get the solver operations
     const solverOps: SolverOperation[] = await this.backend.getSolverOperations(
       userOp,
-      userOphash,
+      userOpHash,
       true
     );
 
@@ -240,7 +262,7 @@ export class AtlasSdk {
       throw new Error("No solver operations returned");
     }
 
-    return [userOphash, solverOps];
+    return solverOps;
   }
 
   /**
@@ -280,6 +302,7 @@ export class AtlasSdk {
    * Creates a valid dApp operation.
    * @param userOp a user operation
    * @param solverOps an array of solver operations
+   * @param bundler the address of the desired bundler
    * @returns a valid dApp operation
    */
   public async createDAppOperation(
@@ -354,14 +377,12 @@ export class AtlasSdk {
    * @param userOp a signed user operation
    * @param solverOps an array of solver operations
    * @param dAppOp a signed dApp operation
-   * @param userOpHash the hash of the user operation
    * @returns the hash of the generated Atlas transaction
    */
   public async submitBundle(
     userOp: UserOperation,
     solverOps: SolverOperation[],
-    dAppOp: DAppOperation,
-    userOpHash: string
+    dAppOp: DAppOperation
   ): Promise<string> {
     const sessionKey = userOp.getField("sessionKey").value as string;
     if (
@@ -376,7 +397,16 @@ export class AtlasSdk {
     const bundle = OperationBuilder.newBundle(userOp, solverOps, dAppOp);
     bundle.validate(chainConfig[this.chainId].eip712Domain);
 
-    await this.backend.submitBundle(bundle);
+    const remoteUserOpHash = await this.backend.submitBundle(bundle);
+
+    const userOpHash = userOp.hash(
+      chainConfig[this.chainId].eip712Domain,
+      flagTrustedOpHash(userOp.callConfig())
+    );
+
+    if (userOpHash !== remoteUserOpHash) {
+      throw new Error("User operation hash mismatch");
+    }
 
     const atlasTxHash: string = await this.backend.getBundleHash(
       userOpHash,

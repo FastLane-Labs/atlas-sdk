@@ -79,13 +79,7 @@ export class FastlaneBackend extends BaseBackend {
     if (response.status >= 200 && response.status < 300) {
       return await response.json();
     } else {
-      console.log(
-        "request error",
-        this.params["basePath"] + localVarFetchArgs.url,
-        localVarFetchArgs.options
-      );
       const reponseBody = await response.json();
-      console.log("response", reponseBody, reponseBody.message);
       throw new Error(reponseBody.message);
     }
   }
@@ -272,7 +266,7 @@ const FastlaneApiFetchParamCreator = function () {
       const localVarQueryParameter = {} as any;
 
       if (userOpHash !== undefined) {
-        localVarQueryParameter["userOpHash"] = userOpHash;
+        localVarQueryParameter["operationHash"] = userOpHash;
       }
 
       if (wait !== undefined) {
@@ -378,7 +372,7 @@ const FastlaneApiFetchParamCreator = function () {
       const localVarQueryParameter = {} as any;
 
       if (userOpHash !== undefined) {
-        localVarQueryParameter["userOpHash"] = userOpHash;
+        localVarQueryParameter["operationHash"] = userOpHash;
       }
 
       if (wait !== undefined) {

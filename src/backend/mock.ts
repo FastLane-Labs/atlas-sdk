@@ -27,10 +27,9 @@ export class MockBackend extends BaseBackend {
     hints: string[],
     extra?: any
   ): Promise<string> {
-    const callConfig = userOp.getField("callConfig").value as bigint;
     return userOp.hash(
       chainConfig[chainId].eip712Domain,
-      flagTrustedOpHash(Number(callConfig))
+      flagTrustedOpHash(userOp.callConfig())
     );
   }
 
@@ -81,7 +80,10 @@ export class MockBackend extends BaseBackend {
    * @returns {Promise<string>} The result message
    */
   public async _submitBundle(bundle: Bundle, extra?: any): Promise<string> {
-    const userOpHash = keccak256(bundle.userOperation.abiEncode());
+    const userOpHash = bundle.userOperation.hash(
+      chainConfig[chainId].eip712Domain,
+      flagTrustedOpHash(bundle.userOperation.callConfig())
+    );
     this.submittedBundles[userOpHash] = bundle;
     return userOpHash;
   }

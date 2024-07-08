@@ -27,6 +27,10 @@ export class UserOperation extends BaseOperation {
     "sessionKey",
   ];
 
+  constructor() {
+    super("UserOperation");
+  }
+
   public hash(eip712Domain: TypedDataDomain, trusted: boolean): string {
     let typedDataTypes: Record<string, TypedDataField[]>;
     let typedDataValues: Record<string, any>;

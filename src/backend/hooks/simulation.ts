@@ -82,10 +82,6 @@ export class SimulationHooksController extends BaseHooksController {
       .getFunction("aggregate3")
       .staticCall(calls);
     for (let i = 0; i < results.length; i++) {
-      if (!results[i].success) {
-        console.log("Failed to get stats for solver operation", i);
-        continue;
-      }
       const stats = this.atlas.interface.decodeFunctionResult(
         "accessData",
         results[i].returnData

@@ -19,6 +19,8 @@ export abstract class BaseOperation {
   protected fields: Map<string, OpField> = new Map();
   protected abiCoder = new AbiCoder();
 
+  constructor(protected typeName: string) {}
+
   public setFields(fields: { [key: string]: OpFieldType }) {
     Object.entries(fields).forEach(([name, value]) => {
       this.setField(name, value);
@@ -136,7 +138,7 @@ export abstract class BaseOperation {
     [key: string]: TypedDataField[];
   } {
     return {
-      [this.constructor.name]: fields
+      [this.typeName]: fields
         .map((f) => this.fields.get(f) as OpField)
         .map((f) => ({
           name: f.name,
