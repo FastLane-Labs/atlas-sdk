@@ -6,23 +6,30 @@ import {
   keccak256,
 } from "ethers";
 import { AtlasSdk } from "../src";
-import { MockOperationsRelay } from "../src/relay/mock";
+import { MockBackend } from "../src/backend";
 import { OperationBuilder, ZeroBytes } from "../src/operation";
-import { validateBytes32 } from "../src/utils";
+import {
+  validateBytes32,
+  flagTrustedOpHash,
+  CallConfigIndex,
+} from "../src/utils";
 import { chainConfig } from "../src/config";
 
 describe("Atlas SDK main tests", () => {
   const chainId = 11155111;
-  const provider = new JsonRpcProvider("https://rpc.sepolia.org/", chainId);
-  const opsRelay = new MockOperationsRelay();
-  const sdk = new AtlasSdk(provider, chainId, opsRelay);
+  const sdk = new AtlasSdk(
+    new JsonRpcProvider("https://rpc.sepolia.org/", chainId),
+    chainId,
+    new MockBackend()
+  );
 
-  const testDAppControl = "0xe9c7bEAF3da67d3FB00708ADAE8ab62e578246d7";
-  const testCallConfig = 97520;
+  const testDAppControl = "0x60d7B59c6743C25b29a7aEe6F5a37c07B1A6Cff3";
 
   const signer = HDNodeWallet.fromSeed(
     toUtf8Bytes("bad seed used for this test only")
   );
+
+  let nonSequentialNonceTracker = 0n;
 
   const userOpParams = {
     from: signer.address,
@@ -33,30 +40,31 @@ describe("Atlas SDK main tests", () => {
     deadline: 0n,
     dapp: testDAppControl,
     control: testDAppControl,
-    data: "0x83a6992a00000000000000000000000000000000000000000000000000000000000000200000000000000000000000007439e9bb6d8a84dd3a23fe621a30f95403f87fb90000000000000000000000000000000000000000000000000000b5e620f480000000000000000000000000007b79995e5f793a07bc00c21412e50ecae098e7f9000000000000000000000000000000000000000000000000000000e8d4a510000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000000",
+    callConfig: 214256n,
+    data: "0x4a9de84900000000000000000000000000000000000000000000000000000000000000200000000000000000000000007439e9bb6d8a84dd3a23fe621a30f95403f87fb90000000000000000000000000000000000000000000000000000b5e620f480000000000000000000000000007b79995e5f793a07bc00c21412e50ecae098e7f9000000000000000000000000000000000000000000000000000000e8d4a51000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000",
+  };
+
+  const userOpParamsWithCallConfigFlag = (flagIndex: CallConfigIndex) => {
+    let uop = { ...userOpParams };
+    uop.callConfig |= 1n << BigInt(flagIndex);
+    return uop;
   };
 
   test("newUserOperation without sessionKey generation", async () => {
-    let [userOp, callConfig] = await sdk.newUserOperation(userOpParams);
-
-    // Validate callConfig
-    expect(callConfig).toBe(testCallConfig);
+    const userOp = await sdk.newUserOperation(userOpParams);
 
     // Nonce should have been set
-    expect(userOp.getField("nonce").value).toBe(1n);
+    expect(userOp.getField("nonce").value).toBe(++nonSequentialNonceTracker);
 
     // Session key should not have been set
     expect(userOp.getField("sessionKey").value).toBe(ZeroAddress);
   });
 
   test("newUserOperation with sessionKey generation", async () => {
-    let [userOp, callConfig] = await sdk.newUserOperation(userOpParams, true);
-
-    // Validate callConfig
-    expect(callConfig).toBe(testCallConfig);
+    const userOp = await sdk.newUserOperation(userOpParams, true);
 
     // Nonce should have been set
-    expect(userOp.getField("nonce").value).toBe(1n);
+    expect(userOp.getField("nonce").value).toBe(++nonSequentialNonceTracker);
 
     // Session key should have been set
     expect(userOp.getField("sessionKey").value).not.toBe(ZeroAddress);
@@ -69,10 +77,10 @@ describe("Atlas SDK main tests", () => {
     expect(userOp.getField("nonce").value).toBe(0n);
 
     // Set nonce
-    userOp = await sdk.setUserOperationNonce(userOp, testCallConfig);
+    userOp = await sdk.setUserOperationNonce(userOp);
 
     // Nonce should have been set
-    expect(userOp.getField("nonce").value).toBe(1n);
+    expect(userOp.getField("nonce").value).toBe(++nonSequentialNonceTracker);
   });
 
   test("generateSessionKey", () => {
@@ -113,9 +121,9 @@ describe("Atlas SDK main tests", () => {
     userOp.setField("sessionKey", "0x1111111111111111111111111111111111111111");
 
     // Invalid session key
-    expect(
-      async () => await sdk.submitUserOperation(userOp, testCallConfig)
-    ).rejects.toThrow("Session key not found");
+    expect(async () => await sdk.submitUserOperation(userOp)).rejects.toThrow(
+      "Session key not found"
+    );
   });
 
   test("submitUserOperation with invalid hints", async () => {
@@ -124,8 +132,7 @@ describe("Atlas SDK main tests", () => {
     // Invalid hints
     const invalidHints = ["0x01"];
     expect(
-      async () =>
-        await sdk.submitUserOperation(userOp, testCallConfig, invalidHints)
+      async () => await sdk.submitUserOperation(userOp, invalidHints)
     ).rejects.toThrow("Invalid hint address: 0x01");
   });
 
@@ -133,21 +140,18 @@ describe("Atlas SDK main tests", () => {
     let userOp = OperationBuilder.newUserOperation(userOpParams);
 
     // Submit user operation
-    let [userOpHash, solverOps] = await sdk.submitUserOperation(
-      userOp,
-      testCallConfig
-    );
-
-    // Validate userOpHash
-    expect(userOpHash).toBe(keccak256(userOp.abiEncode()));
+    const solverOps = await sdk.submitUserOperation(userOp);
 
     // Validate solverOps
     expect(solverOps.length).toBeGreaterThan(0);
   });
 
   test("sortSolverOperations with flag exPostBids", async () => {
+    const userOpParams = userOpParamsWithCallConfigFlag(
+      CallConfigIndex.ExPostBids
+    );
     let userOp = OperationBuilder.newUserOperation(userOpParams);
-    let [, solverOps] = await sdk.submitUserOperation(userOp, testCallConfig);
+    let solverOps = await sdk.submitUserOperation(userOp);
 
     const lengthBefore = solverOps.length;
 
@@ -155,7 +159,7 @@ describe("Atlas SDK main tests", () => {
     expect(lengthBefore).toBeGreaterThan(0);
 
     // Sort solver operations
-    solverOps = await sdk.sortSolverOperations(userOp, solverOps, 524288);
+    solverOps = await sdk.sortSolverOperations(userOp, solverOps);
 
     // solverOps untouched
     expect(solverOps.length).toBe(lengthBefore);
@@ -163,26 +167,29 @@ describe("Atlas SDK main tests", () => {
 
   test("sortSolverOperations - 0 ops returned without flag zeroSolvers", async () => {
     let userOp = OperationBuilder.newUserOperation(userOpParams);
-    let [, solverOps] = await sdk.submitUserOperation(userOp, testCallConfig);
+    let solverOps = await sdk.submitUserOperation(userOp);
 
     // solverOps non-empty
     expect(solverOps.length).toBeGreaterThan(0);
 
     // Sort solver operations
     expect(async () =>
-      sdk.sortSolverOperations(userOp, solverOps, testCallConfig)
+      sdk.sortSolverOperations(userOp, solverOps)
     ).rejects.toThrow("No solver operations returned");
   });
 
   test("sortSolverOperations - 0 ops returned with flag zeroSolvers", async () => {
+    const userOpParams = userOpParamsWithCallConfigFlag(
+      CallConfigIndex.ZeroSolvers
+    );
     let userOp = OperationBuilder.newUserOperation(userOpParams);
-    let [, solverOps] = await sdk.submitUserOperation(userOp, testCallConfig);
+    let solverOps = await sdk.submitUserOperation(userOp);
 
     // solverOps non-empty
     expect(solverOps.length).toBeGreaterThan(0);
 
     // Sort solver operations
-    solverOps = await sdk.sortSolverOperations(userOp, solverOps, 512);
+    solverOps = await sdk.sortSolverOperations(userOp, solverOps);
 
     // solverOps empty
     expect(solverOps.length).toBe(0);
@@ -195,13 +202,13 @@ describe("Atlas SDK main tests", () => {
     userOp.setField("gas", 0n);
     userOp.setField("maxFeePerGas", 0n);
 
-    let [, solverOps] = await sdk.submitUserOperation(userOp, testCallConfig);
+    let solverOps = await sdk.submitUserOperation(userOp);
 
     // solverOps non-empty
     expect(solverOps.length).toBeGreaterThan(0);
 
     // Sort solver operations
-    solverOps = await sdk.sortSolverOperations(userOp, solverOps, 512);
+    solverOps = await sdk.sortSolverOperations(userOp, solverOps);
 
     // Sorted solverOps non-empty
     expect(solverOps.length).toBeGreaterThan(0);
@@ -221,15 +228,14 @@ describe("Atlas SDK main tests", () => {
 
   test("createDAppOperation session key not found", async () => {
     let userOp = OperationBuilder.newUserOperation(userOpParams);
-    let [, solverOps] = await sdk.submitUserOperation(userOp, testCallConfig);
+    let solverOps = await sdk.submitUserOperation(userOp);
 
     // Set sessionKey manually (not generated by Atlas)
     userOp.setField("sessionKey", "0x1111111111111111111111111111111111111111");
 
     // Invalid session key
     expect(
-      async () =>
-        await sdk.createDAppOperation(userOp, solverOps, testCallConfig)
+      async () => await sdk.createDAppOperation(userOp, solverOps)
     ).rejects.toThrow("Session key not found");
   });
 
@@ -239,14 +245,10 @@ describe("Atlas SDK main tests", () => {
     // Generate session key
     userOp = sdk.generateSessionKey(userOp);
 
-    let [, solverOps] = await sdk.submitUserOperation(userOp, testCallConfig);
+    let solverOps = await sdk.submitUserOperation(userOp);
 
     // Generate dApp operation
-    const dAppOp = await sdk.createDAppOperation(
-      userOp,
-      solverOps,
-      testCallConfig
-    );
+    const dAppOp = await sdk.createDAppOperation(userOp, solverOps);
 
     // Validate dApp operation
     expect(dAppOp.getField("from").value).toBe(
@@ -265,20 +267,16 @@ describe("Atlas SDK main tests", () => {
     // Generate session key
     userOp = sdk.generateSessionKey(userOp);
 
-    let [, solverOps] = await sdk.submitUserOperation(userOp, testCallConfig);
+    let solverOps = await sdk.submitUserOperation(userOp);
 
     // Generate dApp operation
-    const dAppOp = await sdk.createDAppOperation(
-      userOp,
-      solverOps,
-      testCallConfig
-    );
+    const dAppOp = await sdk.createDAppOperation(userOp, solverOps);
 
     // Get metacall calldata
     const metacallCalldata = sdk.getMetacallCalldata(userOp, solverOps, dAppOp);
 
     // Validate metacall calldata's function selector only
-    expect(metacallCalldata.slice(0, 10)).toBe("0xda91b284");
+    expect(metacallCalldata.slice(0, 10)).toBe("0x4683d90f");
   });
 
   test("submitBundle invalid session key", async () => {
@@ -287,27 +285,17 @@ describe("Atlas SDK main tests", () => {
     // Generate session key
     userOp = sdk.generateSessionKey(userOp);
 
-    let [, solverOps] = await sdk.submitUserOperation(userOp, testCallConfig);
+    let solverOps = await sdk.submitUserOperation(userOp);
 
     // Generate dApp operation
-    const dAppOp = await sdk.createDAppOperation(
-      userOp,
-      solverOps,
-      testCallConfig
-    );
+    const dAppOp = await sdk.createDAppOperation(userOp, solverOps);
 
     // Change session key
     userOp.setField("sessionKey", "0x1111111111111111111111111111111111111111");
 
     // Invalid session key
     expect(
-      async () =>
-        await sdk.submitBundle(
-          userOp,
-          solverOps,
-          dAppOp,
-          keccak256(userOp.abiEncode())
-        )
+      async () => await sdk.submitBundle(userOp, solverOps, dAppOp)
     ).rejects.toThrow(
       "User operation session key does not match dApp operation"
     );
@@ -322,21 +310,12 @@ describe("Atlas SDK main tests", () => {
     // Sign user operation
     userOp = await sdk.signUserOperation(userOp, signer);
 
-    let [, solverOps] = await sdk.submitUserOperation(userOp, testCallConfig);
+    let solverOps = await sdk.submitUserOperation(userOp);
 
     // Generate dApp operation
-    const dAppOp = await sdk.createDAppOperation(
-      userOp,
-      solverOps,
-      testCallConfig
-    );
+    const dAppOp = await sdk.createDAppOperation(userOp, solverOps);
 
-    const atlasTxHash = await sdk.submitBundle(
-      userOp,
-      solverOps,
-      dAppOp,
-      keccak256(userOp.abiEncode())
-    );
+    const atlasTxHash = await sdk.submitBundle(userOp, solverOps, dAppOp);
 
     // Validate atlasTxHash
     expect(validateBytes32(atlasTxHash)).toBe(true);

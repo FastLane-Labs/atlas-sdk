@@ -82,10 +82,6 @@ export class SimulationHooksController extends BaseHooksController {
       .getFunction("aggregate3")
       .staticCall(calls);
     for (let i = 0; i < results.length; i++) {
-      if (!results[i].success) {
-        console.log("Failed to get stats for solver operation", i);
-        continue;
-      }
       const stats = this.atlas.interface.decodeFunctionResult(
         "accessData",
         results[i].returnData
@@ -115,8 +111,6 @@ export class SimulationHooksController extends BaseHooksController {
           OperationBuilder.newDAppOperation({
             from: ZeroAddress,
             to: ZeroAddress,
-            value: 0n,
-            gas: 0n,
             nonce: 0n,
             deadline: userOp.getField("deadline").value as bigint,
             control: userOp.getField("control").value as string,

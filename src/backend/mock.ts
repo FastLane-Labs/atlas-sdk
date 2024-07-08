@@ -1,9 +1,13 @@
-import { BaseOperationRelay } from "./base";
+import { keccak256, ZeroAddress } from "ethers";
+import { BaseBackend } from "./base";
 import { OperationBuilder, ZeroBytes } from "../operation/builder";
 import { UserOperation, SolverOperation, Bundle } from "../operation";
-import { keccak256, ZeroAddress } from "ethers";
+import { flagTrustedOpHash } from "../utils";
+import { chainConfig } from "../config";
 
-export class MockOperationsRelay extends BaseOperationRelay {
+const chainId = 11155111;
+
+export class MockBackend extends BaseBackend {
   private submittedBundles: { [key: string]: Bundle } = {};
 
   constructor() {
@@ -11,8 +15,8 @@ export class MockOperationsRelay extends BaseOperationRelay {
   }
 
   /**
-   * Submit a user operation to the relay
-   * @summary Submit a user operation to the relay
+   * Submit a user operation to the backend
+   * @summary Submit a user operation to the backend
    * @param {UserOperation} [userOp] The user operation
    * @param {string[]} [hints] Hints for solvers
    * @param {*} [extra] Extra parameters
@@ -23,7 +27,10 @@ export class MockOperationsRelay extends BaseOperationRelay {
     hints: string[],
     extra?: any
   ): Promise<string> {
-    return keccak256(userOp.abiEncode());
+    return userOp.hash(
+      chainConfig[chainId].eip712Domain,
+      flagTrustedOpHash(userOp.callConfig())
+    );
   }
 
   /**
@@ -48,7 +55,7 @@ export class MockOperationsRelay extends BaseOperationRelay {
           from: ZeroAddress,
           to: userOp.getField("to").value as string,
           value: 0n,
-          gas: BigInt(10000 * (i + 1)),
+          gas: userOp.getField("gas").value as bigint,
           maxFeePerGas: userOp.getField("maxFeePerGas").value as bigint,
           deadline: userOp.getField("deadline").value as bigint,
           solver: ZeroAddress,
@@ -66,14 +73,17 @@ export class MockOperationsRelay extends BaseOperationRelay {
   }
 
   /**
-   * Submit user/solvers/dApp operations to the relay for bundling
-   * @summary Submit a bundle of user/solvers/dApp operations to the relay
+   * Submit user/solvers/dApp operations to the backend for bundling
+   * @summary Submit a bundle of user/solvers/dApp operations to the backend
    * @param {Bundle} [bundle] The user/solvers/dApp operations to be bundled
    * @param {*} [extra] Extra parameters
    * @returns {Promise<string>} The result message
    */
   public async _submitBundle(bundle: Bundle, extra?: any): Promise<string> {
-    const userOpHash = keccak256(bundle.userOperation.abiEncode());
+    const userOpHash = bundle.userOperation.hash(
+      chainConfig[chainId].eip712Domain,
+      flagTrustedOpHash(bundle.userOperation.callConfig())
+    );
     this.submittedBundles[userOpHash] = bundle;
     return userOpHash;
   }

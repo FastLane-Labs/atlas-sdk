@@ -15,13 +15,11 @@ import {
   OperationBuilder,
   ZeroBytes,
 } from "./operation";
-import { IOperationsRelay } from "./relay";
-import { IHooksControllerConstructable } from "./relay/hooks";
+import { IBackend } from "./backend";
+import { IHooksControllerConstructable } from "./backend/hooks";
 import {
   validateAddress,
-  getUserOperationHash,
-  getAltOperationHash,
-  flagUserNoncesSequenced,
+  flagUserNoncesSequential,
   flagZeroSolvers,
   flagRequirePreOps,
   flagExPostBids,
@@ -41,20 +39,22 @@ export class AtlasSdk {
   private atlasVerification: Contract;
   private dAppControl: Contract;
   private sorter: Contract;
-  private operationsRelay: IOperationsRelay;
+  private backend: IBackend;
   private sessionKeys: Map<string, HDNodeWallet> = new Map();
+  private usersLastNonSequentialNonce: Map<string, bigint> = new Map();
   private chainId: number;
 
   /**
    * Creates a new Atlas SDK instance.
-   * @param operationsRelay a backend operations relay client
    * @param provider a provider
    * @param chainId the chain ID of the network
+   * @param backend a backend client
+   * @param hooksControllers an array of hooks controllers
    */
   constructor(
     provider: AbstractProvider,
     chainId: number,
-    operationsRelay: IOperationsRelay,
+    backend: IBackend,
     hooksControllers: IHooksControllerConstructable[] = []
   ) {
     this.chainId = chainId;
@@ -73,20 +73,20 @@ export class AtlasSdk {
     const _hooksControllers = hooksControllers.map(
       (HookController) => new HookController(provider, chainId)
     );
-    this.operationsRelay = operationsRelay;
-    this.operationsRelay.addHooksControllers(_hooksControllers);
+    this.backend = backend;
+    this.backend.addHooksControllers(_hooksControllers);
   }
 
   /**
    * Creates a new user operation.
    * @param userOpParams The user operation parameters
    * @param generateSessionKey Generate a session key for this user operation
-   * @returns The user operation and the call configuration for the target dApp
+   * @returns The user operation
    */
   public async newUserOperation(
     userOpParams: UserOperationParams,
     generateSessionKey = false
-  ): Promise<[UserOperation, number]> {
+  ): Promise<UserOperation> {
     let userOp = OperationBuilder.newUserOperation({
       from: userOpParams.from,
       to: userOpParams.to
@@ -99,6 +99,7 @@ export class AtlasSdk {
       deadline: userOpParams.deadline,
       dapp: userOpParams.dapp,
       control: userOpParams.control,
+      callConfig: userOpParams.callConfig,
       sessionKey: userOpParams.sessionKey,
       data: userOpParams.data,
       signature: userOpParams.signature,
@@ -109,35 +110,65 @@ export class AtlasSdk {
       .getFunction("getDAppConfig")
       .staticCall(userOp.toStruct());
 
+    if (!userOpParams.callConfig) {
+      userOp.setField("callConfig", dConfig.callConfig);
+    } else if (dConfig.callConfig !== userOpParams.callConfig) {
+      throw new Error(
+        "UserOperation callConfig does not match dApp callConfig"
+      );
+    }
+
     if (dConfig.to !== userOpParams.control) {
       throw new Error("UserOperation control does not match dApp control");
     }
 
     if (!userOpParams.nonce) {
-      userOp = await this.setUserOperationNonce(userOp, dConfig.callConfig);
+      userOp = await this.setUserOperationNonce(userOp);
     }
 
     if (generateSessionKey) {
       userOp = this.generateSessionKey(userOp);
     }
 
-    return [userOp, Number(dConfig.callConfig)];
+    return userOp;
+  }
+
+  /**
+   * Gets the hash of a user operation.
+   * @param userOp a user operation
+   * @returns the hash of the user operation
+   */
+  public getUserOperationHash(userOp: UserOperation): string {
+    return userOp.hash(
+      chainConfig[this.chainId].eip712Domain,
+      flagTrustedOpHash(userOp.callConfig())
+    );
   }
 
   /**
    * Sets the user operation's nonce.
    * @param userOp a user operation
-   * @param callConfig the dApp call configuration
    * @returns the user operation with a valid nonce field
    */
   public async setUserOperationNonce(
-    userOp: UserOperation,
-    callConfig: number
+    userOp: UserOperation
   ): Promise<UserOperation> {
-    const nonce: bigint = await this.atlasVerification.getNextNonce(
-      userOp.getField("from").value as string,
-      flagUserNoncesSequenced(callConfig)
-    );
+    const user = userOp.getField("from").value as string;
+    let nonce: bigint;
+
+    if (flagUserNoncesSequential(userOp.callConfig())) {
+      nonce = await this.atlasVerification.getUserNextNonce(user, true);
+    } else {
+      if (this.usersLastNonSequentialNonce.has(user)) {
+        nonce = await this.atlasVerification.getUserNextNonSeqNonceAfter(
+          user,
+          this.usersLastNonSequentialNonce.get(user) as bigint
+        );
+      } else {
+        nonce = await this.atlasVerification.getUserNextNonce(user, false);
+      }
+      this.usersLastNonSequentialNonce.set(user, nonce);
+    }
 
     userOp.setField("nonce", nonce);
     return userOp;
@@ -178,17 +209,15 @@ export class AtlasSdk {
   }
 
   /**
-   * Submits a user operation to the operation relay.
+   * Submits a user operation to the backend.
    * @param userOp a signed user operation
-   * @param callConfig the dApp call configuration
    * @param hints an array of addresses used as hints for solvers
-   * @returns the user operation hash and an array of solver operations
+   * @returns an array of solver operations
    */
   public async submitUserOperation(
     userOp: UserOperation,
-    callConfig: number,
     hints: string[] = []
-  ): Promise<[string, SolverOperation[]]> {
+  ): Promise<SolverOperation[]> {
     const sessionKey = userOp.getField("sessionKey").value as string;
     if (sessionKey !== ZeroAddress && !this.sessionKeys.has(sessionKey)) {
       throw new Error("Session key not found");
@@ -207,35 +236,47 @@ export class AtlasSdk {
       }
     }
 
-    // Submit the user operation to the relay
-    const userOphash: string = await this.operationsRelay.submitUserOperation(
+    // Submit the user operation to the backend
+    const remoteUserOphash: string = await this.backend.submitUserOperation(
       userOp,
       hints
     );
 
-    // Get the solver operations
-    const solverOps: SolverOperation[] =
-      await this.operationsRelay.getSolverOperations(userOp, userOphash, true);
+    const userOpHash = userOp.hash(
+      chainConfig[this.chainId].eip712Domain,
+      flagTrustedOpHash(userOp.callConfig())
+    );
 
-    if (solverOps.length === 0 && !flagZeroSolvers(callConfig)) {
+    if (userOpHash !== remoteUserOphash) {
+      throw new Error("User operation hash mismatch");
+    }
+
+    // Get the solver operations
+    const solverOps: SolverOperation[] = await this.backend.getSolverOperations(
+      userOp,
+      userOpHash,
+      true
+    );
+
+    if (solverOps.length === 0 && !flagZeroSolvers(userOp.callConfig())) {
       throw new Error("No solver operations returned");
     }
 
-    return [userOphash, solverOps];
+    return solverOps;
   }
 
   /**
    * Sorts solver operations and filter out invalid ones.
    * @param userOp a user operation
    * @param solverOps an array of solver operations
-   * @param callConfig the dApp call configuration
    * @returns a sorted/filtered array of solver operations
    */
   public async sortSolverOperations(
     userOp: UserOperation,
-    solverOps: SolverOperation[],
-    callConfig: number
+    solverOps: SolverOperation[]
   ): Promise<SolverOperation[]> {
+    const callConfig = userOp.callConfig();
+
     if (flagExPostBids(callConfig)) {
       // Sorting will be done onchain during execution
       return solverOps;
@@ -261,13 +302,12 @@ export class AtlasSdk {
    * Creates a valid dApp operation.
    * @param userOp a user operation
    * @param solverOps an array of solver operations
-   * @param callConfig the dApp call configuration
+   * @param bundler the address of the desired bundler
    * @returns a valid dApp operation
    */
   public async createDAppOperation(
     userOp: UserOperation,
     solverOps: SolverOperation[],
-    callConfig: number,
     bundler: string = ZeroAddress
   ): Promise<DAppOperation> {
     const sessionKey = userOp.getField("sessionKey").value as string;
@@ -284,12 +324,12 @@ export class AtlasSdk {
       throw new Error("User operation session key does not match");
     }
 
-    let userOpHash: string;
-    if (flagTrustedOpHash(callConfig)) {
-      userOpHash = getAltOperationHash(userOp);
-    } else {
-      userOpHash = getUserOperationHash(userOp);
-    }
+    const callConfig = userOp.callConfig();
+
+    const userOpHash = userOp.hash(
+      chainConfig[this.chainId].eip712Domain,
+      flagTrustedOpHash(callConfig)
+    );
 
     const dAppOp: DAppOperation =
       OperationBuilder.newDAppOperationFromUserSolvers(
@@ -333,18 +373,16 @@ export class AtlasSdk {
   }
 
   /**
-   * Submits all operations to the operations relay for bundling.
+   * Submits all operations to the backend for bundling.
    * @param userOp a signed user operation
    * @param solverOps an array of solver operations
    * @param dAppOp a signed dApp operation
-   * @param userOpHash the hash of the user operation
    * @returns the hash of the generated Atlas transaction
    */
   public async submitBundle(
     userOp: UserOperation,
     solverOps: SolverOperation[],
-    dAppOp: DAppOperation,
-    userOpHash: string
+    dAppOp: DAppOperation
   ): Promise<string> {
     const sessionKey = userOp.getField("sessionKey").value as string;
     if (
@@ -359,9 +397,18 @@ export class AtlasSdk {
     const bundle = OperationBuilder.newBundle(userOp, solverOps, dAppOp);
     bundle.validate(chainConfig[this.chainId].eip712Domain);
 
-    await this.operationsRelay.submitBundle(bundle);
+    const remoteUserOpHash = await this.backend.submitBundle(bundle);
 
-    const atlasTxHash: string = await this.operationsRelay.getBundleHash(
+    const userOpHash = userOp.hash(
+      chainConfig[this.chainId].eip712Domain,
+      flagTrustedOpHash(userOp.callConfig())
+    );
+
+    if (userOpHash !== remoteUserOpHash) {
+      throw new Error("User operation hash mismatch");
+    }
+
+    const atlasTxHash: string = await this.backend.getBundleHash(
       userOpHash,
       true
     );
