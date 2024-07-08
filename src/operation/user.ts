@@ -32,6 +32,10 @@ export class UserOperation extends BaseOperation {
     "sessionKey",
   ];
 
+  constructor() {
+    super("UserOperation");
+  }
+
   public hash(eip712Domain: TypedDataDomain, trusted: boolean): string {
     let typedDataTypes: Record<string, TypedDataField[]>;
     let typedDataValues: Record<string, any>;
@@ -47,6 +51,11 @@ export class UserOperation extends BaseOperation {
       typedDataTypes = this.toTypedDataTypes();
       typedDataValues = this.toTypedDataValues();
     }
+
+    console.log("eip712Domain:", eip712Domain);
+    console.log("trusted:", trusted);
+    console.log("typedDataTypes:", typedDataTypes);
+    console.log("typedDataValues:", typedDataValues);
 
     return TypedDataEncoder.hash(eip712Domain, typedDataTypes, typedDataValues);
   }

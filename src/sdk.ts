@@ -225,16 +225,25 @@ export class AtlasSdk {
       }
     }
 
+    const userOpHash = userOp.hash(
+      chainConfig[this.chainId].eip712Domain,
+      flagTrustedOpHash(userOp.callConfig())
+    );
+
     // Submit the user operation to the backend
-    const userOphash: string = await this.backend.submitUserOperation(
+    const remoteUserOpHash: string = await this.backend.submitUserOperation(
       userOp,
       hints
     );
 
+    if (userOpHash !== remoteUserOpHash) {
+      throw new Error("User operation hash mismatch");
+    }
+
     // Get the solver operations
     const solverOps: SolverOperation[] = await this.backend.getSolverOperations(
       userOp,
-      userOphash,
+      userOpHash,
       true
     );
 
@@ -242,7 +251,7 @@ export class AtlasSdk {
       throw new Error("No solver operations returned");
     }
 
-    return [userOphash, solverOps];
+    return [userOpHash, solverOps];
   }
 
   /**
