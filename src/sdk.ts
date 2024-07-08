@@ -357,14 +357,12 @@ export class AtlasSdk {
    * @param userOp a signed user operation
    * @param solverOps an array of solver operations
    * @param dAppOp a signed dApp operation
-   * @param userOpHash the hash of the user operation
    * @returns the hash of the generated Atlas transaction
    */
   public async submitBundle(
     userOp: UserOperation,
     solverOps: SolverOperation[],
-    dAppOp: DAppOperation,
-    userOpHash: string
+    dAppOp: DAppOperation
   ): Promise<string> {
     const sessionKey = userOp.getField("sessionKey").value as string;
     if (
@@ -380,6 +378,11 @@ export class AtlasSdk {
     bundle.validate(chainConfig[this.chainId].eip712Domain);
 
     await this.backend.submitBundle(bundle);
+
+    const userOpHash = userOp.hash(
+      chainConfig[this.chainId].eip712Domain,
+      flagTrustedOpHash(userOp.callConfig())
+    );
 
     const atlasTxHash: string = await this.backend.getBundleHash(
       userOpHash,
