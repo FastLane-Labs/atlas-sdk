@@ -1,0 +1,56 @@
+@startuml
+class UserOperation {
+  +from: address
+  +to: address
+  +value: uint256
+  +gas: uint256
+  +maxFeePerGas: uint256
+  +nonce: uint256
+  +deadline: uint256
+  +dapp: address
+  +control: address
+  +callConfig: uint32
+  +sessionKey: address
+  +data: bytes
+  +signature: bytes
+}
+
+class SolverOperation {
+  +from: address
+  +to: address
+  +value: uint256
+  +gas: uint256
+  +maxFeePerGas: uint256
+  +deadline: uint256
+  +solver: address
+  +control: address
+  +userOpHash: bytes32
+  +bidToken: address
+  +data: bytes
+  +signature: bytes
+}
+
+class DAppOperation {
+  +from: address
+  +to: address
+  +nonce: uint256
+  +deadline: uint256
+  +control: address
+  +bundler: address
+  +userOpHash: bytes32
+  +callChainHash: bytes32
+  +data: bytes
+}
+
+class Bundle {
+  +userOp: UserOperation
+  +solverOps: SolverOperation[]
+  +dappOp: DAppOperation
+}
+
+UserOperation "1" -- "0..*" Bundle : contains
+SolverOperation "1" -- "0..*" Bundle : contains
+DAppOperation "1" -- "0..*" Bundle : contains
+
+@enduml
+
