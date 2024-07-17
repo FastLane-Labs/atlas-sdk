@@ -14,8 +14,9 @@ Solvers --> OperationsRelay : submit SolverOperation
 OperationsRelay --> AtlasClient : return SolverOperations
 AtlasClient -> Reputation : score SolverOperations
 Reputation --> AtlasClient : scored SolverOperations
-AtlasClient -> Auctioneer : submit SolverOperations
-Auctioneer --> AtlasClient : ordered SolverOperations
-AtlasClient -> Bundler : sumbit UserOperation and ordered SolverOperations
+AtlasClient -> Auctioneer : submit UserOperation and SolverOperations
+Auctioneer --> AtlasClient : ordered SolverOperations and DAppOperation
+AtlasClient -> Bundler : sumbit UserOperation and SolverOperations and DAppOperation
 Bundler -> AtlasEntrypoint : sumbit Bundle
+Bundler --> AtlasClient: Bundle tx hash
 @enduml
