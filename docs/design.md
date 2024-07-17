@@ -59,7 +59,7 @@ The interaction between the high level components in Atlas using the above model
 1. The Solvers respond with zero or more SolverOperations
 1. The OperationsRelay batches these up and returns them to the AtlasClient once ready
 1. The AtlasClient asks the Reputation service to provide a score for each of the SolverOperations
-1. The AtlasClient then sends the scored SolverOperations to the Auctioneer orders them and may censor low scoring operations
+1. The AtlasClient then sends the UserOperation and scored SolverOperations to the Auctioneer orders them and may censor low scoring operations. The Auctioneer produces the DAppOperation to enforce the ordering, and returns all of this to the client.
 1. These ordered SolverOperations and the UserOperation are then sent to the bundler for bundling and execution
 1. The Bundler created a DAppOperation for this Bundle, created the Bundle all three types of operations, and finally creates a regular transaction from this and signs it.
 1. Finally, the Bundler sends this to the AtlasEntrypoint contract via a blockchain RPC of some sort.
