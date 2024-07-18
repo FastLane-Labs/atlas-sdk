@@ -94,32 +94,28 @@ Module Name: `v2-example-router`
 ### Oracle Extractable Value (OEV)
 
 
+
+
 ### Request for Quote (RFQ)
 
+For the RFQ use case the user cannot be trusted to perform the role of auctioneer, so typically both an external auctioneer and bundler would be used. Only the client component runs in the users browser in this instance. Reputation tracking is also required to ensure we know which solvers are trusted to provide good quotes to a user.
 
-## Data Transformations
+#### Components
 
+| Component        | Implementation             |
+|------------------|----------------------------|
+| AtlasClient      | Users Web Browser / DApp   |
+| OperationsRelay  | BloxRoute Intent Network   |
+| Reputation       | RFQ Auctioneer             |
+| Auctioneer       | RFQ Auctioneer             |
+| Bundler          | Atlas Bundler Reference    |
+| RPC              | Bundlers RPC               |
 
+#### DAppControl Module
 
-# Concrete Implementations
+Module Name: `intents-example`
 
-## Clients
+#### Process Flow
 
-### Atlas SDK
-
-## Operations Relay
-
-### BloxRoute BDN
-
-## Reputation
-
-None yet.
-
-## Bundler
-
-### Atlas SDK
-
-
-
-
+![RFQ Module Process](/docs/rfq-process.png "RFQ Module Process")
 
