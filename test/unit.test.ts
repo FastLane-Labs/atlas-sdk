@@ -75,52 +75,20 @@ describe("Atlas SDK unit tests", () => {
     );
   });
 
-  test("callChainHash with required preOps and with solverOps computation", () => {
-    const callChainHash = getCallChainHash(
-      testUserOperation,
-      [testSolverOperation, testSolverOperation, testSolverOperation],
-      true,
-      "0x0000000000000000000000000000000000000004"
-    );
-
-    expect(callChainHash).toBe(
-      "0xce835ea8087710762b1d392a3225f5cb50adb278093945e1835b3cc5f3033a82"
-    );
-  });
-
-  test("callChainHash with required preOps and without solverOps computation", () => {
-    const callChainHash = getCallChainHash(
-      testUserOperation,
-      [],
-      true,
-      "0x0000000000000000000000000000000000000004"
-    );
-
-    expect(callChainHash).toBe(
-      "0x38402f35236801c6382b2a79ff78e24d7208744b7253bfb99a8ab19bcab8f824"
-    );
-  });
-
-  test("callChainHash without required preOps and with solverOps computation", () => {
-    const callChainHash = getCallChainHash(
-      testUserOperation,
-      [testSolverOperation, testSolverOperation, testSolverOperation],
-      false,
-      "0x0000000000000000000000000000000000000004"
-    );
+  test("callChainHash with solverOps computation", () => {
+    const callChainHash = getCallChainHash(testUserOperation, [
+      testSolverOperation,
+      testSolverOperation,
+      testSolverOperation,
+    ]);
 
     expect(callChainHash).toBe(
       "0x8a71f907fe61688772ede6e7bb91efa992fe86c27917862adf533984dd56a2b8"
     );
   });
 
-  test("callChainHash without required preOps and without solverOps computation", () => {
-    const callChainHash = getCallChainHash(
-      testUserOperation,
-      [],
-      false,
-      "0x0000000000000000000000000000000000000004"
-    );
+  test("callChainHash without solverOps computation", () => {
+    const callChainHash = getCallChainHash(testUserOperation, []);
 
     expect(callChainHash).toBe(
       "0x1feca496343f60c6fd5bfa97ec935fed62285b814ef720ac633dabb1c6e25777"
