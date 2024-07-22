@@ -21,7 +21,6 @@ import {
   validateAddress,
   flagUserNoncesSequential,
   flagZeroSolvers,
-  flagRequirePreOps,
   flagExPostBids,
   flagTrustedOpHash,
 } from "./utils";
