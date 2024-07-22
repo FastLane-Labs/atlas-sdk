@@ -114,7 +114,6 @@ export abstract class OperationBuilder {
     userOp: UserOperation,
     solverOps: SolverOperation[],
     signer: HDNodeWallet,
-    requirePreOps: boolean,
     bundler: string = ZeroAddress
   ): DAppOperation {
     const userTo = userOp.getField("to").value;
@@ -140,12 +139,7 @@ export abstract class OperationBuilder {
       control: dAppControl as string,
       bundler: bundler,
       userOpHash: userOpHash,
-      callChainHash: getCallChainHash(
-        userOp,
-        solverOps,
-        requirePreOps,
-        dAppControl as string
-      ),
+      callChainHash: getCallChainHash(userOp, solverOps),
       signature: ZeroBytes,
     });
   }

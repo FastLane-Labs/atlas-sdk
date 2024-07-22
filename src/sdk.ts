@@ -337,7 +337,6 @@ export class AtlasSdk {
         userOp,
         solverOps,
         sessionAccount,
-        flagRequirePreOps(callConfig),
         bundler
       );
 
