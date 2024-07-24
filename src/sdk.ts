@@ -21,7 +21,6 @@ import {
   validateAddress,
   flagUserNoncesSequential,
   flagZeroSolvers,
-  flagRequirePreOps,
   flagExPostBids,
   flagTrustedOpHash,
 } from "./utils";
@@ -337,7 +336,6 @@ export class AtlasSdk {
         userOp,
         solverOps,
         sessionAccount,
-        flagRequirePreOps(callConfig),
         bundler
       );
 
