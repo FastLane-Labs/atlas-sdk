@@ -64,7 +64,7 @@ export abstract class BaseOperation {
       tdDomain,
       this.toTypedDataTypes(),
       this.toTypedDataValues(),
-      f.value as string
+      f.value as string,
     );
     if (signer !== this.getField("from").value) {
       throw new Error("Invalid signature");
@@ -116,21 +116,21 @@ export abstract class BaseOperation {
     const f = Array.from(this.fields.values());
     return this.abiCoder.encode(
       [`tuple(${f.map((f) => f.solType).join(", ")})`],
-      [f.map((f) => f.value)]
+      [f.map((f) => f.value)],
     );
   }
 
   public toStruct(): { [key: string]: OpFieldType } {
     return Array.from(this.fields.values()).reduce(
       (acc, f) => ({ ...acc, [f.name]: f.value }),
-      {}
+      {},
     );
   }
 
   public toTypedDataTypes(): { [key: string]: TypedDataField[] } {
     return this.toTypedDataTypesCustomFields(
       // All fields except the last one (signature)
-      Array.from(this.fields.keys()).slice(0, -1)
+      Array.from(this.fields.keys()).slice(0, -1),
     );
   }
 
@@ -150,7 +150,7 @@ export abstract class BaseOperation {
   public toTypedDataValues(): { [key: string]: OpFieldType } {
     return this.toTypedDataValuesCustomFields(
       // All fields except the last one (signature)
-      Array.from(this.fields.keys()).slice(0, -1)
+      Array.from(this.fields.keys()).slice(0, -1),
     );
   }
 
@@ -164,7 +164,7 @@ export abstract class BaseOperation {
           ...acc,
           [f.name]: f.value,
         }),
-        {}
+        {},
       );
   }
 }

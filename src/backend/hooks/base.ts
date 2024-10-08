@@ -4,22 +4,22 @@ import { UserOperation, SolverOperation, Bundle } from "../../operation";
 export interface IHooksController {
   preSubmitUserOperation(
     userOp: UserOperation,
-    hints: string[]
+    hints: string[],
   ): Promise<[UserOperation, string[]]>;
 
   postSubmitUserOperation(
     userOp: UserOperation,
-    userOphash: string
+    userOphash: string,
   ): Promise<[UserOperation, string]>;
 
   preGetSolverOperations(
     userOp: UserOperation,
-    userOphash: string
+    userOphash: string,
   ): Promise<[UserOperation, string]>;
 
   postGetSolverOperations(
     userOp: UserOperation,
-    solverOps: SolverOperation[]
+    solverOps: SolverOperation[],
   ): Promise<[UserOperation, SolverOperation[]]>;
 
   preSubmitBundle(bundleOps: Bundle): Promise<Bundle>;
@@ -38,33 +38,33 @@ export interface IHooksControllerConstructable {
 export abstract class BaseHooksController implements IHooksController {
   constructor(
     protected provider: AbstractProvider,
-    protected chainId: number
+    protected chainId: number,
   ) {}
 
   async preSubmitUserOperation(
     userOp: UserOperation,
-    hints: string[]
+    hints: string[],
   ): Promise<[UserOperation, string[]]> {
     return [userOp, hints];
   }
 
   async postSubmitUserOperation(
     userOp: UserOperation,
-    userOphash: string
+    userOphash: string,
   ): Promise<[UserOperation, string]> {
     return [userOp, userOphash];
   }
 
   async preGetSolverOperations(
     userOp: UserOperation,
-    userOphash: string
+    userOphash: string,
   ): Promise<[UserOperation, string]> {
     return [userOp, userOphash];
   }
 
   async postGetSolverOperations(
     userOp: UserOperation,
-    solverOps: SolverOperation[]
+    solverOps: SolverOperation[],
   ): Promise<[UserOperation, SolverOperation[]]> {
     return [userOp, solverOps];
   }

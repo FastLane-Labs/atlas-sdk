@@ -11,11 +11,11 @@ import { UserOperation, SolverOperation } from "../operation";
  */
 export function getCallChainHash(
   userOp: UserOperation,
-  solverOps: SolverOperation[]
+  solverOps: SolverOperation[],
 ): string {
   const callSequence = solidityPacked(
     ["bytes", "bytes"],
-    [userOp.abiEncode(), SolverOperation.abiEncodeArray(solverOps)]
+    [userOp.abiEncode(), SolverOperation.abiEncodeArray(solverOps)],
   );
 
   return keccak256(callSequence);

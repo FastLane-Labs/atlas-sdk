@@ -15,13 +15,13 @@ export interface IBackend {
   submitUserOperation(
     userOp: UserOperation,
     hints: string[],
-    extra?: any
+    extra?: any,
   ): Promise<string>;
 
   _submitUserOperation(
     userOp: UserOperation,
     hints: string[],
-    extra?: any
+    extra?: any,
   ): Promise<string>;
 
   /**
@@ -37,14 +37,14 @@ export interface IBackend {
     userOp: UserOperation,
     userOpHash: string,
     wait?: boolean,
-    extra?: any
+    extra?: any,
   ): Promise<SolverOperation[]>;
 
   _getSolverOperations(
     userOp: UserOperation,
     userOpHash: string,
     wait?: boolean,
-    extra?: any
+    extra?: any,
   ): Promise<SolverOperation[]>;
 
   /**
@@ -69,13 +69,13 @@ export interface IBackend {
   getBundleHash(
     userOpHash: string,
     wait?: boolean,
-    extra?: any
+    extra?: any,
   ): Promise<string>;
 
   _getBundleHash(
     userOpHash: string,
     wait?: boolean,
-    extra?: any
+    extra?: any,
   ): Promise<string>;
 }
 
@@ -91,13 +91,13 @@ export abstract class BaseBackend implements IBackend {
   async submitUserOperation(
     userOp: UserOperation,
     hints: string[],
-    extra?: any
+    extra?: any,
   ): Promise<string> {
     // Pre hooks
     for (const hooksController of this.hooksControllers) {
       [userOp, hints] = await hooksController.preSubmitUserOperation(
         userOp,
-        hints
+        hints,
       );
     }
 
@@ -108,7 +108,7 @@ export abstract class BaseBackend implements IBackend {
     for (const hooksController of this.hooksControllers) {
       [userOp, userOpHash] = await hooksController.postSubmitUserOperation(
         userOp,
-        userOpHash
+        userOpHash,
       );
     }
 
@@ -119,13 +119,13 @@ export abstract class BaseBackend implements IBackend {
     userOp: UserOperation,
     userOpHash: string,
     wait?: boolean,
-    extra?: any
+    extra?: any,
   ): Promise<SolverOperation[]> {
     // Pre hooks
     for (const hooksController of this.hooksControllers) {
       [userOp, userOpHash] = await hooksController.preGetSolverOperations(
         userOp,
-        userOpHash
+        userOpHash,
       );
     }
 
@@ -134,14 +134,14 @@ export abstract class BaseBackend implements IBackend {
       userOp,
       userOpHash,
       wait,
-      extra
+      extra,
     );
 
     // Post hooks
     for (const hooksController of this.hooksControllers) {
       [userOp, solverOps] = await hooksController.postGetSolverOperations(
         userOp,
-        solverOps
+        solverOps,
       );
     }
 
@@ -168,7 +168,7 @@ export abstract class BaseBackend implements IBackend {
   async getBundleHash(
     userOpHash: string,
     wait?: boolean,
-    extra?: any
+    extra?: any,
   ): Promise<string> {
     // Pre hooks
     for (const hooksController of this.hooksControllers) {
@@ -189,7 +189,7 @@ export abstract class BaseBackend implements IBackend {
   async _submitUserOperation(
     userOp: UserOperation,
     hints: string[],
-    extra?: any
+    extra?: any,
   ): Promise<string> {
     throw new Error("Method not implemented.");
   }
@@ -198,7 +198,7 @@ export abstract class BaseBackend implements IBackend {
     userOp: UserOperation,
     userOpHash: string,
     wait?: boolean,
-    extra?: any
+    extra?: any,
   ): Promise<SolverOperation[]> {
     throw new Error("Method not implemented.");
   }
@@ -210,7 +210,7 @@ export abstract class BaseBackend implements IBackend {
   async _getBundleHash(
     userOpHash: string,
     wait?: boolean,
-    extra?: any
+    extra?: any,
   ): Promise<string> {
     throw new Error("Method not implemented.");
   }

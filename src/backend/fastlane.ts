@@ -68,13 +68,13 @@ export class FastlaneBackend extends BaseBackend {
   public async _submitUserOperation(
     userOp: UserOperation,
     hints: string[],
-    extra?: any
+    extra?: any,
   ): Promise<string> {
     const localVarFetchArgs =
       FastlaneApiFetchParamCreator().submitUserOperation(userOp, hints, extra);
     const response = await fetch(
       this.params["basePath"] + localVarFetchArgs.url,
-      localVarFetchArgs.options
+      localVarFetchArgs.options,
     );
     if (response.status >= 200 && response.status < 300) {
       return await response.json();
@@ -97,25 +97,25 @@ export class FastlaneBackend extends BaseBackend {
     _: UserOperation,
     userOpHash: string,
     wait?: boolean,
-    extra?: any
+    extra?: any,
   ): Promise<SolverOperation[]> {
     const localVarFetchArgs =
       FastlaneApiFetchParamCreator().getSolverOperations(
         userOpHash,
         wait,
-        extra
+        extra,
       );
     const response = await fetch(
       this.params["basePath"] + localVarFetchArgs.url,
-      localVarFetchArgs.options
+      localVarFetchArgs.options,
     );
     if (response.status >= 200 && response.status < 300) {
       const solverOpsWithScore = await response.json();
       return solverOpsWithScore.map((solverOpWithScore: any) =>
         OperationBuilder.newSolverOperation(
           solverOpWithScore.solverOperation,
-          solverOpWithScore.score
-        )
+          solverOpWithScore.score,
+        ),
       );
     } else {
       const reponseBody = await response.json();
@@ -133,11 +133,11 @@ export class FastlaneBackend extends BaseBackend {
   public async _submitBundle(bundle: Bundle, extra?: any): Promise<string> {
     const localVarFetchArgs = FastlaneApiFetchParamCreator().submitBundle(
       bundle,
-      extra
+      extra,
     );
     const response = await fetch(
       this.params["basePath"] + localVarFetchArgs.url,
-      localVarFetchArgs.options
+      localVarFetchArgs.options,
     );
     if (response.status >= 200 && response.status < 300) {
       return await response.json();
@@ -158,16 +158,16 @@ export class FastlaneBackend extends BaseBackend {
   public async _getBundleHash(
     userOpHash: string,
     wait?: boolean,
-    extra?: any
+    extra?: any,
   ): Promise<string> {
     const localVarFetchArgs = FastlaneApiFetchParamCreator().getBundleHash(
       userOpHash,
       wait,
-      extra
+      extra,
     );
     const response = await fetch(
       this.params["basePath"] + localVarFetchArgs.url,
-      localVarFetchArgs.options
+      localVarFetchArgs.options,
     );
     if (response.status >= 200 && response.status < 300) {
       return await response.json();
@@ -190,9 +190,9 @@ const FastlaneApiFetchParamCreator = function () {
     submitUserOperation(
       userOp: UserOperation,
       hints: string[],
-      options: any = {}
+      options: any = {},
     ): FetchArgs {
-      let body: any = {
+      const body: any = {
         userOperation: userOp.toStruct(),
       };
       if (hints.length > 0) {
@@ -200,11 +200,11 @@ const FastlaneApiFetchParamCreator = function () {
       }
       const localVarUrlObj = url.parse(
         ROUTES.get("submitUserOperation")?.path as string,
-        true
+        true,
       );
       const localVarRequestOptions = Object.assign(
         { method: ROUTES.get("submitUserOperation")?.method as string },
-        options
+        options,
       );
       const localVarHeaderParameter = {} as any;
       const localVarQueryParameter = {} as any;
@@ -215,21 +215,21 @@ const FastlaneApiFetchParamCreator = function () {
         {},
         localVarUrlObj.query,
         localVarQueryParameter,
-        options.query
+        options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
       localVarUrlObj.search = null;
       localVarRequestOptions.headers = Object.assign(
         {},
         localVarHeaderParameter,
-        options.headers
+        options.headers,
       );
       const needsSerialization =
         <any>"UserOperation" !== "string" ||
         localVarRequestOptions.headers["Content-Type"] === "application/json";
       localVarRequestOptions.body = needsSerialization
         ? JSON.stringify(body || {}, (_, v) =>
-            typeof v === "bigint" ? toQuantity(v) : v
+            typeof v === "bigint" ? toQuantity(v) : v,
           )
         : body || "";
 
@@ -248,7 +248,7 @@ const FastlaneApiFetchParamCreator = function () {
     getSolverOperations(
       userOpHash: string,
       wait?: boolean,
-      options: any = {}
+      options: any = {},
     ): FetchArgs {
       // verify required parameter 'userOpHash' is not null or undefined
       if (userOpHash === null || userOpHash === undefined) {
@@ -256,11 +256,11 @@ const FastlaneApiFetchParamCreator = function () {
       }
       const localVarUrlObj = url.parse(
         ROUTES.get("getSolverOperations")?.path as string,
-        true
+        true,
       );
       const localVarRequestOptions = Object.assign(
         { method: ROUTES.get("getSolverOperations")?.method as string },
-        options
+        options,
       );
       const localVarHeaderParameter = {} as any;
       const localVarQueryParameter = {} as any;
@@ -277,14 +277,14 @@ const FastlaneApiFetchParamCreator = function () {
         {},
         localVarUrlObj.query,
         localVarQueryParameter,
-        options.query
+        options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
       localVarUrlObj.search = null;
       localVarRequestOptions.headers = Object.assign(
         {},
         localVarHeaderParameter,
-        options.headers
+        options.headers,
       );
 
       return {
@@ -306,11 +306,11 @@ const FastlaneApiFetchParamCreator = function () {
       };
       const localVarUrlObj = url.parse(
         ROUTES.get("submitBundle")?.path as string,
-        true
+        true,
       );
       const localVarRequestOptions = Object.assign(
         { method: ROUTES.get("submitBundle")?.method as string },
-        options
+        options,
       );
       const localVarHeaderParameter = {} as any;
       const localVarQueryParameter = {} as any;
@@ -321,21 +321,21 @@ const FastlaneApiFetchParamCreator = function () {
         {},
         localVarUrlObj.query,
         localVarQueryParameter,
-        options.query
+        options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
       localVarUrlObj.search = null;
       localVarRequestOptions.headers = Object.assign(
         {},
         localVarHeaderParameter,
-        options.headers
+        options.headers,
       );
       const needsSerialization =
         <any>"Bundle" !== "string" ||
         localVarRequestOptions.headers["Content-Type"] === "application/json";
       localVarRequestOptions.body = needsSerialization
         ? JSON.stringify(bundleStruct || {}, (_, v) =>
-            typeof v === "bigint" ? toQuantity(v) : v
+            typeof v === "bigint" ? toQuantity(v) : v,
           )
         : bundleStruct || "";
 
@@ -354,7 +354,7 @@ const FastlaneApiFetchParamCreator = function () {
     getBundleHash(
       userOpHash: string,
       wait?: boolean,
-      options: any = {}
+      options: any = {},
     ): FetchArgs {
       // verify required parameter 'userOpHash' is not null or undefined
       if (userOpHash === null || userOpHash === undefined) {
@@ -362,11 +362,11 @@ const FastlaneApiFetchParamCreator = function () {
       }
       const localVarUrlObj = url.parse(
         ROUTES.get("getBundleHash")?.path as string,
-        true
+        true,
       );
       const localVarRequestOptions = Object.assign(
         { method: ROUTES.get("getBundleHash")?.method as string },
-        options
+        options,
       );
       const localVarHeaderParameter = {} as any;
       const localVarQueryParameter = {} as any;
@@ -383,14 +383,14 @@ const FastlaneApiFetchParamCreator = function () {
         {},
         localVarUrlObj.query,
         localVarQueryParameter,
-        options.query
+        options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
       localVarUrlObj.search = null;
       localVarRequestOptions.headers = Object.assign(
         {},
         localVarHeaderParameter,
-        options.headers
+        options.headers,
       );
 
       return {

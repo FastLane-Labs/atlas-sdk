@@ -58,7 +58,7 @@ export abstract class OperationBuilder {
       data: string;
       signature: string;
     },
-    score?: number
+    score?: number,
   ): SolverOperation {
     const solverOp = new SolverOperation(score);
     solverOp.setFields({
@@ -114,7 +114,7 @@ export abstract class OperationBuilder {
     userOp: UserOperation,
     solverOps: SolverOperation[],
     signer: HDNodeWallet,
-    bundler: string = ZeroAddress
+    bundler: string = ZeroAddress,
   ): DAppOperation {
     const userTo = userOp.getField("to").value;
     if (userTo === undefined) {
@@ -147,7 +147,7 @@ export abstract class OperationBuilder {
   public static newBundle(
     userOp: UserOperation,
     solverOps: SolverOperation[],
-    dAppOp: DAppOperation
+    dAppOp: DAppOperation,
   ): Bundle {
     return new Bundle(userOp, solverOps, dAppOp);
   }

@@ -24,12 +24,14 @@ export class MockBackend extends BaseBackend {
    */
   public async _submitUserOperation(
     userOp: UserOperation,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     hints: string[],
-    extra?: any
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    extra?: any,
   ): Promise<string> {
     return userOp.hash(
       chainConfig[chainId].eip712Domain,
-      flagTrustedOpHash(userOp.callConfig())
+      flagTrustedOpHash(userOp.callConfig()),
     );
   }
 
@@ -45,8 +47,10 @@ export class MockBackend extends BaseBackend {
   public async _getSolverOperations(
     userOp: UserOperation,
     userOpHash: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     wait?: boolean,
-    extra?: any
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    extra?: any,
   ): Promise<SolverOperation[]> {
     const solverOps: SolverOperation[] = [];
     for (let i = 0; i < Math.floor(Math.random() * 5 + 1); i++) {
@@ -65,7 +69,7 @@ export class MockBackend extends BaseBackend {
           bidAmount: BigInt(30000 * (i + 1)),
           data: ZeroBytes,
           signature: ZeroBytes,
-        })
+        }),
       );
     }
 
@@ -79,10 +83,14 @@ export class MockBackend extends BaseBackend {
    * @param {*} [extra] Extra parameters
    * @returns {Promise<string>} The result message
    */
-  public async _submitBundle(bundle: Bundle, extra?: any): Promise<string> {
+  public async _submitBundle(
+    bundle: Bundle,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    extra?: any,
+  ): Promise<string> {
     const userOpHash = bundle.userOperation.hash(
       chainConfig[chainId].eip712Domain,
-      flagTrustedOpHash(bundle.userOperation.callConfig())
+      flagTrustedOpHash(bundle.userOperation.callConfig()),
     );
     this.submittedBundles[userOpHash] = bundle;
     return userOpHash;
@@ -98,8 +106,10 @@ export class MockBackend extends BaseBackend {
    */
   public async _getBundleHash(
     userOpHash: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     wait?: boolean,
-    extra?: any
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    extra?: any,
   ): Promise<string> {
     const bundle = this.submittedBundles[userOpHash];
     if (bundle === undefined) {
