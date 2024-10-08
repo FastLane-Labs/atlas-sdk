@@ -47,7 +47,7 @@ export class SimulationHooksController extends BaseHooksController {
     userOp: UserOperation,
     hints: string[]
   ): Promise<[UserOperation, string[]]> {
-    let [success, result, validCallsResult] = await this.simulator
+    const [success, result, validCallsResult] = await this.simulator
       .getFunction("simUserOperation")
       .staticCall(userOp.toStruct());
 
@@ -123,7 +123,7 @@ export class SimulationHooksController extends BaseHooksController {
       };
     });
     results = await this.multicall3.getFunction("aggregate3").staticCall(calls);
-    let simulatedSolverOps: SolverOperation[] = [];
+    const simulatedSolverOps: SolverOperation[] = [];
     for (let i = 0; i < results.length; i++) {
       if (!results[i].success) {
         continue;

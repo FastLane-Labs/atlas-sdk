@@ -192,7 +192,7 @@ const FastlaneApiFetchParamCreator = function () {
       hints: string[],
       options: any = {}
     ): FetchArgs {
-      let body: any = {
+      const body: any = {
         userOperation: userOp.toStruct(),
       };
       if (hints.length > 0) {
@@ -229,8 +229,8 @@ const FastlaneApiFetchParamCreator = function () {
         localVarRequestOptions.headers["Content-Type"] === "application/json";
       localVarRequestOptions.body = needsSerialization
         ? JSON.stringify(body || {}, (_, v) =>
-            typeof v === "bigint" ? toQuantity(v) : v
-          )
+          typeof v === "bigint" ? toQuantity(v) : v
+        )
         : body || "";
 
       return {
@@ -335,8 +335,8 @@ const FastlaneApiFetchParamCreator = function () {
         localVarRequestOptions.headers["Content-Type"] === "application/json";
       localVarRequestOptions.body = needsSerialization
         ? JSON.stringify(bundleStruct || {}, (_, v) =>
-            typeof v === "bigint" ? toQuantity(v) : v
-          )
+          typeof v === "bigint" ? toQuantity(v) : v
+        )
         : bundleStruct || "";
 
       return {

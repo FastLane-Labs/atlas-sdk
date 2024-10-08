@@ -24,7 +24,9 @@ export class MockBackend extends BaseBackend {
    */
   public async _submitUserOperation(
     userOp: UserOperation,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     hints: string[],
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     extra?: any
   ): Promise<string> {
     return userOp.hash(
@@ -45,7 +47,9 @@ export class MockBackend extends BaseBackend {
   public async _getSolverOperations(
     userOp: UserOperation,
     userOpHash: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     wait?: boolean,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     extra?: any
   ): Promise<SolverOperation[]> {
     const solverOps: SolverOperation[] = [];
@@ -79,7 +83,11 @@ export class MockBackend extends BaseBackend {
    * @param {*} [extra] Extra parameters
    * @returns {Promise<string>} The result message
    */
-  public async _submitBundle(bundle: Bundle, extra?: any): Promise<string> {
+  public async _submitBundle(
+    bundle: Bundle,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    extra?: any
+  ): Promise<string> {
     const userOpHash = bundle.userOperation.hash(
       chainConfig[chainId].eip712Domain,
       flagTrustedOpHash(bundle.userOperation.callConfig())
@@ -98,7 +106,9 @@ export class MockBackend extends BaseBackend {
    */
   public async _getBundleHash(
     userOpHash: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     wait?: boolean,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     extra?: any
   ): Promise<string> {
     const bundle = this.submittedBundles[userOpHash];
