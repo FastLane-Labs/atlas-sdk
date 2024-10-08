@@ -54,23 +54,23 @@ export class AtlasSdk {
     provider: AbstractProvider,
     chainId: number,
     backend: IBackend,
-    hooksControllers: IHooksControllerConstructable[] = []
+    hooksControllers: IHooksControllerConstructable[] = [],
   ) {
     this.chainId = chainId;
     this.iAtlas = new Interface(atlasAbi);
     this.atlasVerification = new Contract(
       chainConfig[chainId].contracts.atlasVerification.address,
       atlasVerificationAbi,
-      provider
+      provider,
     );
     this.dAppControl = new Contract(ZeroAddress, dAppControlAbi, provider);
     this.sorter = new Contract(
       chainConfig[chainId].contracts.sorter.address,
       sorterAbi,
-      provider
+      provider,
     );
     const _hooksControllers = hooksControllers.map(
-      (HookController) => new HookController(provider, chainId)
+      (HookController) => new HookController(provider, chainId),
     );
     this.backend = backend;
     this.backend.addHooksControllers(_hooksControllers);
@@ -84,7 +84,7 @@ export class AtlasSdk {
    */
   public async newUserOperation(
     userOpParams: UserOperationParams,
-    generateSessionKey = false
+    generateSessionKey = false,
   ): Promise<UserOperation> {
     let userOp = OperationBuilder.newUserOperation({
       from: userOpParams.from,
@@ -113,7 +113,7 @@ export class AtlasSdk {
       userOp.setField("callConfig", dConfig.callConfig);
     } else if (dConfig.callConfig !== userOpParams.callConfig) {
       throw new Error(
-        "UserOperation callConfig does not match dApp callConfig"
+        "UserOperation callConfig does not match dApp callConfig",
       );
     }
 
@@ -140,7 +140,7 @@ export class AtlasSdk {
   public getUserOperationHash(userOp: UserOperation): string {
     return userOp.hash(
       chainConfig[this.chainId].eip712Domain,
-      flagTrustedOpHash(userOp.callConfig())
+      flagTrustedOpHash(userOp.callConfig()),
     );
   }
 
@@ -150,7 +150,7 @@ export class AtlasSdk {
    * @returns the user operation with a valid nonce field
    */
   public async setUserOperationNonce(
-    userOp: UserOperation
+    userOp: UserOperation,
   ): Promise<UserOperation> {
     const user = userOp.getField("from").value as string;
     let nonce: bigint;
@@ -161,7 +161,7 @@ export class AtlasSdk {
       if (this.usersLastNonSequentialNonce.has(user)) {
         nonce = await this.atlasVerification.getUserNextNonSeqNonceAfter(
           user,
-          this.usersLastNonSequentialNonce.get(user) as bigint
+          this.usersLastNonSequentialNonce.get(user) as bigint,
         );
       } else {
         nonce = await this.atlasVerification.getUserNextNonce(user, false);
@@ -193,15 +193,15 @@ export class AtlasSdk {
    */
   public async signUserOperation(
     userOp: UserOperation,
-    signer: AbstractSigner
+    signer: AbstractSigner,
   ): Promise<UserOperation> {
     userOp.setField(
       "signature",
       await signer.signTypedData(
         chainConfig[this.chainId].eip712Domain,
         userOp.toTypedDataTypes(),
-        userOp.toTypedDataValues()
-      )
+        userOp.toTypedDataValues(),
+      ),
     );
     userOp.validateSignature(chainConfig[this.chainId].eip712Domain);
     return userOp;
@@ -215,7 +215,7 @@ export class AtlasSdk {
    */
   public async submitUserOperation(
     userOp: UserOperation,
-    hints: string[] = []
+    hints: string[] = [],
   ): Promise<SolverOperation[]> {
     const sessionKey = userOp.getField("sessionKey").value as string;
     if (sessionKey !== ZeroAddress && !this.sessionKeys.has(sessionKey)) {
@@ -238,12 +238,12 @@ export class AtlasSdk {
     // Submit the user operation to the backend
     const remoteUserOphash: string = await this.backend.submitUserOperation(
       userOp,
-      hints
+      hints,
     );
 
     const userOpHash = userOp.hash(
       chainConfig[this.chainId].eip712Domain,
-      flagTrustedOpHash(userOp.callConfig())
+      flagTrustedOpHash(userOp.callConfig()),
     );
 
     if (userOpHash !== remoteUserOphash) {
@@ -254,7 +254,7 @@ export class AtlasSdk {
     const solverOps: SolverOperation[] = await this.backend.getSolverOperations(
       userOp,
       userOpHash,
-      true
+      true,
     );
 
     if (solverOps.length === 0 && !flagZeroSolvers(userOp.callConfig())) {
@@ -272,7 +272,7 @@ export class AtlasSdk {
    */
   public async sortSolverOperations(
     userOp: UserOperation,
-    solverOps: SolverOperation[]
+    solverOps: SolverOperation[],
   ): Promise<SolverOperation[]> {
     const callConfig = userOp.callConfig();
 
@@ -283,11 +283,11 @@ export class AtlasSdk {
 
     const sortedSolverOpsResp: any[] = await this.sorter.sortBids(
       userOp.toStruct(),
-      solverOps.map((solverOp) => solverOp.toStruct())
+      solverOps.map((solverOp) => solverOp.toStruct()),
     );
 
     const sortedSolverOps: SolverOperation[] = sortedSolverOpsResp.map((op) =>
-      OperationBuilder.newSolverOperation(op)
+      OperationBuilder.newSolverOperation(op),
     );
 
     if (sortedSolverOps.length === 0 && !flagZeroSolvers(callConfig)) {
@@ -307,7 +307,7 @@ export class AtlasSdk {
   public async createDAppOperation(
     userOp: UserOperation,
     solverOps: SolverOperation[],
-    bundler: string = ZeroAddress
+    bundler: string = ZeroAddress,
   ): Promise<DAppOperation> {
     const sessionKey = userOp.getField("sessionKey").value as string;
 
@@ -327,7 +327,7 @@ export class AtlasSdk {
 
     const userOpHash = userOp.hash(
       chainConfig[this.chainId].eip712Domain,
-      flagTrustedOpHash(callConfig)
+      flagTrustedOpHash(callConfig),
     );
 
     const dAppOp: DAppOperation =
@@ -336,13 +336,13 @@ export class AtlasSdk {
         userOp,
         solverOps,
         sessionAccount,
-        bundler
+        bundler,
       );
 
     const signature = await sessionAccount.signTypedData(
       chainConfig[this.chainId].eip712Domain,
       dAppOp.toTypedDataTypes(),
-      dAppOp.toTypedDataValues()
+      dAppOp.toTypedDataValues(),
     );
 
     dAppOp.setField("signature", signature);
@@ -361,7 +361,7 @@ export class AtlasSdk {
   public getMetacallCalldata(
     userOp: UserOperation,
     solverOps: SolverOperation[],
-    dAppOp: DAppOperation
+    dAppOp: DAppOperation,
   ): string {
     return this.iAtlas.encodeFunctionData("metacall", [
       userOp.toStruct(),
@@ -380,7 +380,7 @@ export class AtlasSdk {
   public async submitBundle(
     userOp: UserOperation,
     solverOps: SolverOperation[],
-    dAppOp: DAppOperation
+    dAppOp: DAppOperation,
   ): Promise<string> {
     const sessionKey = userOp.getField("sessionKey").value as string;
     if (
@@ -388,7 +388,7 @@ export class AtlasSdk {
       sessionKey !== dAppOp.getField("from").value
     ) {
       throw new Error(
-        "User operation session key does not match dApp operation"
+        "User operation session key does not match dApp operation",
       );
     }
 
@@ -399,7 +399,7 @@ export class AtlasSdk {
 
     const userOpHash = userOp.hash(
       chainConfig[this.chainId].eip712Domain,
-      flagTrustedOpHash(userOp.callConfig())
+      flagTrustedOpHash(userOp.callConfig()),
     );
 
     if (userOpHash !== remoteUserOpHash) {
@@ -408,7 +408,7 @@ export class AtlasSdk {
 
     const atlasTxHash: string = await this.backend.getBundleHash(
       userOpHash,
-      true
+      true,
     );
 
     return atlasTxHash;

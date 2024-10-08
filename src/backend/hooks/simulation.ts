@@ -29,23 +29,23 @@ export class SimulationHooksController extends BaseHooksController {
     this.atlas = new Contract(
       chainConfig[chainId].contracts.atlas.address,
       atlasAbi,
-      provider
+      provider,
     );
     this.simulator = new Contract(
       chainConfig[chainId].contracts.simulator.address,
       simulatorAbi,
-      provider
+      provider,
     );
     this.multicall3 = new Contract(
       chainConfig[chainId].contracts.multicall3.address,
       multicall3Abi,
-      provider
+      provider,
     );
   }
 
   async preSubmitUserOperation(
     userOp: UserOperation,
-    hints: string[]
+    hints: string[],
   ): Promise<[UserOperation, string[]]> {
     const [success, result, validCallsResult] = await this.simulator
       .getFunction("simUserOperation")
@@ -53,7 +53,7 @@ export class SimulationHooksController extends BaseHooksController {
 
     if (!success) {
       throw new Error(
-        `user operation failed simulation, result: ${result}, validCallsResult: ${validCallsResult}`
+        `user operation failed simulation, result: ${result}, validCallsResult: ${validCallsResult}`,
       );
     }
 
@@ -62,7 +62,7 @@ export class SimulationHooksController extends BaseHooksController {
 
   async postGetSolverOperations(
     userOp: UserOperation,
-    solverOps: SolverOperation[]
+    solverOps: SolverOperation[],
   ): Promise<[UserOperation, SolverOperation[]]> {
     let sortedSolverOps: SolverOperation[] = solverOps.slice();
     const atlasAddress = await this.atlas.getAddress();
@@ -84,7 +84,7 @@ export class SimulationHooksController extends BaseHooksController {
     for (let i = 0; i < results.length; i++) {
       const stats = this.atlas.interface.decodeFunctionResult(
         "accessData",
-        results[i].returnData
+        results[i].returnData,
       );
       const auctionWins = Number(stats[2]);
       const auctionFails = Number(stats[3]);
@@ -130,7 +130,7 @@ export class SimulationHooksController extends BaseHooksController {
       }
       const [success, ,] = this.simulator.interface.decodeFunctionResult(
         "simSolverCall",
-        results[i].returnData
+        results[i].returnData,
       );
       if (!success) {
         continue;
@@ -147,14 +147,14 @@ export class SimulationHooksController extends BaseHooksController {
       .connect(
         new VoidSigner(
           bundleOps.dAppOperation.getField("bundler").value as string,
-          this.provider
-        )
+          this.provider,
+        ),
       )
       .getFunction("metacall")
       .staticCall(
         bundleOps.userOperation.toStruct(),
         bundleOps.solverOperations.map((solverOp) => solverOp.toStruct()),
-        bundleOps.dAppOperation.toStruct()
+        bundleOps.dAppOperation.toStruct(),
       );
 
     return bundleOps;

@@ -9,7 +9,7 @@ export class Bundle {
   constructor(
     userOp: UserOperation,
     solverOps: SolverOperation[],
-    dAppOp: DAppOperation
+    dAppOp: DAppOperation,
   ) {
     this.userOperation = userOp;
     this.solverOperations = solverOps;

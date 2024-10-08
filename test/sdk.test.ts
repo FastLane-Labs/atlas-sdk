@@ -7,10 +7,7 @@ import {
 import { AtlasSdk } from "../src";
 import { MockBackend } from "../src/backend";
 import { OperationBuilder, ZeroBytes } from "../src/operation";
-import {
-  validateBytes32,
-  CallConfigIndex,
-} from "../src/utils";
+import { validateBytes32, CallConfigIndex } from "../src/utils";
 import { chainConfig } from "../src/config";
 
 describe("Atlas SDK main tests", () => {
@@ -18,13 +15,13 @@ describe("Atlas SDK main tests", () => {
   const sdk = new AtlasSdk(
     new JsonRpcProvider("https://rpc.sepolia.org/", chainId),
     chainId,
-    new MockBackend()
+    new MockBackend(),
   );
 
   const testDAppControl = "0x60d7B59c6743C25b29a7aEe6F5a37c07B1A6Cff3";
 
   const signer = HDNodeWallet.fromSeed(
-    toUtf8Bytes("bad seed used for this test only")
+    toUtf8Bytes("bad seed used for this test only"),
   );
 
   let nonSequentialNonceTracker = 0n;
@@ -108,7 +105,7 @@ describe("Atlas SDK main tests", () => {
 
     // Validate signature
     expect(() =>
-      userOp.validateSignature(chainConfig[chainId].eip712Domain)
+      userOp.validateSignature(chainConfig[chainId].eip712Domain),
     ).not.toThrow();
   });
 
@@ -120,7 +117,7 @@ describe("Atlas SDK main tests", () => {
 
     // Invalid session key
     expect(async () => await sdk.submitUserOperation(userOp)).rejects.toThrow(
-      "Session key not found"
+      "Session key not found",
     );
   });
 
@@ -130,7 +127,7 @@ describe("Atlas SDK main tests", () => {
     // Invalid hints
     const invalidHints = ["0x01"];
     expect(
-      async () => await sdk.submitUserOperation(userOp, invalidHints)
+      async () => await sdk.submitUserOperation(userOp, invalidHints),
     ).rejects.toThrow("Invalid hint address: 0x01");
   });
 
@@ -146,7 +143,7 @@ describe("Atlas SDK main tests", () => {
 
   test("sortSolverOperations with flag exPostBids", async () => {
     const userOpParams = userOpParamsWithCallConfigFlag(
-      CallConfigIndex.ExPostBids
+      CallConfigIndex.ExPostBids,
     );
     const userOp = OperationBuilder.newUserOperation(userOpParams);
     const solverOps = await sdk.submitUserOperation(userOp);
@@ -172,13 +169,13 @@ describe("Atlas SDK main tests", () => {
 
     // Sort solver operations
     expect(async () =>
-      sdk.sortSolverOperations(userOp, solverOps)
+      sdk.sortSolverOperations(userOp, solverOps),
     ).rejects.toThrow("No solver operations returned");
   });
 
   test("sortSolverOperations - 0 ops returned with flag zeroSolvers", async () => {
     const userOpParams = userOpParamsWithCallConfigFlag(
-      CallConfigIndex.ZeroSolvers
+      CallConfigIndex.ZeroSolvers,
     );
     const userOp = OperationBuilder.newUserOperation(userOpParams);
     const solverOps = await sdk.submitUserOperation(userOp);
@@ -214,7 +211,8 @@ describe("Atlas SDK main tests", () => {
     // Ensure solverOps are sorted
     let prevBidAmount = 0n;
     for (let i = 0; i < sortedSolverOps.length; i++) {
-      const bidAmount = sortedSolverOps[i].getField("bidAmount").value as bigint;
+      const bidAmount = sortedSolverOps[i].getField("bidAmount")
+        .value as bigint;
       if (i === 0) {
         prevBidAmount = bidAmount;
         continue;
@@ -233,7 +231,7 @@ describe("Atlas SDK main tests", () => {
 
     // Invalid session key
     expect(
-      async () => await sdk.createDAppOperation(userOp, solverOps)
+      async () => await sdk.createDAppOperation(userOp, solverOps),
     ).rejects.toThrow("Session key not found");
   });
 
@@ -250,12 +248,12 @@ describe("Atlas SDK main tests", () => {
 
     // Validate dApp operation
     expect(dAppOp.getField("from").value).toBe(
-      userOp.getField("sessionKey").value
+      userOp.getField("sessionKey").value,
     );
 
     // Validate signature
     expect(() =>
-      dAppOp.validateSignature(chainConfig[chainId].eip712Domain)
+      dAppOp.validateSignature(chainConfig[chainId].eip712Domain),
     ).not.toThrow();
   });
 
@@ -293,9 +291,9 @@ describe("Atlas SDK main tests", () => {
 
     // Invalid session key
     expect(
-      async () => await sdk.submitBundle(userOp, solverOps, dAppOp)
+      async () => await sdk.submitBundle(userOp, solverOps, dAppOp),
     ).rejects.toThrow(
-      "User operation session key does not match dApp operation"
+      "User operation session key does not match dApp operation",
     );
   });
 

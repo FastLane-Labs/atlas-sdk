@@ -27,11 +27,11 @@ export class MockBackend extends BaseBackend {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     hints: string[],
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    extra?: any
+    extra?: any,
   ): Promise<string> {
     return userOp.hash(
       chainConfig[chainId].eip712Domain,
-      flagTrustedOpHash(userOp.callConfig())
+      flagTrustedOpHash(userOp.callConfig()),
     );
   }
 
@@ -50,7 +50,7 @@ export class MockBackend extends BaseBackend {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     wait?: boolean,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    extra?: any
+    extra?: any,
   ): Promise<SolverOperation[]> {
     const solverOps: SolverOperation[] = [];
     for (let i = 0; i < Math.floor(Math.random() * 5 + 1); i++) {
@@ -69,7 +69,7 @@ export class MockBackend extends BaseBackend {
           bidAmount: BigInt(30000 * (i + 1)),
           data: ZeroBytes,
           signature: ZeroBytes,
-        })
+        }),
       );
     }
 
@@ -86,11 +86,11 @@ export class MockBackend extends BaseBackend {
   public async _submitBundle(
     bundle: Bundle,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    extra?: any
+    extra?: any,
   ): Promise<string> {
     const userOpHash = bundle.userOperation.hash(
       chainConfig[chainId].eip712Domain,
-      flagTrustedOpHash(bundle.userOperation.callConfig())
+      flagTrustedOpHash(bundle.userOperation.callConfig()),
     );
     this.submittedBundles[userOpHash] = bundle;
     return userOpHash;
@@ -109,7 +109,7 @@ export class MockBackend extends BaseBackend {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     wait?: boolean,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    extra?: any
+    extra?: any,
   ): Promise<string> {
     const bundle = this.submittedBundles[userOpHash];
     if (bundle === undefined) {

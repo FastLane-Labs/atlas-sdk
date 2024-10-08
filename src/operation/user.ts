@@ -37,10 +37,10 @@ export class UserOperation extends BaseOperation {
 
     if (trusted) {
       typedDataTypes = this.toTypedDataTypesCustomFields(
-        this.trustedOperationHashFields
+        this.trustedOperationHashFields,
       );
       typedDataValues = this.toTypedDataValuesCustomFields(
-        this.trustedOperationHashFields
+        this.trustedOperationHashFields,
       );
     } else {
       typedDataTypes = this.toTypedDataTypes();
