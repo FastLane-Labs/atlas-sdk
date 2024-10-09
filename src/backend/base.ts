@@ -86,13 +86,13 @@ export interface IBackend {
    * @param {*} [extra] Extra parameters
    * @returns {Promise<Bundle>} The full bundle
    */
-  getBundle(
+  getBundleForUserOp(
     userOp: UserOperation,
     wait?: boolean,
     extra?: any,
   ): Promise<Bundle>;
 
-  _getBundle(
+  _getBundleForUserOp(
     userOp: UserOperation,
     wait?: boolean,
     extra?: any,
@@ -209,22 +209,22 @@ export abstract class BaseBackend implements IBackend {
     return atlasTxHash;
   }
 
-  async getBundle(
+  async getBundleForUserOp(
     userOp: UserOperation,
     wait?: boolean,
     extra?: any,
   ): Promise<Bundle> {
     // Pre hooks
     for (const hooksController of this.hooksControllers) {
-      userOp = await hooksController.preGetBundle(userOp);
+      userOp = await hooksController.preGetBundleForUserOp(userOp);
     }
 
     // Implemented by subclass
-    let bundle = await this._getBundle(userOp, wait, extra);
+    let bundle = await this._getBundleForUserOp(userOp, wait, extra);
 
     // Post hooks
     for (const hooksController of this.hooksControllers) {
-      bundle = await hooksController.postGetBundle(bundle);
+      bundle = await hooksController.postGetBundleForUserOp(bundle);
     }
 
     return bundle;
@@ -251,7 +251,7 @@ export abstract class BaseBackend implements IBackend {
     extra?: any,
   ): Promise<string>;
 
-  abstract _getBundle(
+  abstract _getBundleForUserOp(
     userOp: UserOperation,
     wait?: boolean,
     extra?: any,

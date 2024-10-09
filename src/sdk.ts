@@ -425,8 +425,8 @@ export class AtlasSdk {
    * @param userOp The user operation
    * @returns The bundle associated with the user operation
    */
-  public async getBundle(userOp: UserOperation): Promise<Bundle> {
-    return this.backend.getBundle(userOp);
+  public async getBundleForUserOp(userOp: UserOperation): Promise<Bundle> {
+    return this.backend.getBundleForUserOp(userOp);
   }
 
   /**

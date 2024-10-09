@@ -30,9 +30,9 @@ export interface IHooksController {
 
   postGetBundleHash(atlasTxHash: string): Promise<string>;
 
-  preGetBundle(userOp: UserOperation): Promise<UserOperation>;
+  preGetBundleForUserOp(userOp: UserOperation): Promise<UserOperation>;
 
-  postGetBundle(bundle: Bundle): Promise<Bundle>;
+  postGetBundleForUserOp(bundle: Bundle): Promise<Bundle>;
 }
 
 export interface IHooksControllerConstructable {
@@ -89,11 +89,11 @@ export abstract class BaseHooksController implements IHooksController {
     return atlasTxHash;
   }
 
-  async preGetBundle(userOp: UserOperation): Promise<UserOperation> {
+  async preGetBundleForUserOp(userOp: UserOperation): Promise<UserOperation> {
     return userOp;
   }
 
-  async postGetBundle(bundle: Bundle): Promise<Bundle> {
+  async postGetBundleForUserOp(bundle: Bundle): Promise<Bundle> {
     return bundle;
   }
 }

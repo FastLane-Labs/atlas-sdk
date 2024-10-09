@@ -49,7 +49,7 @@ const ROUTES: Map<string, Route> = new Map([
     },
   ],
   [
-    "getBundle",
+    "getBundleForUserOp",
     {
       method: "GET",
       path: "/bundle",
@@ -192,12 +192,12 @@ export class FastlaneBackend extends BaseBackend {
    * @param {*} [extra] Extra parameters
    * @returns {Promise<Bundle>} The full bundle
    */
-  public async _getBundle(
+  public async _getBundleForUserOp(
     userOp: UserOperation,
     wait?: boolean,
     extra?: any,
   ): Promise<Bundle> {
-    const localVarFetchArgs = FastlaneApiFetchParamCreator().getBundle(
+    const localVarFetchArgs = FastlaneApiFetchParamCreator().getBundleForUserOp(
       userOp,
       wait,
       extra,
@@ -450,7 +450,7 @@ const FastlaneApiFetchParamCreator = function () {
      * @param {boolean} [wait] Hold the request until having a response
      * @param {*} [options] Override http request option.
      */
-    getBundle(
+    getBundleForUserOp(
       userOp: UserOperation,
       wait?: boolean,
       options: any = {},
@@ -459,11 +459,11 @@ const FastlaneApiFetchParamCreator = function () {
         throw "Required parameter userOp was null or undefined when calling getBundle.";
       }
       const localVarUrlObj = url.parse(
-        ROUTES.get("getBundle")?.path as string,
+        ROUTES.get("getBundleForUserOp")?.path as string,
         true,
       );
       const localVarRequestOptions = Object.assign(
-        { method: ROUTES.get("getBundle")?.method as string },
+        { method: ROUTES.get("getBundleForUserOp")?.method as string },
         options,
       );
       const localVarHeaderParameter = {} as any;

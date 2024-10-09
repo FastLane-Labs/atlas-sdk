@@ -128,7 +128,7 @@ export class MockBackend extends BaseBackend {
    * @param {*} [extra] Extra parameters
    * @returns {Promise<Bundle>} The full bundle
    */
-  public async _getBundle(
+  public async _getBundleForUserOp(
     userOp: UserOperation,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     wait?: boolean,
