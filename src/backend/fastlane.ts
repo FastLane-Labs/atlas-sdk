@@ -226,6 +226,7 @@ const FastlaneApiFetchParamCreator = function () {
       );
       const localVarHeaderParameter = {} as any;
       const localVarQueryParameter = {} as any;
+      localVarQueryParameter["chainId"] = chainId;
 
       localVarHeaderParameter["Content-Type"] = "application/json";
 
@@ -276,6 +277,7 @@ const FastlaneApiFetchParamCreator = function () {
       );
       const localVarHeaderParameter = {} as any;
       const localVarQueryParameter = {} as any;
+      localVarQueryParameter["chainId"] = chainId;
 
       if (userOpHash !== undefined) {
         localVarQueryParameter["operationHash"] = userOpHash;
@@ -324,6 +326,7 @@ const FastlaneApiFetchParamCreator = function () {
       );
       const localVarHeaderParameter = {} as any;
       const localVarQueryParameter = {} as any;
+      localVarQueryParameter["chainId"] = chainId;
 
       localVarHeaderParameter["Content-Type"] = "application/json";
 
@@ -374,10 +377,8 @@ const FastlaneApiFetchParamCreator = function () {
       );
       const localVarHeaderParameter = {} as any;
       const localVarQueryParameter = {} as any;
-
-      if (userOpHash !== undefined) {
-        localVarQueryParameter["operationHash"] = userOpHash;
-      }
+      localVarQueryParameter["chainId"] = chainId;
+      localVarQueryParameter["operationHash"] = userOpHash;
 
       if (wait !== undefined) {
         localVarQueryParameter["wait"] = wait;
@@ -422,6 +423,7 @@ const FastlaneApiFetchParamCreator = function () {
       );
       const localVarHeaderParameter = {} as any;
       const localVarQueryParameter = {} as any;
+      localVarQueryParameter["chainId"] = chainId;
 
       localVarHeaderParameter["Content-Type"] = "application/json";
 
