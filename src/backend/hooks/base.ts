@@ -5,7 +5,8 @@ export interface IHooksController {
   preSubmitUserOperation(
     userOp: UserOperation,
     hints: string[],
-  ): Promise<[UserOperation, string[]]>;
+    extra?: any,
+  ): Promise<[UserOperation, string[], any]>;
 
   postSubmitUserOperation(
     userOp: UserOperation,
@@ -15,22 +16,33 @@ export interface IHooksController {
   preGetSolverOperations(
     userOp: UserOperation,
     userOphash: string,
-  ): Promise<[UserOperation, string]>;
+    wait?: boolean,
+    extra?: any,
+  ): Promise<[UserOperation, string, boolean, any]>;
 
   postGetSolverOperations(
     userOp: UserOperation,
     solverOps: SolverOperation[],
   ): Promise<[UserOperation, SolverOperation[]]>;
 
-  preSubmitBundle(bundleOps: Bundle): Promise<Bundle>;
+  preSubmitBundle(bundle: Bundle, extra?: any): Promise<[Bundle, any]>;
 
   postSubmitBundle(result: string): Promise<string>;
 
-  preGetBundleHash(userOphash: string): Promise<string>;
+  preGetBundleHash(
+    userOphash: string,
+    wait?: boolean,
+    extra?: any,
+  ): Promise<[string, boolean, any]>;
 
   postGetBundleHash(atlasTxHash: string): Promise<string>;
 
-  preGetBundleForUserOp(userOp: UserOperation): Promise<UserOperation>;
+  preGetBundleForUserOp(
+    userOp: UserOperation,
+    hints: string[],
+    wait?: boolean,
+    extra?: any,
+  ): Promise<[UserOperation, string[], boolean | undefined, any]>;
 
   postGetBundleForUserOp(bundle: Bundle): Promise<Bundle>;
 }
@@ -48,8 +60,9 @@ export abstract class BaseHooksController implements IHooksController {
   async preSubmitUserOperation(
     userOp: UserOperation,
     hints: string[],
-  ): Promise<[UserOperation, string[]]> {
-    return [userOp, hints];
+    extra?: any,
+  ): Promise<[UserOperation, string[], any]> {
+    return [userOp, hints, extra];
   }
 
   async postSubmitUserOperation(
@@ -62,8 +75,10 @@ export abstract class BaseHooksController implements IHooksController {
   async preGetSolverOperations(
     userOp: UserOperation,
     userOphash: string,
-  ): Promise<[UserOperation, string]> {
-    return [userOp, userOphash];
+    wait?: boolean,
+    extra?: any,
+  ): Promise<[UserOperation, string, boolean, any]> {
+    return [userOp, userOphash, wait || false, extra];
   }
 
   async postGetSolverOperations(
@@ -73,24 +88,33 @@ export abstract class BaseHooksController implements IHooksController {
     return [userOp, solverOps];
   }
 
-  async preSubmitBundle(bundleOps: Bundle): Promise<Bundle> {
-    return bundleOps;
+  async preSubmitBundle(bundle: Bundle, extra?: any): Promise<[Bundle, any]> {
+    return [bundle, extra];
   }
 
   async postSubmitBundle(result: string): Promise<string> {
     return result;
   }
 
-  async preGetBundleHash(userOphash: string): Promise<string> {
-    return userOphash;
+  async preGetBundleHash(
+    userOphash: string,
+    wait: boolean,
+    extra?: any,
+  ): Promise<[string, boolean, any]> {
+    return [userOphash, wait, extra];
   }
 
   async postGetBundleHash(atlasTxHash: string): Promise<string> {
     return atlasTxHash;
   }
 
-  async preGetBundleForUserOp(userOp: UserOperation): Promise<UserOperation> {
-    return userOp;
+  async preGetBundleForUserOp(
+    userOp: UserOperation,
+    hints: string[],
+    wait?: boolean,
+    extra?: any,
+  ): Promise<[UserOperation, string[], boolean | undefined, any]> {
+    return [userOp, hints, wait, extra];
   }
 
   async postGetBundleForUserOp(bundle: Bundle): Promise<Bundle> {

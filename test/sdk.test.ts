@@ -358,27 +358,47 @@ describe("Atlas SDK main tests", () => {
     const mockHooksController = {
       preSubmitUserOperation: jest
         .fn()
-        .mockImplementation(async (userOp, hints) => [userOp, hints]),
+        .mockImplementation(async (userOp, hints, extra) => [
+          userOp,
+          hints,
+          extra,
+        ]),
       postSubmitUserOperation: jest
         .fn()
         .mockImplementation(async (userOp, userOpHash) => [userOp, userOpHash]),
       preGetSolverOperations: jest
         .fn()
-        .mockImplementation(async (userOp, userOpHash) => [userOp, userOpHash]),
+        .mockImplementation(async (userOp, userOpHash, wait, extra) => [
+          userOp,
+          userOpHash,
+          wait,
+          extra,
+        ]),
       postGetSolverOperations: jest
         .fn()
         .mockImplementation(async (userOp, solverOps) => [userOp, solverOps]),
-      preSubmitBundle: jest.fn().mockImplementation(async (bundle) => bundle),
+      preSubmitBundle: jest
+        .fn()
+        .mockImplementation(async (bundle, extra) => [bundle, extra]),
       postSubmitBundle: jest.fn().mockImplementation(async (result) => result),
       preGetBundleHash: jest
         .fn()
-        .mockImplementation(async (userOpHash) => userOpHash),
+        .mockImplementation(async (userOpHash, wait, extra) => [
+          userOpHash,
+          wait,
+          extra,
+        ]),
       postGetBundleHash: jest
         .fn()
         .mockImplementation(async (atlasTxHash) => atlasTxHash),
       preGetBundleForUserOp: jest
         .fn()
-        .mockImplementation(async (userOp) => userOp),
+        .mockImplementation(async (userOp, hints, wait, extra) => [
+          userOp,
+          hints,
+          wait,
+          extra,
+        ]),
       postGetBundleForUserOp: jest
         .fn()
         .mockImplementation(async (bundle) => bundle),
@@ -401,6 +421,9 @@ describe("Atlas SDK main tests", () => {
 
     expect(mockHooksController.preGetBundleForUserOp).toHaveBeenCalledWith(
       userOp,
+      [],
+      true,
+      { chainId: chainId },
     );
     expect(mockHooksController.postGetBundleForUserOp).toHaveBeenCalled();
   });
