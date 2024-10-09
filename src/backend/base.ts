@@ -153,6 +153,7 @@ export abstract class BaseBackend implements IBackend {
         chainId,
         userOp,
         userOpHash,
+        extra,
       );
     }
 
@@ -193,6 +194,7 @@ export abstract class BaseBackend implements IBackend {
         chainId,
         userOp,
         solverOps,
+        extra,
       );
     }
 
@@ -253,7 +255,7 @@ export abstract class BaseBackend implements IBackend {
       atlasTxHash = await hooksController.postGetBundleHash(
         chainId,
         atlasTxHash,
-        userOpHash,
+        extra,
       );
     }
 
@@ -293,7 +295,7 @@ export abstract class BaseBackend implements IBackend {
       bundle = await hooksController.postGetBundleForUserOp(
         chainId,
         bundle,
-        userOp,
+        extra,
       );
     }
 
