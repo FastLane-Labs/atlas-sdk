@@ -12,9 +12,9 @@ export class MockBackend extends BaseBackend {
     super(params);
   }
 
-  private generateUserOpHash(userOp: UserOperation): string {
+  private generateUserOpHash(chainId: number, userOp: UserOperation): string {
     return userOp.hash(
-      chainConfig[this.chainId].eip712Domain,
+      chainConfig[chainId].eip712Domain,
       flagTrustedOpHash(userOp.callConfig()),
     );
   }
@@ -28,13 +28,14 @@ export class MockBackend extends BaseBackend {
    * @returns {Promise<string>} The hash of the user operation
    */
   public async _submitUserOperation(
+    chainId: number,
     userOp: UserOperation,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     hints: string[],
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     extra?: any,
   ): Promise<string> {
-    const userOpHash = this.generateUserOpHash(userOp);
+    const userOpHash = this.generateUserOpHash(chainId, userOp);
     return userOpHash;
   }
 
@@ -48,6 +49,7 @@ export class MockBackend extends BaseBackend {
    * @returns {Promise<SolverOperation[]>} The solver operations
    */
   public async _getSolverOperations(
+    chainId: number,
     userOp: UserOperation,
     userOpHash: string,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -87,11 +89,12 @@ export class MockBackend extends BaseBackend {
    * @returns {Promise<string>} The result message
    */
   public async _submitBundle(
+    chainId: number,
     bundle: Bundle,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     extra?: any,
   ): Promise<string> {
-    const userOpHash = this.generateUserOpHash(bundle.userOperation);
+    const userOpHash = this.generateUserOpHash(chainId, bundle.userOperation);
     this.submittedBundles[userOpHash] = bundle;
     return userOpHash;
   }
@@ -105,6 +108,7 @@ export class MockBackend extends BaseBackend {
    * @returns {Promise<string>} The Atlas transaction hash
    */
   public async _getBundleHash(
+    chainId: number,
     userOpHash: string,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     wait?: boolean,
@@ -129,6 +133,7 @@ export class MockBackend extends BaseBackend {
    * @returns {Promise<Bundle>} The full bundle
    */
   public async _getBundleForUserOp(
+    chainId: number,
     userOp: UserOperation,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     hints: string[],
@@ -137,7 +142,7 @@ export class MockBackend extends BaseBackend {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     extra?: any,
   ): Promise<Bundle> {
-    const userOpHash = this.generateUserOpHash(userOp);
+    const userOpHash = this.generateUserOpHash(chainId, userOp);
     const bundle = this.submittedBundles[userOpHash];
     if (bundle === undefined) {
       throw new Error(`Bundle not found for userOp: ${userOpHash}`);

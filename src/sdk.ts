@@ -74,7 +74,7 @@ export class AtlasSdk {
       provider,
     );
     const _hooksControllers = hooksControllers.map(
-      (HookController) => new HookController(provider, chainId),
+      (HookController) => new HookController(provider),
     );
     this.backend = backend;
     this.backend.addHooksControllers(_hooksControllers);
@@ -218,6 +218,7 @@ export class AtlasSdk {
    * @returns an array of solver operations
    */
   public async submitUserOperation(
+    chainId: number,
     userOp: UserOperation,
     hints: string[] = [],
   ): Promise<SolverOperation[]> {
@@ -241,6 +242,7 @@ export class AtlasSdk {
 
     // Submit the user operation to the backend
     const remoteUserOphash: string = await this.backend.submitUserOperation(
+      chainId,
       userOp,
       hints,
     );
@@ -256,6 +258,7 @@ export class AtlasSdk {
 
     // Get the solver operations
     const solverOps: SolverOperation[] = await this.backend.getSolverOperations(
+      chainId,
       userOp,
       userOpHash,
       true,
@@ -382,6 +385,7 @@ export class AtlasSdk {
    * @returns the hash of the generated Atlas transaction
    */
   public async submitBundle(
+    chainId: number,
     userOp: UserOperation,
     solverOps: SolverOperation[],
     dAppOp: DAppOperation,
@@ -397,14 +401,14 @@ export class AtlasSdk {
     }
 
     const bundle = OperationBuilder.newBundle(
-      this.chainId,
+      chainId,
       userOp,
       solverOps,
       dAppOp,
     );
     bundle.validate(chainConfig[this.chainId].eip712Domain);
 
-    const remoteUserOpHash = await this.backend.submitBundle(bundle);
+    const remoteUserOpHash = await this.backend.submitBundle(chainId, bundle);
 
     const userOpHash = this.getUserOperationHash(userOp);
 
@@ -413,6 +417,7 @@ export class AtlasSdk {
     }
 
     const atlasTxHash: string = await this.backend.getBundleHash(
+      chainId,
       userOpHash,
       true,
     );
@@ -429,12 +434,13 @@ export class AtlasSdk {
    * @returns The bundle associated with the user operation
    */
   public async getBundleForUserOp(
+    chainId: number,
     userOp: UserOperation,
     hints: string[] = [],
     wait?: boolean,
     extra?: any,
   ): Promise<Bundle> {
-    return this.backend.getBundleForUserOp(userOp, hints, wait, extra);
+    return this.backend.getBundleForUserOp(chainId, userOp, hints, wait, extra);
   }
 
   /**
