@@ -120,12 +120,12 @@ export abstract class BaseBackend implements IBackend {
   ): Promise<string> {
     // Pre hooks
     for (const hooksController of this.hooksControllers) {
-      [userOp, hints] = await hooksController.preSubmitUserOperation(
+      [userOp, hints, extra] = await hooksController.preSubmitUserOperation(
         userOp,
         hints,
+        extra,
       );
     }
-
     // Implemented by subclass
     let userOpHash = await this._submitUserOperation(userOp, hints, extra);
 
@@ -148,10 +148,13 @@ export abstract class BaseBackend implements IBackend {
   ): Promise<SolverOperation[]> {
     // Pre hooks
     for (const hooksController of this.hooksControllers) {
-      [userOp, userOpHash] = await hooksController.preGetSolverOperations(
-        userOp,
-        userOpHash,
-      );
+      [userOp, userOpHash, wait, extra] =
+        await hooksController.preGetSolverOperations(
+          userOp,
+          userOpHash,
+          wait,
+          extra,
+        );
     }
 
     // Implemented by subclass
@@ -176,7 +179,7 @@ export abstract class BaseBackend implements IBackend {
   async submitBundle(bundle: Bundle, extra?: any): Promise<string> {
     // Pre hooks
     for (const hooksController of this.hooksControllers) {
-      bundle = await hooksController.preSubmitBundle(bundle);
+      [bundle, extra] = await hooksController.preSubmitBundle(bundle, extra);
     }
 
     // Implemented by subclass
@@ -197,7 +200,11 @@ export abstract class BaseBackend implements IBackend {
   ): Promise<string> {
     // Pre hooks
     for (const hooksController of this.hooksControllers) {
-      userOpHash = await hooksController.preGetBundleHash(userOpHash);
+      [userOpHash, wait, extra] = await hooksController.preGetBundleHash(
+        userOpHash,
+        wait,
+        extra,
+      );
     }
 
     // Implemented by subclass
@@ -219,7 +226,8 @@ export abstract class BaseBackend implements IBackend {
   ): Promise<Bundle> {
     // Pre hooks
     for (const hooksController of this.hooksControllers) {
-      userOp = await hooksController.preGetBundleForUserOp(userOp);
+      [userOp, hints, wait, extra] =
+        await hooksController.preGetBundleForUserOp(userOp, hints, wait, extra);
     }
 
     // Implemented by subclass
