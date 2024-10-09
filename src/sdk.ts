@@ -423,10 +423,18 @@ export class AtlasSdk {
   /**
    * Retrieves a bundle for a given user operation.
    * @param userOp The user operation
+   * @param hints An array of hints for solvers
+   * @param wait Hold the request until having a response
+   * @param extra Extra parameters
    * @returns The bundle associated with the user operation
    */
-  public async getBundleForUserOp(userOp: UserOperation): Promise<Bundle> {
-    return this.backend.getBundleForUserOp(userOp);
+  public async getBundleForUserOp(
+    userOp: UserOperation,
+    hints: string[] = [],
+    wait?: boolean,
+    extra?: any,
+  ): Promise<Bundle> {
+    return this.backend.getBundleForUserOp(userOp, hints, wait, extra);
   }
 
   /**

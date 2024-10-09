@@ -131,6 +131,8 @@ export class MockBackend extends BaseBackend {
   public async _getBundleForUserOp(
     userOp: UserOperation,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    hints: string[],
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     wait?: boolean,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     extra?: any,

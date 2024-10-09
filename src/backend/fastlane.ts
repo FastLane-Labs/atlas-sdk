@@ -194,11 +194,13 @@ export class FastlaneBackend extends BaseBackend {
    */
   public async _getBundleForUserOp(
     userOp: UserOperation,
+    hints: string[],
     wait?: boolean,
     extra?: any,
   ): Promise<Bundle> {
     const localVarFetchArgs = FastlaneApiFetchParamCreator().getBundleForUserOp(
       userOp,
+      hints,
       wait,
       extra,
     );
@@ -452,6 +454,7 @@ const FastlaneApiFetchParamCreator = function () {
      */
     getBundleForUserOp(
       userOp: UserOperation,
+      hints: string[],
       wait?: boolean,
       options: any = {},
     ): FetchArgs {

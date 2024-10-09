@@ -88,12 +88,14 @@ export interface IBackend {
    */
   getBundleForUserOp(
     userOp: UserOperation,
+    hints: string[],
     wait?: boolean,
     extra?: any,
   ): Promise<Bundle>;
 
   _getBundleForUserOp(
     userOp: UserOperation,
+    hints: string[],
     wait?: boolean,
     extra?: any,
   ): Promise<Bundle>;
@@ -211,6 +213,7 @@ export abstract class BaseBackend implements IBackend {
 
   async getBundleForUserOp(
     userOp: UserOperation,
+    hints: string[],
     wait?: boolean,
     extra?: any,
   ): Promise<Bundle> {
@@ -220,7 +223,7 @@ export abstract class BaseBackend implements IBackend {
     }
 
     // Implemented by subclass
-    let bundle = await this._getBundleForUserOp(userOp, wait, extra);
+    let bundle = await this._getBundleForUserOp(userOp, hints, wait, extra);
 
     // Post hooks
     for (const hooksController of this.hooksControllers) {
@@ -253,6 +256,7 @@ export abstract class BaseBackend implements IBackend {
 
   abstract _getBundleForUserOp(
     userOp: UserOperation,
+    hints: string[],
     wait?: boolean,
     extra?: any,
   ): Promise<Bundle>;

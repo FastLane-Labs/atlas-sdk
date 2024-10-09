@@ -322,12 +322,14 @@ describe("Atlas SDK main tests", () => {
     userOp = sdk.generateSessionKey(userOp);
     userOp = await sdk.signUserOperation(userOp, signer);
 
-    const solverOps = await sdk.submitUserOperation(userOp);
+    const hints = ["0x1234567890123456789012345678901234567890"];
+    const solverOps = await sdk.submitUserOperation(userOp, hints);
     const dAppOp = await sdk.createDAppOperation(userOp, solverOps);
 
     // Submit the bundle
     await sdk.submitBundle(userOp, solverOps, dAppOp);
 
+    // Now try to retrieve the bundle using the userOp and hints
     // Now try to retrieve the bundle using the userOp
     const retrievedBundle = await sdk.getBundleForUserOp(userOp);
 
