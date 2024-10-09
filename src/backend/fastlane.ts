@@ -64,21 +64,19 @@ export class FastlaneBackend extends BaseBackend {
     super(params);
   }
 
-  /**
-   * Submit a user operation to the backend
-   * @summary Submit a user operation to the backend
-   * @param {UserOperation} [userOp] The user operation
-   * @param {string[]} [hints] Hints for solvers
-   * @param {*} [extra] Extra parameters
-   * @returns {Promise<string>} The hash of the user operation
-   */
   public async _submitUserOperation(
+    chainId: number,
     userOp: UserOperation,
     hints: string[],
     extra?: any,
   ): Promise<string> {
     const localVarFetchArgs =
-      FastlaneApiFetchParamCreator().submitUserOperation(userOp, hints, extra);
+      FastlaneApiFetchParamCreator().submitUserOperation(
+        chainId,
+        userOp,
+        hints,
+        extra,
+      );
     const response = await fetch(
       this.params["basePath"] + localVarFetchArgs.url,
       localVarFetchArgs.options,
@@ -91,23 +89,16 @@ export class FastlaneBackend extends BaseBackend {
     }
   }
 
-  /**
-   * Get solver operations for a user operation previously submitted
-   * @summary Get solver operations for a user operation previously submitted
-   * @param {UserOperation} [userOp] The user operation
-   * @param {string} userOpHash The hash of the user operation
-   * @param {boolean} [wait] Hold the request until having a response
-   * @param {*} [extra] Extra parameters
-   * @returns {Promise<SolverOperation[]>} The solver operations
-   */
   public async _getSolverOperations(
-    _: UserOperation,
+    chainId: number,
+    userOp: UserOperation,
     userOpHash: string,
     wait?: boolean,
     extra?: any,
   ): Promise<SolverOperation[]> {
     const localVarFetchArgs =
       FastlaneApiFetchParamCreator().getSolverOperations(
+        chainId,
         userOpHash,
         wait,
         extra,
@@ -130,15 +121,13 @@ export class FastlaneBackend extends BaseBackend {
     }
   }
 
-  /**
-   * Submit user/solvers/dApp operations to the backend for bundling
-   * @summary Submit a bundle of user/solvers/dApp operations to the backend
-   * @param {Bundle} [bundle] The user/solvers/dApp operations to be bundled
-   * @param {*} [extra] Extra parameters
-   * @returns {Promise<string>} The result message
-   */
-  public async _submitBundle(bundle: Bundle, extra?: any): Promise<string> {
+  public async _submitBundle(
+    chainId: number,
+    bundle: Bundle,
+    extra?: any,
+  ): Promise<string> {
     const localVarFetchArgs = FastlaneApiFetchParamCreator().submitBundle(
+      chainId,
       bundle,
       extra,
     );
@@ -154,20 +143,14 @@ export class FastlaneBackend extends BaseBackend {
     }
   }
 
-  /**
-   * Get the Atlas transaction hash from a previously submitted bundle
-   * @summary Get the Atlas transaction hash from a previously submitted bundle
-   * @param {string} userOpHash The hash of the user operation
-   * @param {boolean} [wait] Hold the request until having a response
-   * @param {*} [extra] Extra parameters
-   * @returns {Promise<string>} The Atlas transaction hash
-   */
   public async _getBundleHash(
+    chainId: number,
     userOpHash: string,
     wait?: boolean,
     extra?: any,
   ): Promise<string> {
     const localVarFetchArgs = FastlaneApiFetchParamCreator().getBundleHash(
+      chainId,
       userOpHash,
       wait,
       extra,
@@ -184,21 +167,15 @@ export class FastlaneBackend extends BaseBackend {
     }
   }
 
-  /**
-   * Get the full bundle for a given user operation
-   * @summary Get the full bundle for a given user operation
-   * @param {UserOperation} userOp The user operation
-   * @param {boolean} [wait] Hold the request until having a response
-   * @param {*} [extra] Extra parameters
-   * @returns {Promise<Bundle>} The full bundle
-   */
   public async _getBundleForUserOp(
+    chainId: number,
     userOp: UserOperation,
     hints: string[],
     wait?: boolean,
     extra?: any,
   ): Promise<Bundle> {
     const localVarFetchArgs = FastlaneApiFetchParamCreator().getBundleForUserOp(
+      chainId,
       userOp,
       hints,
       wait,
@@ -211,7 +188,7 @@ export class FastlaneBackend extends BaseBackend {
     if (response.status >= 200 && response.status < 300) {
       const bundleData = await response.json();
       return OperationBuilder.newBundle(
-        this.chainId,
+        chainId,
         OperationBuilder.newUserOperation(bundleData.userOperation),
         bundleData.solverOperations.map((op: any) =>
           OperationBuilder.newSolverOperation(op),
@@ -227,14 +204,8 @@ export class FastlaneBackend extends BaseBackend {
 
 const FastlaneApiFetchParamCreator = function () {
   return {
-    /**
-     * Submit a user operation to the backend
-     * @summary Submit a user operation to the backend
-     * @param {UserOperation} [userOp] The user operation
-     * @param {string[]} [hints] Hints for solvers
-     * @param {*} [options] Override http request option.
-     */
     submitUserOperation(
+      chainId: number,
       userOp: UserOperation,
       hints: string[],
       options: any = {},
@@ -285,14 +256,8 @@ const FastlaneApiFetchParamCreator = function () {
         options: localVarRequestOptions,
       };
     },
-    /**
-     * Get solver operations for a user operation previously submitted
-     * @summary Get solver operations for a user operation previously submitted
-     * @param {string} userOpHash The hash of the user operation
-     * @param {boolean} [wait] Hold the request until having a response
-     * @param {*} [options] Override http request option.
-     */
     getSolverOperations(
+      chainId: number,
       userOpHash: string,
       wait?: boolean,
       options: any = {},
@@ -339,13 +304,11 @@ const FastlaneApiFetchParamCreator = function () {
         options: localVarRequestOptions,
       };
     },
-    /**
-     * Submit user/solvers/dApp operations to the backend for bundling
-     * @summary Submit a bundle of user/solvers/dApp operations to the backend
-     * @param {Bundle} [bundle] The user/solvers/dApp operations to be bundled
-     * @param {*} [options] Override http request option.
-     */
-    submitBundle(bundle: Bundle, options: any = {}): FetchArgs {
+    submitBundle(
+      chainId: number,
+      bundle: Bundle,
+      options: any = {},
+    ): FetchArgs {
       const bundleStruct = {
         userOperation: bundle.userOperation.toStruct(),
         solverOperations: bundle.solverOperations.map((op) => op.toStruct()),
@@ -391,14 +354,8 @@ const FastlaneApiFetchParamCreator = function () {
         options: localVarRequestOptions,
       };
     },
-    /**
-     * Get the Atlas transaction hash from a previously submitted bundle
-     * @summary Get the Atlas transaction hash from a previously submitted bundle
-     * @param {string} userOpHash The hash of the user operation
-     * @param {boolean} [wait] Hold the request until having a response
-     * @param {*} [options] Override http request option.
-     */
     getBundleHash(
+      chainId: number,
       userOpHash: string,
       wait?: boolean,
       options: any = {},
@@ -445,15 +402,8 @@ const FastlaneApiFetchParamCreator = function () {
         options: localVarRequestOptions,
       };
     },
-    /**
-     * Get the full bundle for a given user operation
-     * @summary Get the full bundle for a given user operation
-     * @param {UserOperation} userOp The user operation
-     * @param {string[]} hints Hints for solvers
-     * @param {boolean} [wait] Hold the request until having a response
-     * @param {*} [options] Override http request option.
-     */
     getBundleForUserOp(
+      chainId: number,
       userOp: UserOperation,
       hints: string[],
       wait?: boolean,

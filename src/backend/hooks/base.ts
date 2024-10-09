@@ -3,17 +3,21 @@ import { UserOperation, SolverOperation, Bundle } from "../../operation";
 
 export interface IHooksController {
   preSubmitUserOperation(
+    chainId: number,
     userOp: UserOperation,
     hints: string[],
     extra?: any,
   ): Promise<[UserOperation, string[], any]>;
 
   postSubmitUserOperation(
+    chainId: number,
     userOp: UserOperation,
     userOphash: string,
+    extra?: any,
   ): Promise<[UserOperation, string]>;
 
   preGetSolverOperations(
+    chainId: number,
     userOp: UserOperation,
     userOphash: string,
     wait?: boolean,
@@ -21,43 +25,62 @@ export interface IHooksController {
   ): Promise<[UserOperation, string, boolean, any]>;
 
   postGetSolverOperations(
+    chainId: number,
     userOp: UserOperation,
     solverOps: SolverOperation[],
+    extra?: any,
   ): Promise<[UserOperation, SolverOperation[]]>;
 
-  preSubmitBundle(bundle: Bundle, extra?: any): Promise<[Bundle, any]>;
+  preSubmitBundle(
+    chainId: number,
+    bundle: Bundle,
+    extra?: any,
+  ): Promise<[Bundle, any]>;
 
-  postSubmitBundle(result: string): Promise<string>;
+  postSubmitBundle(
+    chainId: number,
+    result: string,
+    extra?: any,
+  ): Promise<string>;
 
   preGetBundleHash(
+    chainId: number,
     userOphash: string,
     wait?: boolean,
     extra?: any,
   ): Promise<[string, boolean, any]>;
 
-  postGetBundleHash(atlasTxHash: string): Promise<string>;
+  postGetBundleHash(
+    chainId: number,
+    atlasTxHash: string,
+    extra?: any,
+  ): Promise<string>;
 
   preGetBundleForUserOp(
+    chainId: number,
     userOp: UserOperation,
     hints: string[],
     wait?: boolean,
     extra?: any,
   ): Promise<[UserOperation, string[], boolean | undefined, any]>;
 
-  postGetBundleForUserOp(bundle: Bundle): Promise<Bundle>;
+  postGetBundleForUserOp(
+    chainId: number,
+    bundle: Bundle,
+    extra?: any,
+  ): Promise<Bundle>;
 }
 
 export interface IHooksControllerConstructable {
-  new (provider: AbstractProvider, chainId: number): IHooksController;
+  new (provider: AbstractProvider): IHooksController;
 }
 
 export abstract class BaseHooksController implements IHooksController {
-  constructor(
-    protected provider: AbstractProvider,
-    protected chainId: number,
-  ) {}
+  constructor(protected provider: AbstractProvider) {}
 
   async preSubmitUserOperation(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    chainId: number,
     userOp: UserOperation,
     hints: string[],
     extra?: any,
@@ -66,13 +89,19 @@ export abstract class BaseHooksController implements IHooksController {
   }
 
   async postSubmitUserOperation(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    chainId: number,
     userOp: UserOperation,
     userOphash: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    extra?: any,
   ): Promise<[UserOperation, string]> {
     return [userOp, userOphash];
   }
 
   async preGetSolverOperations(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    chainId: number,
     userOp: UserOperation,
     userOphash: string,
     wait?: boolean,
@@ -82,21 +111,36 @@ export abstract class BaseHooksController implements IHooksController {
   }
 
   async postGetSolverOperations(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    chainId: number,
     userOp: UserOperation,
     solverOps: SolverOperation[],
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    extra?: any,
   ): Promise<[UserOperation, SolverOperation[]]> {
     return [userOp, solverOps];
   }
 
-  async preSubmitBundle(bundle: Bundle, extra?: any): Promise<[Bundle, any]> {
+  async preSubmitBundle(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    chainId: number,
+    bundle: Bundle,
+    extra?: any,
+  ): Promise<[Bundle, any]> {
     return [bundle, extra];
   }
 
-  async postSubmitBundle(result: string): Promise<string> {
+  async postSubmitBundle(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    chainId: number,
+    result: string,
+  ): Promise<string> {
     return result;
   }
 
   async preGetBundleHash(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    chainId: number,
     userOphash: string,
     wait: boolean,
     extra?: any,
@@ -104,11 +148,19 @@ export abstract class BaseHooksController implements IHooksController {
     return [userOphash, wait, extra];
   }
 
-  async postGetBundleHash(atlasTxHash: string): Promise<string> {
+  async postGetBundleHash(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    chainId: number,
+    atlasTxHash: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    extra?: any,
+  ): Promise<string> {
     return atlasTxHash;
   }
 
   async preGetBundleForUserOp(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    chainId: number,
     userOp: UserOperation,
     hints: string[],
     wait?: boolean,
@@ -117,7 +169,13 @@ export abstract class BaseHooksController implements IHooksController {
     return [userOp, hints, wait, extra];
   }
 
-  async postGetBundleForUserOp(bundle: Bundle): Promise<Bundle> {
+  async postGetBundleForUserOp(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    chainId: number,
+    bundle: Bundle,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    extra?: any,
+  ): Promise<Bundle> {
     return bundle;
   }
 }
