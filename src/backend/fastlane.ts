@@ -51,7 +51,7 @@ const ROUTES: Map<string, Route> = new Map([
   [
     "getBundleForUserOp",
     {
-      method: "GET",
+      method: "POST",
       path: "/bundle",
     },
   ],
@@ -449,6 +449,7 @@ const FastlaneApiFetchParamCreator = function () {
      * Get the full bundle for a given user operation
      * @summary Get the full bundle for a given user operation
      * @param {UserOperation} userOp The user operation
+     * @param {string[]} hints Hints for solvers
      * @param {boolean} [wait] Hold the request until having a response
      * @param {*} [options] Override http request option.
      */
@@ -491,9 +492,13 @@ const FastlaneApiFetchParamCreator = function () {
         options.headers,
       );
 
-      localVarRequestOptions.body = JSON.stringify(
-        userOp.toStruct() || {},
-        (_, v) => (typeof v === "bigint" ? toQuantity(v) : v),
+      const requestBody = {
+        userOperation: userOp.toStruct(),
+        hints: hints,
+      };
+
+      localVarRequestOptions.body = JSON.stringify(requestBody, (_, v) =>
+        typeof v === "bigint" ? toQuantity(v) : v,
       );
 
       return {

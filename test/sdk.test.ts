@@ -397,7 +397,7 @@ describe("Atlas SDK main tests", () => {
     await sdk.submitBundle(userOp, solverOps, dAppOp);
 
     // Now try to retrieve the bundle
-    await sdk.getBundleForUserOp(userOp);
+    await sdk.getBundleForUserOp(userOp, [], true, { chainId: chainId });
 
     expect(mockHooksController.preGetBundleForUserOp).toHaveBeenCalledWith(
       userOp,
