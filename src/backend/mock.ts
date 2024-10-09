@@ -5,13 +5,18 @@ import { UserOperation, SolverOperation, Bundle } from "../operation";
 import { flagTrustedOpHash } from "../utils";
 import { chainConfig } from "../config";
 
-const chainId = 11155111;
-
 export class MockBackend extends BaseBackend {
   private submittedBundles: { [key: string]: Bundle } = {};
 
-  constructor() {
-    super();
+  constructor(params: { [k: string]: string } = {}) {
+    super(params);
+  }
+
+  private generateUserOpHash(userOp: UserOperation): string {
+    return userOp.hash(
+      chainConfig[this.chainId].eip712Domain,
+      flagTrustedOpHash(userOp.callConfig()),
+    );
   }
 
   /**
@@ -29,10 +34,8 @@ export class MockBackend extends BaseBackend {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     extra?: any,
   ): Promise<string> {
-    return userOp.hash(
-      chainConfig[chainId].eip712Domain,
-      flagTrustedOpHash(userOp.callConfig()),
-    );
+    const userOpHash = this.generateUserOpHash(userOp);
+    return userOpHash;
   }
 
   /**
@@ -88,10 +91,7 @@ export class MockBackend extends BaseBackend {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     extra?: any,
   ): Promise<string> {
-    const userOpHash = bundle.userOperation.hash(
-      chainConfig[chainId].eip712Domain,
-      flagTrustedOpHash(bundle.userOperation.callConfig()),
-    );
+    const userOpHash = this.generateUserOpHash(bundle.userOperation);
     this.submittedBundles[userOpHash] = bundle;
     return userOpHash;
   }
@@ -113,10 +113,35 @@ export class MockBackend extends BaseBackend {
   ): Promise<string> {
     const bundle = this.submittedBundles[userOpHash];
     if (bundle === undefined) {
-      throw "Bundle not found";
+      throw new Error(`Bundle not found for userOpHash: ${userOpHash}`);
     }
 
     // Simulate a random transaction hash
     return keccak256(bundle.dAppOperation.abiEncode());
+  }
+
+  /**
+   * Get the full bundle for a given user operation
+   * @summary Get the full bundle for a given user operation
+   * @param {UserOperation} userOp The user operation
+   * @param {boolean} [wait] Hold the request until having a response
+   * @param {*} [extra] Extra parameters
+   * @returns {Promise<Bundle>} The full bundle
+   */
+  public async _getBundleForUserOp(
+    userOp: UserOperation,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    hints: string[],
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    wait?: boolean,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    extra?: any,
+  ): Promise<Bundle> {
+    const userOpHash = this.generateUserOpHash(userOp);
+    const bundle = this.submittedBundles[userOpHash];
+    if (bundle === undefined) {
+      throw new Error(`Bundle not found for userOp: ${userOpHash}`);
+    }
+    return bundle;
   }
 }

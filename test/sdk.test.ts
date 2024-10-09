@@ -15,7 +15,7 @@ describe("Atlas SDK main tests", () => {
   const sdk = new AtlasSdk(
     new JsonRpcProvider("https://rpc.sepolia.org/", chainId),
     chainId,
-    new MockBackend(),
+    new MockBackend({ chainId: chainId.toString() }),
   );
 
   const testDAppControl = "0x60d7B59c6743C25b29a7aEe6F5a37c07B1A6Cff3";
@@ -315,5 +315,93 @@ describe("Atlas SDK main tests", () => {
 
     // Validate atlasTxHash
     expect(validateBytes32(atlasTxHash)).toBe(true);
+  });
+
+  test("getBundleForUserOp - successful retrieval", async () => {
+    let userOp = OperationBuilder.newUserOperation(userOpParams);
+    userOp = sdk.generateSessionKey(userOp);
+    userOp = await sdk.signUserOperation(userOp, signer);
+
+    const hints = ["0x1234567890123456789012345678901234567890"];
+    const solverOps = await sdk.submitUserOperation(userOp, hints);
+    const dAppOp = await sdk.createDAppOperation(userOp, solverOps);
+
+    // Submit the bundle
+    await sdk.submitBundle(userOp, solverOps, dAppOp);
+
+    // Now try to retrieve the bundle using the userOp and hints
+    // Now try to retrieve the bundle using the userOp
+    const retrievedBundle = await sdk.getBundleForUserOp(userOp);
+
+    expect(retrievedBundle).toBeDefined();
+    expect(
+      retrievedBundle.userOperation.hash(
+        chainConfig[chainId].eip712Domain,
+        true,
+      ),
+    ).toBe(userOp.hash(chainConfig[chainId].eip712Domain, true));
+    expect(retrievedBundle.solverOperations.length).toBe(solverOps.length);
+    expect(retrievedBundle.dAppOperation.abiEncode()).toBe(dAppOp.abiEncode());
+  });
+
+  test("getBundleForUserOp - non-existent bundle", async () => {
+    const nonExistentUserOp = OperationBuilder.newUserOperation({
+      ...userOpParams,
+      nonce: 999999n, // Use a nonce that's unlikely to exist
+    });
+    await expect(sdk.getBundleForUserOp(nonExistentUserOp)).rejects.toThrow(
+      "Bundle not found",
+    );
+  });
+
+  test("getBundleForUserOp - hooks called correctly", async () => {
+    const mockHooksController = {
+      preSubmitUserOperation: jest
+        .fn()
+        .mockImplementation(async (userOp, hints) => [userOp, hints]),
+      postSubmitUserOperation: jest
+        .fn()
+        .mockImplementation(async (userOp, userOpHash) => [userOp, userOpHash]),
+      preGetSolverOperations: jest
+        .fn()
+        .mockImplementation(async (userOp, userOpHash) => [userOp, userOpHash]),
+      postGetSolverOperations: jest
+        .fn()
+        .mockImplementation(async (userOp, solverOps) => [userOp, solverOps]),
+      preSubmitBundle: jest.fn().mockImplementation(async (bundle) => bundle),
+      postSubmitBundle: jest.fn().mockImplementation(async (result) => result),
+      preGetBundleHash: jest
+        .fn()
+        .mockImplementation(async (userOpHash) => userOpHash),
+      postGetBundleHash: jest
+        .fn()
+        .mockImplementation(async (atlasTxHash) => atlasTxHash),
+      preGetBundleForUserOp: jest
+        .fn()
+        .mockImplementation(async (userOp) => userOp),
+      postGetBundleForUserOp: jest
+        .fn()
+        .mockImplementation(async (bundle) => bundle),
+    };
+
+    sdk.addHooksControllers([mockHooksController as any]);
+
+    let userOp = OperationBuilder.newUserOperation(userOpParams);
+    userOp = sdk.generateSessionKey(userOp);
+    userOp = await sdk.signUserOperation(userOp, signer);
+
+    const solverOps = await sdk.submitUserOperation(userOp);
+    const dAppOp = await sdk.createDAppOperation(userOp, solverOps);
+
+    // Submit the bundle
+    await sdk.submitBundle(userOp, solverOps, dAppOp);
+
+    // Now try to retrieve the bundle
+    await sdk.getBundleForUserOp(userOp, []);
+
+    expect(mockHooksController.preGetBundleForUserOp).toHaveBeenCalledWith(
+      userOp,
+    );
+    expect(mockHooksController.postGetBundleForUserOp).toHaveBeenCalled();
   });
 });

@@ -14,9 +14,13 @@ import {
   UserOperationParams,
   OperationBuilder,
   ZeroBytes,
+  Bundle,
 } from "./operation";
 import { IBackend } from "./backend";
-import { IHooksControllerConstructable } from "./backend/hooks";
+import {
+  IHooksController,
+  IHooksControllerConstructable,
+} from "./backend/hooks";
 import {
   validateAddress,
   flagUserNoncesSequential,
@@ -392,15 +396,17 @@ export class AtlasSdk {
       );
     }
 
-    const bundle = OperationBuilder.newBundle(userOp, solverOps, dAppOp);
+    const bundle = OperationBuilder.newBundle(
+      this.chainId,
+      userOp,
+      solverOps,
+      dAppOp,
+    );
     bundle.validate(chainConfig[this.chainId].eip712Domain);
 
     const remoteUserOpHash = await this.backend.submitBundle(bundle);
 
-    const userOpHash = userOp.hash(
-      chainConfig[this.chainId].eip712Domain,
-      flagTrustedOpHash(userOp.callConfig()),
-    );
+    const userOpHash = this.getUserOperationHash(userOp);
 
     if (userOpHash !== remoteUserOpHash) {
       throw new Error("User operation hash mismatch");
@@ -412,5 +418,30 @@ export class AtlasSdk {
     );
 
     return atlasTxHash;
+  }
+
+  /**
+   * Retrieves a bundle for a given user operation.
+   * @param userOp The user operation
+   * @param hints An array of hints for solvers
+   * @param wait Hold the request until having a response
+   * @param extra Extra parameters
+   * @returns The bundle associated with the user operation
+   */
+  public async getBundleForUserOp(
+    userOp: UserOperation,
+    hints: string[] = [],
+    wait?: boolean,
+    extra?: any,
+  ): Promise<Bundle> {
+    return this.backend.getBundleForUserOp(userOp, hints, wait, extra);
+  }
+
+  /**
+   * Adds hooks controllers to the backend.
+   * @param hooksControllers An array of hooks controllers
+   */
+  public addHooksControllers(hooksControllers: IHooksController[]): void {
+    this.backend.addHooksControllers(hooksControllers);
   }
 }

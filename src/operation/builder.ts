@@ -145,10 +145,11 @@ export abstract class OperationBuilder {
   }
 
   public static newBundle(
+    chainId: number,
     userOp: UserOperation,
     solverOps: SolverOperation[],
     dAppOp: DAppOperation,
   ): Bundle {
-    return new Bundle(userOp, solverOps, dAppOp);
+    return new Bundle(chainId, userOp, solverOps, dAppOp);
   }
 }

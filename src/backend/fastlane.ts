@@ -48,6 +48,13 @@ const ROUTES: Map<string, Route> = new Map([
       path: "/bundleHash",
     },
   ],
+  [
+    "getBundleForUserOp",
+    {
+      method: "POST",
+      path: "/bundle",
+    },
+  ],
 ]);
 
 export class FastlaneBackend extends BaseBackend {
@@ -174,6 +181,46 @@ export class FastlaneBackend extends BaseBackend {
     } else {
       const reponseBody = await response.json();
       throw new Error(reponseBody.message);
+    }
+  }
+
+  /**
+   * Get the full bundle for a given user operation
+   * @summary Get the full bundle for a given user operation
+   * @param {UserOperation} userOp The user operation
+   * @param {boolean} [wait] Hold the request until having a response
+   * @param {*} [extra] Extra parameters
+   * @returns {Promise<Bundle>} The full bundle
+   */
+  public async _getBundleForUserOp(
+    userOp: UserOperation,
+    hints: string[],
+    wait?: boolean,
+    extra?: any,
+  ): Promise<Bundle> {
+    const localVarFetchArgs = FastlaneApiFetchParamCreator().getBundleForUserOp(
+      userOp,
+      hints,
+      wait,
+      extra,
+    );
+    const response = await fetch(
+      this.params["basePath"] + localVarFetchArgs.url,
+      localVarFetchArgs.options,
+    );
+    if (response.status >= 200 && response.status < 300) {
+      const bundleData = await response.json();
+      return OperationBuilder.newBundle(
+        this.chainId,
+        OperationBuilder.newUserOperation(bundleData.userOperation),
+        bundleData.solverOperations.map((op: any) =>
+          OperationBuilder.newSolverOperation(op),
+        ),
+        OperationBuilder.newDAppOperation(bundleData.dAppOperation),
+      );
+    } else {
+      const responseBody = await response.json();
+      throw new Error(responseBody.message);
     }
   }
 }
@@ -391,6 +438,67 @@ const FastlaneApiFetchParamCreator = function () {
         {},
         localVarHeaderParameter,
         options.headers,
+      );
+
+      return {
+        url: url.format(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     * Get the full bundle for a given user operation
+     * @summary Get the full bundle for a given user operation
+     * @param {UserOperation} userOp The user operation
+     * @param {string[]} hints Hints for solvers
+     * @param {boolean} [wait] Hold the request until having a response
+     * @param {*} [options] Override http request option.
+     */
+    getBundleForUserOp(
+      userOp: UserOperation,
+      hints: string[],
+      wait?: boolean,
+      options: any = {},
+    ): FetchArgs {
+      if (userOp === null || userOp === undefined) {
+        throw "Required parameter userOp was null or undefined when calling getBundle.";
+      }
+      const localVarUrlObj = url.parse(
+        ROUTES.get("getBundleForUserOp")?.path as string,
+        true,
+      );
+      const localVarRequestOptions = Object.assign(
+        { method: ROUTES.get("getBundleForUserOp")?.method as string },
+        options,
+      );
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      localVarHeaderParameter["Content-Type"] = "application/json";
+
+      if (wait !== undefined) {
+        localVarQueryParameter["wait"] = wait;
+      }
+
+      localVarUrlObj.query = Object.assign(
+        {},
+        localVarUrlObj.query,
+        localVarQueryParameter,
+        options.query,
+      );
+      localVarUrlObj.search = null;
+      localVarRequestOptions.headers = Object.assign(
+        {},
+        localVarHeaderParameter,
+        options.headers,
+      );
+
+      const requestBody = {
+        userOperation: userOp.toStruct(),
+        hints: hints,
+      };
+
+      localVarRequestOptions.body = JSON.stringify(requestBody, (_, v) =>
+        typeof v === "bigint" ? toQuantity(v) : v,
       );
 
       return {
