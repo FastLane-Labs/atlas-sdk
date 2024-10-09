@@ -209,6 +209,7 @@ export class FastlaneBackend extends BaseBackend {
     if (response.status >= 200 && response.status < 300) {
       const bundleData = await response.json();
       return OperationBuilder.newBundle(
+        this.chainId,
         OperationBuilder.newUserOperation(bundleData.userOperation),
         bundleData.solverOperations.map((op: any) =>
           OperationBuilder.newSolverOperation(op),

@@ -396,7 +396,12 @@ export class AtlasSdk {
       );
     }
 
-    const bundle = OperationBuilder.newBundle(userOp, solverOps, dAppOp);
+    const bundle = OperationBuilder.newBundle(
+      this.chainId,
+      userOp,
+      solverOps,
+      dAppOp,
+    );
     bundle.validate(chainConfig[this.chainId].eip712Domain);
 
     const remoteUserOpHash = await this.backend.submitBundle(bundle);

@@ -15,7 +15,7 @@ describe("Atlas SDK main tests", () => {
   const sdk = new AtlasSdk(
     new JsonRpcProvider("https://rpc.sepolia.org/", chainId),
     chainId,
-    new MockBackend(chainId), // Pass chainId here
+    new MockBackend({ chainId: chainId.toString() }),
   );
 
   const testDAppControl = "0x60d7B59c6743C25b29a7aEe6F5a37c07B1A6Cff3";

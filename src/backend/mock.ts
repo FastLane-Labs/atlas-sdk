@@ -7,11 +7,9 @@ import { chainConfig } from "../config";
 
 export class MockBackend extends BaseBackend {
   private submittedBundles: { [key: string]: Bundle } = {};
-  private chainId: number;
 
-  constructor(chainId: number = 11155111) {
-    super();
-    this.chainId = chainId;
+  constructor(params: { [k: string]: string } = {}) {
+    super(params);
   }
 
   private generateUserOpHash(userOp: UserOperation): string {

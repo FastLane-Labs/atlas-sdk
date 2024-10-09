@@ -101,8 +101,11 @@ export interface IBackend {
 
 export abstract class BaseBackend implements IBackend {
   protected hooksControllers: IHooksController[] = [];
+  protected chainId: number;
 
-  constructor(protected params: { [k: string]: string } = {}) {}
+  constructor(protected params: { [k: string]: string } = {}) {
+    this.chainId = Number(params.chainId);
+  }
 
   addHooksControllers(hooksControllers: IHooksController[]): void {
     this.hooksControllers.push(...hooksControllers);
