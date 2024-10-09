@@ -21,4 +21,12 @@ export class Bundle {
     this.dAppOperation.validate(tdDomain);
     // We don't validate solver operations
   }
+
+  public toJSON(): any {
+    return {
+      userOperation: this.userOperation.toStruct(),
+      solverOperations: this.solverOperations.map((op) => op.toStruct()),
+      dAppOperation: this.dAppOperation.toStruct(),
+    };
+  }
 }
