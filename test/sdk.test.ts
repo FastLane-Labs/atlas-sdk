@@ -316,4 +316,81 @@ describe("Atlas SDK main tests", () => {
     // Validate atlasTxHash
     expect(validateBytes32(atlasTxHash)).toBe(true);
   });
+
+  test("getBundle - successful retrieval", async () => {
+    let userOp = OperationBuilder.newUserOperation(userOpParams);
+    userOp = sdk.generateSessionKey(userOp);
+    userOp = await sdk.signUserOperation(userOp, signer);
+
+    const solverOps = await sdk.submitUserOperation(userOp);
+    const dAppOp = await sdk.createDAppOperation(userOp, solverOps);
+
+    const userOpHash = await sdk.submitBundle(userOp, solverOps, dAppOp);
+
+    const retrievedBundle = await sdk.getBundle(userOpHash);
+
+    expect(retrievedBundle).toBeDefined();
+    expect(
+      retrievedBundle.userOperation.hash(
+        chainConfig[chainId].eip712Domain,
+        true,
+      ),
+    ).toBe(userOp.hash(chainConfig[chainId].eip712Domain, true));
+    expect(retrievedBundle.solverOperations.length).toBe(solverOps.length);
+    expect(retrievedBundle.dAppOperation.abiEncode()).toBe(dAppOp.abiEncode());
+  });
+
+  test("getBundle - non-existent bundle", async () => {
+    const nonExistentHash = "0x" + "1".repeat(64);
+
+    await expect(sdk.getBundle(nonExistentHash)).rejects.toThrow(
+      "Bundle not found",
+    );
+  });
+
+  test("getBundle - hooks called correctly", async () => {
+    const mockHooksController = {
+      preSubmitUserOperation: jest
+        .fn()
+        .mockImplementation(async (userOp, hints) => [userOp, hints]),
+      postSubmitUserOperation: jest
+        .fn()
+        .mockImplementation(async (userOp, userOpHash) => [userOp, userOpHash]),
+      preGetSolverOperations: jest
+        .fn()
+        .mockImplementation(async (userOp, userOpHash) => [userOp, userOpHash]),
+      postGetSolverOperations: jest
+        .fn()
+        .mockImplementation(async (userOp, solverOps) => [userOp, solverOps]),
+      preSubmitBundle: jest.fn().mockImplementation(async (bundle) => bundle),
+      postSubmitBundle: jest.fn().mockImplementation(async (result) => result),
+      preGetBundleHash: jest
+        .fn()
+        .mockImplementation(async (userOpHash) => userOpHash),
+      postGetBundleHash: jest
+        .fn()
+        .mockImplementation(async (atlasTxHash) => atlasTxHash),
+      preGetBundle: jest
+        .fn()
+        .mockImplementation(async (userOpHash) => userOpHash),
+      postGetBundle: jest.fn().mockImplementation(async (bundle) => bundle),
+    };
+
+    // Use the new public method to add the hooks controller
+    sdk.addHooksControllers([mockHooksController as any]);
+
+    let userOp = OperationBuilder.newUserOperation(userOpParams);
+    userOp = sdk.generateSessionKey(userOp);
+    userOp = await sdk.signUserOperation(userOp, signer);
+
+    const solverOps = await sdk.submitUserOperation(userOp);
+    const dAppOp = await sdk.createDAppOperation(userOp, solverOps);
+
+    const userOpHash = await sdk.submitBundle(userOp, solverOps, dAppOp);
+
+    await sdk.getBundle(userOpHash);
+
+    expect(mockHooksController.preGetBundle).toHaveBeenCalledWith(userOpHash);
+    expect(mockHooksController.postGetBundle).toHaveBeenCalled();
+  });
 });
