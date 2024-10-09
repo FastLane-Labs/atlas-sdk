@@ -25,7 +25,7 @@ export class SimulationHooksController extends BaseHooksController {
   private maxSolutions: number = 10;
 
   constructor(provider: AbstractProvider, chainId: number) {
-    super(provider, chainId);
+    super(provider);
     this.atlas = new Contract(
       chainConfig[chainId].contracts.atlas.address,
       atlasAbi,
@@ -44,6 +44,7 @@ export class SimulationHooksController extends BaseHooksController {
   }
 
   async preSubmitUserOperation(
+    chainId: number,
     userOp: UserOperation,
     hints: string[],
     extra?: any,
@@ -62,6 +63,7 @@ export class SimulationHooksController extends BaseHooksController {
   }
 
   async postGetSolverOperations(
+    chainId: number,
     userOp: UserOperation,
     solverOps: SolverOperation[],
   ): Promise<[UserOperation, SolverOperation[]]> {
@@ -143,6 +145,7 @@ export class SimulationHooksController extends BaseHooksController {
   }
 
   async preSubmitBundle(
+    chainId: number,
     bundleOps: Bundle,
     extra?: any,
   ): Promise<[Bundle, any]> {
