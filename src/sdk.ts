@@ -14,9 +14,13 @@ import {
   UserOperationParams,
   OperationBuilder,
   ZeroBytes,
+  Bundle,
 } from "./operation";
 import { IBackend } from "./backend";
-import { IHooksControllerConstructable } from "./backend/hooks";
+import {
+  IHooksController,
+  IHooksControllerConstructable,
+} from "./backend/hooks";
 import {
   validateAddress,
   flagUserNoncesSequential,
@@ -412,5 +416,22 @@ export class AtlasSdk {
     );
 
     return atlasTxHash;
+  }
+
+  /**
+   * Retrieves a bundle for a given user operation hash.
+   * @param userOpHash The hash of the user operation
+   * @returns The bundle associated with the user operation hash
+   */
+  public async getBundle(userOpHash: string): Promise<Bundle> {
+    return this.backend.getBundle(userOpHash);
+  }
+
+  /**
+   * Adds hooks controllers to the backend.
+   * @param hooksControllers An array of hooks controllers
+   */
+  public addHooksControllers(hooksControllers: IHooksController[]): void {
+    this.backend.addHooksControllers(hooksControllers);
   }
 }

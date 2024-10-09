@@ -48,6 +48,13 @@ const ROUTES: Map<string, Route> = new Map([
       path: "/bundleHash",
     },
   ],
+  [
+    "getBundle",
+    {
+      method: "GET",
+      path: "/bundle",
+    },
+  ],
 ]);
 
 export class FastlaneBackend extends BaseBackend {
@@ -174,6 +181,43 @@ export class FastlaneBackend extends BaseBackend {
     } else {
       const reponseBody = await response.json();
       throw new Error(reponseBody.message);
+    }
+  }
+
+  /**
+   * Get the full bundle for a given user operation hash
+   * @summary Get the full bundle for a given user operation hash
+   * @param {string} userOpHash The hash of the user operation
+   * @param {boolean} [wait] Hold the request until having a response
+   * @param {*} [extra] Extra parameters
+   * @returns {Promise<Bundle>} The full bundle
+   */
+  public async _getBundle(
+    userOpHash: string,
+    wait?: boolean,
+    extra?: any,
+  ): Promise<Bundle> {
+    const localVarFetchArgs = FastlaneApiFetchParamCreator().getBundle(
+      userOpHash,
+      wait,
+      extra,
+    );
+    const response = await fetch(
+      this.params["basePath"] + localVarFetchArgs.url,
+      localVarFetchArgs.options,
+    );
+    if (response.status >= 200 && response.status < 300) {
+      const bundleData = await response.json();
+      return OperationBuilder.newBundle(
+        OperationBuilder.newUserOperation(bundleData.userOperation),
+        bundleData.solverOperations.map((op: any) =>
+          OperationBuilder.newSolverOperation(op),
+        ),
+        OperationBuilder.newDAppOperation(bundleData.dAppOperation),
+      );
+    } else {
+      const responseBody = await response.json();
+      throw new Error(responseBody.message);
     }
   }
 }
@@ -374,6 +418,57 @@ const FastlaneApiFetchParamCreator = function () {
       if (userOpHash !== undefined) {
         localVarQueryParameter["operationHash"] = userOpHash;
       }
+
+      if (wait !== undefined) {
+        localVarQueryParameter["wait"] = wait;
+      }
+
+      localVarUrlObj.query = Object.assign(
+        {},
+        localVarUrlObj.query,
+        localVarQueryParameter,
+        options.query,
+      );
+      // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
+      localVarUrlObj.search = null;
+      localVarRequestOptions.headers = Object.assign(
+        {},
+        localVarHeaderParameter,
+        options.headers,
+      );
+
+      return {
+        url: url.format(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     * Get the full bundle for a given user operation hash
+     * @summary Get the full bundle for a given user operation hash
+     * @param {string} userOpHash The hash of the user operation
+     * @param {boolean} [wait] Hold the request until having a response
+     * @param {*} [options] Override http request option.
+     */
+    getBundle(
+      userOpHash: string,
+      wait?: boolean,
+      options: any = {},
+    ): FetchArgs {
+      if (userOpHash === null || userOpHash === undefined) {
+        throw "Required parameter userOpHash was null or undefined when calling getBundle.";
+      }
+      const localVarUrlObj = url.parse(
+        ROUTES.get("getBundle")?.path as string,
+        true,
+      );
+      const localVarRequestOptions = Object.assign(
+        { method: ROUTES.get("getBundle")?.method as string },
+        options,
+      );
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      localVarQueryParameter["userOpHash"] = userOpHash;
 
       if (wait !== undefined) {
         localVarQueryParameter["wait"] = wait;

@@ -77,6 +77,18 @@ export interface IBackend {
     wait?: boolean,
     extra?: any,
   ): Promise<string>;
+
+  /**
+   * Get the full bundle for a given user operation hash
+   * @summary Get the full bundle for a given user operation hash
+   * @param {string} userOpHash The hash of the user operation
+   * @param {boolean} [wait] Hold the request until having a response
+   * @param {*} [extra] Extra parameters
+   * @returns {Promise<Bundle>} The full bundle
+   */
+  getBundle(userOpHash: string, wait?: boolean, extra?: any): Promise<Bundle>;
+
+  _getBundle(userOpHash: string, wait?: boolean, extra?: any): Promise<Bundle>;
 }
 
 export abstract class BaseBackend implements IBackend {
@@ -186,6 +198,27 @@ export abstract class BaseBackend implements IBackend {
     return atlasTxHash;
   }
 
+  async getBundle(
+    userOpHash: string,
+    wait?: boolean,
+    extra?: any,
+  ): Promise<Bundle> {
+    // Pre hooks
+    for (const hooksController of this.hooksControllers) {
+      userOpHash = await hooksController.preGetBundle(userOpHash);
+    }
+
+    // Implemented by subclass
+    let bundle = await this._getBundle(userOpHash, wait, extra);
+
+    // Post hooks
+    for (const hooksController of this.hooksControllers) {
+      bundle = await hooksController.postGetBundle(bundle);
+    }
+
+    return bundle;
+  }
+
   async _submitUserOperation(
     userOp: UserOperation,
     hints: string[],
@@ -212,6 +245,14 @@ export abstract class BaseBackend implements IBackend {
     wait?: boolean,
     extra?: any,
   ): Promise<string> {
+    throw new Error("Method not implemented.");
+  }
+
+  async _getBundle(
+    userOpHash: string,
+    wait?: boolean,
+    extra?: any,
+  ): Promise<Bundle> {
     throw new Error("Method not implemented.");
   }
 }
