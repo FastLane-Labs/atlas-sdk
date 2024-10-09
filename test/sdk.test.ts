@@ -15,7 +15,7 @@ describe("Atlas SDK main tests", () => {
   const sdk = new AtlasSdk(
     new JsonRpcProvider("https://rpc.sepolia.org/", chainId),
     chainId,
-    new MockBackend(),
+    new MockBackend(chainId), // Pass chainId here
   );
 
   const testDAppControl = "0x60d7B59c6743C25b29a7aEe6F5a37c07B1A6Cff3";
@@ -325,8 +325,13 @@ describe("Atlas SDK main tests", () => {
     const solverOps = await sdk.submitUserOperation(userOp);
     const dAppOp = await sdk.createDAppOperation(userOp, solverOps);
 
-    const userOpHash = await sdk.submitBundle(userOp, solverOps, dAppOp);
+    // Generate userOpHash
+    const userOpHash = sdk.getUserOperationHash(userOp);
 
+    // Submit the bundle and get the atlasTxHash (not used here)
+    await sdk.submitBundle(userOp, solverOps, dAppOp);
+
+    // Now try to retrieve the bundle using the same userOpHash
     const retrievedBundle = await sdk.getBundle(userOpHash);
 
     expect(retrievedBundle).toBeDefined();
@@ -342,7 +347,6 @@ describe("Atlas SDK main tests", () => {
 
   test("getBundle - non-existent bundle", async () => {
     const nonExistentHash = "0x" + "1".repeat(64);
-
     await expect(sdk.getBundle(nonExistentHash)).rejects.toThrow(
       "Bundle not found",
     );
@@ -376,7 +380,6 @@ describe("Atlas SDK main tests", () => {
       postGetBundle: jest.fn().mockImplementation(async (bundle) => bundle),
     };
 
-    // Use the new public method to add the hooks controller
     sdk.addHooksControllers([mockHooksController as any]);
 
     let userOp = OperationBuilder.newUserOperation(userOpParams);
@@ -386,8 +389,13 @@ describe("Atlas SDK main tests", () => {
     const solverOps = await sdk.submitUserOperation(userOp);
     const dAppOp = await sdk.createDAppOperation(userOp, solverOps);
 
-    const userOpHash = await sdk.submitBundle(userOp, solverOps, dAppOp);
+    // Generate userOpHash
+    const userOpHash = sdk.getUserOperationHash(userOp);
 
+    // Submit the bundle and get the atlasTxHash (not used here)
+    await sdk.submitBundle(userOp, solverOps, dAppOp);
+
+    // Now try to retrieve the bundle
     await sdk.getBundle(userOpHash);
 
     expect(mockHooksController.preGetBundle).toHaveBeenCalledWith(userOpHash);

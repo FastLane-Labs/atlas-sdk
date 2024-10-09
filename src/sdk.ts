@@ -401,10 +401,7 @@ export class AtlasSdk {
 
     const remoteUserOpHash = await this.backend.submitBundle(bundle);
 
-    const userOpHash = userOp.hash(
-      chainConfig[this.chainId].eip712Domain,
-      flagTrustedOpHash(userOp.callConfig()),
-    );
+    const userOpHash = this.getUserOperationHash(userOp);
 
     if (userOpHash !== remoteUserOpHash) {
       throw new Error("User operation hash mismatch");
