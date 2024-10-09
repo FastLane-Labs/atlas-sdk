@@ -185,20 +185,20 @@ export class FastlaneBackend extends BaseBackend {
   }
 
   /**
-   * Get the full bundle for a given user operation hash
-   * @summary Get the full bundle for a given user operation hash
-   * @param {string} userOpHash The hash of the user operation
+   * Get the full bundle for a given user operation
+   * @summary Get the full bundle for a given user operation
+   * @param {UserOperation} userOp The user operation
    * @param {boolean} [wait] Hold the request until having a response
    * @param {*} [extra] Extra parameters
    * @returns {Promise<Bundle>} The full bundle
    */
   public async _getBundle(
-    userOpHash: string,
+    userOp: UserOperation,
     wait?: boolean,
     extra?: any,
   ): Promise<Bundle> {
     const localVarFetchArgs = FastlaneApiFetchParamCreator().getBundle(
-      userOpHash,
+      userOp,
       wait,
       extra,
     );
@@ -443,19 +443,19 @@ const FastlaneApiFetchParamCreator = function () {
       };
     },
     /**
-     * Get the full bundle for a given user operation hash
-     * @summary Get the full bundle for a given user operation hash
-     * @param {string} userOpHash The hash of the user operation
+     * Get the full bundle for a given user operation
+     * @summary Get the full bundle for a given user operation
+     * @param {UserOperation} userOp The user operation
      * @param {boolean} [wait] Hold the request until having a response
      * @param {*} [options] Override http request option.
      */
     getBundle(
-      userOpHash: string,
+      userOp: UserOperation,
       wait?: boolean,
       options: any = {},
     ): FetchArgs {
-      if (userOpHash === null || userOpHash === undefined) {
-        throw "Required parameter userOpHash was null or undefined when calling getBundle.";
+      if (userOp === null || userOp === undefined) {
+        throw "Required parameter userOp was null or undefined when calling getBundle.";
       }
       const localVarUrlObj = url.parse(
         ROUTES.get("getBundle")?.path as string,
@@ -468,7 +468,7 @@ const FastlaneApiFetchParamCreator = function () {
       const localVarHeaderParameter = {} as any;
       const localVarQueryParameter = {} as any;
 
-      localVarQueryParameter["userOpHash"] = userOpHash;
+      localVarHeaderParameter["Content-Type"] = "application/json";
 
       if (wait !== undefined) {
         localVarQueryParameter["wait"] = wait;
@@ -480,12 +480,16 @@ const FastlaneApiFetchParamCreator = function () {
         localVarQueryParameter,
         options.query,
       );
-      // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
       localVarUrlObj.search = null;
       localVarRequestOptions.headers = Object.assign(
         {},
         localVarHeaderParameter,
         options.headers,
+      );
+
+      localVarRequestOptions.body = JSON.stringify(
+        userOp.toStruct() || {},
+        (_, v) => (typeof v === "bigint" ? toQuantity(v) : v),
       );
 
       return {

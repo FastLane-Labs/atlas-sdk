@@ -325,14 +325,11 @@ describe("Atlas SDK main tests", () => {
     const solverOps = await sdk.submitUserOperation(userOp);
     const dAppOp = await sdk.createDAppOperation(userOp, solverOps);
 
-    // Generate userOpHash
-    const userOpHash = sdk.getUserOperationHash(userOp);
-
-    // Submit the bundle and get the atlasTxHash (not used here)
+    // Submit the bundle
     await sdk.submitBundle(userOp, solverOps, dAppOp);
 
-    // Now try to retrieve the bundle using the same userOpHash
-    const retrievedBundle = await sdk.getBundle(userOpHash);
+    // Now try to retrieve the bundle using the userOp
+    const retrievedBundle = await sdk.getBundle(userOp);
 
     expect(retrievedBundle).toBeDefined();
     expect(
@@ -346,8 +343,11 @@ describe("Atlas SDK main tests", () => {
   });
 
   test("getBundle - non-existent bundle", async () => {
-    const nonExistentHash = "0x" + "1".repeat(64);
-    await expect(sdk.getBundle(nonExistentHash)).rejects.toThrow(
+    const nonExistentUserOp = OperationBuilder.newUserOperation({
+      ...userOpParams,
+      nonce: 999999n, // Use a nonce that's unlikely to exist
+    });
+    await expect(sdk.getBundle(nonExistentUserOp)).rejects.toThrow(
       "Bundle not found",
     );
   });
@@ -374,9 +374,7 @@ describe("Atlas SDK main tests", () => {
       postGetBundleHash: jest
         .fn()
         .mockImplementation(async (atlasTxHash) => atlasTxHash),
-      preGetBundle: jest
-        .fn()
-        .mockImplementation(async (userOpHash) => userOpHash),
+      preGetBundle: jest.fn().mockImplementation(async (userOp) => userOp),
       postGetBundle: jest.fn().mockImplementation(async (bundle) => bundle),
     };
 
@@ -389,16 +387,13 @@ describe("Atlas SDK main tests", () => {
     const solverOps = await sdk.submitUserOperation(userOp);
     const dAppOp = await sdk.createDAppOperation(userOp, solverOps);
 
-    // Generate userOpHash
-    const userOpHash = sdk.getUserOperationHash(userOp);
-
-    // Submit the bundle and get the atlasTxHash (not used here)
+    // Submit the bundle
     await sdk.submitBundle(userOp, solverOps, dAppOp);
 
     // Now try to retrieve the bundle
-    await sdk.getBundle(userOpHash);
+    await sdk.getBundle(userOp);
 
-    expect(mockHooksController.preGetBundle).toHaveBeenCalledWith(userOpHash);
+    expect(mockHooksController.preGetBundle).toHaveBeenCalledWith(userOp);
     expect(mockHooksController.postGetBundle).toHaveBeenCalled();
   });
 });

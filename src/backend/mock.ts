@@ -123,23 +123,24 @@ export class MockBackend extends BaseBackend {
   }
 
   /**
-   * Get the full bundle for a given user operation hash
-   * @summary Get the full bundle for a given user operation hash
-   * @param {string} userOpHash The hash of the user operation
+   * Get the full bundle for a given user operation
+   * @summary Get the full bundle for a given user operation
+   * @param {UserOperation} userOp The user operation
    * @param {boolean} [wait] Hold the request until having a response
    * @param {*} [extra] Extra parameters
    * @returns {Promise<Bundle>} The full bundle
    */
   public async _getBundle(
-    userOpHash: string,
+    userOp: UserOperation,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     wait?: boolean,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     extra?: any,
   ): Promise<Bundle> {
+    const userOpHash = this.generateUserOpHash(userOp);
     const bundle = this.submittedBundles[userOpHash];
     if (bundle === undefined) {
-      throw new Error(`Bundle not found for userOpHash: ${userOpHash}`);
+      throw new Error(`Bundle not found for userOp: ${userOpHash}`);
     }
     return bundle;
   }

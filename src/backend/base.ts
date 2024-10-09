@@ -7,8 +7,8 @@ export interface IBackend {
   /**
    * Submit a user operation to the backend
    * @summary Submit a user operation to the backend
-   * @param {UserOperation} [userOp] The user operation
-   * @param {string[]} [hints] Hints for solvers
+   * @param {UserOperation} userOp The user operation
+   * @param {string[]} hints Hints for solvers
    * @param {*} [extra] Extra parameters
    * @returns {Promise<string>} The hash of the user operation
    */
@@ -50,7 +50,7 @@ export interface IBackend {
   /**
    * Submit user/solvers/dApp operations to the backend for bundling
    * @summary Submit a bundle of user/solvers/dApp operations to the backend
-   * @param {Bundle} [bundle] The user/solvers/dApp operations to be bundled
+   * @param {Bundle} bundle The user/solvers/dApp operations to be bundled
    * @param {*} [extra] Extra parameters
    * @returns {Promise<string>} The result message
    */
@@ -79,16 +79,24 @@ export interface IBackend {
   ): Promise<string>;
 
   /**
-   * Get the full bundle for a given user operation hash
-   * @summary Get the full bundle for a given user operation hash
-   * @param {string} userOpHash The hash of the user operation
+   * Get the full bundle for a given user operation
+   * @summary Get the full bundle for a given user operation
+   * @param {UserOperation} userOp The user operation
    * @param {boolean} [wait] Hold the request until having a response
    * @param {*} [extra] Extra parameters
    * @returns {Promise<Bundle>} The full bundle
    */
-  getBundle(userOpHash: string, wait?: boolean, extra?: any): Promise<Bundle>;
+  getBundle(
+    userOp: UserOperation,
+    wait?: boolean,
+    extra?: any,
+  ): Promise<Bundle>;
 
-  _getBundle(userOpHash: string, wait?: boolean, extra?: any): Promise<Bundle>;
+  _getBundle(
+    userOp: UserOperation,
+    wait?: boolean,
+    extra?: any,
+  ): Promise<Bundle>;
 }
 
 export abstract class BaseBackend implements IBackend {
@@ -199,17 +207,17 @@ export abstract class BaseBackend implements IBackend {
   }
 
   async getBundle(
-    userOpHash: string,
+    userOp: UserOperation,
     wait?: boolean,
     extra?: any,
   ): Promise<Bundle> {
     // Pre hooks
     for (const hooksController of this.hooksControllers) {
-      userOpHash = await hooksController.preGetBundle(userOpHash);
+      userOp = await hooksController.preGetBundle(userOp);
     }
 
     // Implemented by subclass
-    let bundle = await this._getBundle(userOpHash, wait, extra);
+    let bundle = await this._getBundle(userOp, wait, extra);
 
     // Post hooks
     for (const hooksController of this.hooksControllers) {
@@ -219,40 +227,30 @@ export abstract class BaseBackend implements IBackend {
     return bundle;
   }
 
-  async _submitUserOperation(
+  abstract _submitUserOperation(
     userOp: UserOperation,
     hints: string[],
     extra?: any,
-  ): Promise<string> {
-    throw new Error("Method not implemented.");
-  }
+  ): Promise<string>;
 
-  async _getSolverOperations(
+  abstract _getSolverOperations(
     userOp: UserOperation,
     userOpHash: string,
     wait?: boolean,
     extra?: any,
-  ): Promise<SolverOperation[]> {
-    throw new Error("Method not implemented.");
-  }
+  ): Promise<SolverOperation[]>;
 
-  async _submitBundle(bundle: Bundle, extra?: any): Promise<string> {
-    throw new Error("Method not implemented.");
-  }
+  abstract _submitBundle(bundle: Bundle, extra?: any): Promise<string>;
 
-  async _getBundleHash(
+  abstract _getBundleHash(
     userOpHash: string,
     wait?: boolean,
     extra?: any,
-  ): Promise<string> {
-    throw new Error("Method not implemented.");
-  }
+  ): Promise<string>;
 
-  async _getBundle(
-    userOpHash: string,
+  abstract _getBundle(
+    userOp: UserOperation,
     wait?: boolean,
     extra?: any,
-  ): Promise<Bundle> {
-    throw new Error("Method not implemented.");
-  }
+  ): Promise<Bundle>;
 }

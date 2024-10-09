@@ -416,12 +416,12 @@ export class AtlasSdk {
   }
 
   /**
-   * Retrieves a bundle for a given user operation hash.
-   * @param userOpHash The hash of the user operation
-   * @returns The bundle associated with the user operation hash
+   * Retrieves a bundle for a given user operation.
+   * @param userOp The user operation
+   * @returns The bundle associated with the user operation
    */
-  public async getBundle(userOpHash: string): Promise<Bundle> {
-    return this.backend.getBundle(userOpHash);
+  public async getBundle(userOp: UserOperation): Promise<Bundle> {
+    return this.backend.getBundle(userOp);
   }
 
   /**
