@@ -150,4 +150,135 @@ describe("Atlas SDK unit tests", () => {
       testDAppOperation.validateSignature(chainConfig[0].eip712Domain),
     ).not.toThrow();
   });
+
+  describe("UserOperation toStruct tests", () => {
+    const testUserOperation = OperationBuilder.newUserOperation({
+      from: "0x0000000000000000000000000000000000000001",
+      to: "0x0000000000000000000000000000000000000002",
+      deadline: BigInt(100),
+      gas: BigInt(200),
+      nonce: BigInt(300),
+      maxFeePerGas: BigInt(400),
+      value: BigInt(500),
+      dapp: "0x0000000000000000000000000000000000000003",
+      control: "0x0000000000000000000000000000000000000004",
+      callConfig: BigInt(600),
+      sessionKey: "0x0000000000000000000000000000000000000005",
+      data: "0x1234",
+      signature: "0x5678",
+    });
+
+    test("toStruct encodes all fields correctly", () => {
+      const struct = testUserOperation.toStruct();
+
+      expect(struct).toEqual({
+        from: "0x0000000000000000000000000000000000000001",
+        to: "0x0000000000000000000000000000000000000002",
+        deadline: "0x64",
+        gas: "0xc8",
+        nonce: "0x12c",
+        maxFeePerGas: "0x190",
+        value: "0x1f4",
+        dapp: "0x0000000000000000000000000000000000000003",
+        control: "0x0000000000000000000000000000000000000004",
+        callConfig: "0x258",
+        sessionKey: "0x0000000000000000000000000000000000000005",
+        data: "0x1234",
+        signature: "0x5678",
+      });
+    });
+
+    test("toStruct handles undefined values", () => {
+      const incompleteUserOp = OperationBuilder.newUserOperation({
+        from: "0x0000000000000000000000000000000000000001",
+        to: "0x0000000000000000000000000000000000000002",
+        deadline: BigInt(100),
+        gas: BigInt(200),
+        maxFeePerGas: BigInt(400),
+        value: BigInt(500),
+        dapp: "0x0000000000000000000000000000000000000003",
+        control: "0x0000000000000000000000000000000000000004",
+        data: "0x1234",
+      });
+
+      const struct = incompleteUserOp.toStruct();
+
+      expect(struct).toEqual({
+        from: "0x0000000000000000000000000000000000000001",
+        to: "0x0000000000000000000000000000000000000002",
+        deadline: "0x64",
+        gas: "0xc8",
+        nonce: "0x0",
+        maxFeePerGas: "0x190",
+        value: "0x1f4",
+        dapp: "0x0000000000000000000000000000000000000003",
+        control: "0x0000000000000000000000000000000000000004",
+        callConfig: "0x0",
+        sessionKey: "0x0000000000000000000000000000000000000000",
+        data: "0x1234",
+        signature: "0x",
+      });
+    });
+
+    test("toStruct encodes large numbers correctly", () => {
+      const largeNumberUserOp = OperationBuilder.newUserOperation({
+        from: "0x0000000000000000000000000000000000000001",
+        to: "0x0000000000000000000000000000000000000002",
+        deadline: BigInt("1000000000000000000"),
+        gas: BigInt("9007199254740991"), // Max safe integer in JavaScript
+        nonce: BigInt("340282366920938463463374607431768211455"), // 2^128 - 1
+        maxFeePerGas: BigInt(
+          "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+        ), // 2^256 - 1
+        value: BigInt(0),
+        dapp: "0x0000000000000000000000000000000000000003",
+        control: "0x0000000000000000000000000000000000000004",
+        data: "0x1234",
+      });
+
+      const struct = largeNumberUserOp.toStruct();
+
+      expect(struct).toEqual({
+        from: "0x0000000000000000000000000000000000000001",
+        to: "0x0000000000000000000000000000000000000002",
+        deadline: "0xde0b6b3a7640000",
+        gas: "0x1fffffffffffff",
+        nonce: "0xffffffffffffffffffffffffffffffff",
+        maxFeePerGas:
+          "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        value: "0x0",
+        dapp: "0x0000000000000000000000000000000000000003",
+        control: "0x0000000000000000000000000000000000000004",
+        callConfig: "0x0",
+        sessionKey: "0x0000000000000000000000000000000000000000",
+        data: "0x1234",
+        signature: "0x",
+      });
+    });
+
+    test("toStruct lowercases address fields", () => {
+      const mixedCaseUserOp = OperationBuilder.newUserOperation({
+        from: "0xABCDEF0000000000000000000000000000000001",
+        to: "0x0000000000000000000000000000000000000002",
+        deadline: BigInt(100),
+        gas: BigInt(200),
+        maxFeePerGas: BigInt(400),
+        value: BigInt(500),
+        dapp: "0x0000000000000000000000000000000000000003",
+        control: "0xFEDCBA0000000000000000000000000000000004",
+        sessionKey: "0x1234560000000000000000000000000000000005",
+        data: "0x1234",
+      });
+
+      const struct = mixedCaseUserOp.toStruct();
+
+      expect(struct.from).toBe("0xabcdef0000000000000000000000000000000001");
+      expect(struct.to).toBe("0x0000000000000000000000000000000000000002");
+      expect(struct.dapp).toBe("0x0000000000000000000000000000000000000003");
+      expect(struct.control).toBe("0xfedcba0000000000000000000000000000000004");
+      expect(struct.sessionKey).toBe(
+        "0x1234560000000000000000000000000000000005",
+      );
+    });
+  });
 });

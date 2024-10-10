@@ -3,6 +3,7 @@ import {
   TypedDataField,
   TypedDataDomain,
   verifyTypedData,
+  toQuantity,
 } from "ethers";
 import {
   validateAddress,
@@ -120,11 +121,35 @@ export abstract class BaseOperation {
     );
   }
 
-  public toStruct(): { [key: string]: OpFieldType } {
+  public toStruct(): { [key: string]: any } {
     return Array.from(this.fields.values()).reduce(
-      (acc, f) => ({ ...acc, [f.name]: f.value }),
+      (acc, f) => ({
+        ...acc,
+        [f.name]: this.serializeFieldValue(f.value, f.solType),
+      }),
       {},
     );
+  }
+
+  private serializeFieldValue(
+    value: OpFieldType | undefined,
+    solType: string,
+  ): any {
+    if (value === undefined) {
+      return null;
+    }
+    switch (solType) {
+      case "uint256":
+      case "uint32":
+        return toQuantity(value);
+      case "bytes":
+      case "bytes32":
+        return (value as string).toLowerCase();
+      case "address":
+        return (value as string).toLowerCase();
+      default:
+        return value;
+    }
   }
 
   public toTypedDataTypes(): { [key: string]: TypedDataField[] } {
