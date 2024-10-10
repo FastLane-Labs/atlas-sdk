@@ -1,7 +1,7 @@
 import { BaseBackend } from "./base";
 import { OperationBuilder } from "../operation/builder";
 import { UserOperation, SolverOperation, Bundle } from "../operation";
-import { toQuantity } from "ethers";
+import { toQuantity, TypedDataDomain } from "ethers";
 import isomorphicFetch from "isomorphic-fetch";
 import * as url from "url";
 
@@ -58,183 +58,240 @@ const ROUTES: Map<string, Route> = new Map([
 ]);
 
 export class FastlaneBackend extends BaseBackend {
-  protected fetch: FetchAPI = isomorphicFetch;
+  protected fetch: typeof fetch = isomorphicFetch;
 
   constructor(params: { [k: string]: string }) {
     super(params);
   }
 
-  /**
-   * Submit a user operation to the backend
-   * @summary Submit a user operation to the backend
-   * @param {UserOperation} [userOp] The user operation
-   * @param {string[]} [hints] Hints for solvers
-   * @param {*} [extra] Extra parameters
-   * @returns {Promise<string>} The hash of the user operation
-   */
   public async _submitUserOperation(
+    chainId: number,
     userOp: UserOperation,
     hints: string[],
     extra?: any,
   ): Promise<string> {
-    const localVarFetchArgs =
-      FastlaneApiFetchParamCreator().submitUserOperation(userOp, hints, extra);
-    const response = await fetch(
-      this.params["basePath"] + localVarFetchArgs.url,
-      localVarFetchArgs.options,
+    const fetchArgs = FastlaneApiFetchParamCreator().submitUserOperation(
+      chainId,
+      userOp,
+      hints,
+      extra,
     );
-    if (response.status >= 200 && response.status < 300) {
-      return await response.json();
+    const response = await this.fetch(
+      this.params["basePath"] + fetchArgs.url,
+      fetchArgs.options,
+    );
+    if (response.ok) {
+      const data = await response.json();
+      return data as string; // Assuming the response is a string hash
     } else {
-      const reponseBody = await response.json();
-      throw new Error(reponseBody.message);
+      const errorBody = await response.json();
+      throw new Error(errorBody.message || "Failed to submit user operation.");
     }
   }
 
-  /**
-   * Get solver operations for a user operation previously submitted
-   * @summary Get solver operations for a user operation previously submitted
-   * @param {UserOperation} [userOp] The user operation
-   * @param {string} userOpHash The hash of the user operation
-   * @param {boolean} [wait] Hold the request until having a response
-   * @param {*} [extra] Extra parameters
-   * @returns {Promise<SolverOperation[]>} The solver operations
-   */
   public async _getSolverOperations(
-    _: UserOperation,
+    chainId: number,
+    userOp: UserOperation,
     userOpHash: string,
     wait?: boolean,
     extra?: any,
   ): Promise<SolverOperation[]> {
-    const localVarFetchArgs =
-      FastlaneApiFetchParamCreator().getSolverOperations(
-        userOpHash,
-        wait,
-        extra,
-      );
-    const response = await fetch(
-      this.params["basePath"] + localVarFetchArgs.url,
-      localVarFetchArgs.options,
-    );
-    if (response.status >= 200 && response.status < 300) {
-      const solverOpsWithScore = await response.json();
-      return solverOpsWithScore.map((solverOpWithScore: any) =>
-        OperationBuilder.newSolverOperation(
-          solverOpWithScore.solverOperation,
-          solverOpWithScore.score,
-        ),
-      );
-    } else {
-      const reponseBody = await response.json();
-      throw new Error(reponseBody.message);
-    }
-  }
-
-  /**
-   * Submit user/solvers/dApp operations to the backend for bundling
-   * @summary Submit a bundle of user/solvers/dApp operations to the backend
-   * @param {Bundle} [bundle] The user/solvers/dApp operations to be bundled
-   * @param {*} [extra] Extra parameters
-   * @returns {Promise<string>} The result message
-   */
-  public async _submitBundle(bundle: Bundle, extra?: any): Promise<string> {
-    const localVarFetchArgs = FastlaneApiFetchParamCreator().submitBundle(
-      bundle,
-      extra,
-    );
-    const response = await fetch(
-      this.params["basePath"] + localVarFetchArgs.url,
-      localVarFetchArgs.options,
-    );
-    if (response.status >= 200 && response.status < 300) {
-      return await response.json();
-    } else {
-      const reponseBody = await response.json();
-      throw new Error(reponseBody.message);
-    }
-  }
-
-  /**
-   * Get the Atlas transaction hash from a previously submitted bundle
-   * @summary Get the Atlas transaction hash from a previously submitted bundle
-   * @param {string} userOpHash The hash of the user operation
-   * @param {boolean} [wait] Hold the request until having a response
-   * @param {*} [extra] Extra parameters
-   * @returns {Promise<string>} The Atlas transaction hash
-   */
-  public async _getBundleHash(
-    userOpHash: string,
-    wait?: boolean,
-    extra?: any,
-  ): Promise<string> {
-    const localVarFetchArgs = FastlaneApiFetchParamCreator().getBundleHash(
+    const fetchArgs = FastlaneApiFetchParamCreator().getSolverOperations(
+      chainId,
       userOpHash,
       wait,
       extra,
     );
-    const response = await fetch(
-      this.params["basePath"] + localVarFetchArgs.url,
-      localVarFetchArgs.options,
+    const response = await this.fetch(
+      this.params["basePath"] + fetchArgs.url,
+      fetchArgs.options,
     );
-    if (response.status >= 200 && response.status < 300) {
-      return await response.json();
+    if (response.ok) {
+      const solverOpsWithScore = await response.json();
+      return solverOpsWithScore.map((solverOpWithScore: any) =>
+        OperationBuilder.newSolverOperation(
+          {
+            ...solverOpWithScore.solverOperation,
+          },
+          solverOpWithScore.score,
+        ),
+      );
     } else {
-      const reponseBody = await response.json();
-      throw new Error(reponseBody.message);
+      const errorBody = await response.json();
+      throw new Error(errorBody.message || "Failed to get solver operations.");
     }
   }
 
-  /**
-   * Get the full bundle for a given user operation
-   * @summary Get the full bundle for a given user operation
-   * @param {UserOperation} userOp The user operation
-   * @param {boolean} [wait] Hold the request until having a response
-   * @param {*} [extra] Extra parameters
-   * @returns {Promise<Bundle>} The full bundle
-   */
+  public async _submitBundle(
+    chainId: number,
+    bundle: Bundle,
+    extra?: any,
+  ): Promise<string> {
+    const fetchArgs = FastlaneApiFetchParamCreator().submitBundle(
+      chainId,
+      bundle,
+      extra,
+    );
+    const response = await this.fetch(
+      this.params["basePath"] + fetchArgs.url,
+      fetchArgs.options,
+    );
+    if (response.ok) {
+      const data = await response.json();
+      return data as string; // Assuming the response is a string message
+    } else {
+      const errorBody = await response.json();
+      throw new Error(errorBody.message || "Failed to submit bundle.");
+    }
+  }
+
+  public async _getBundleHash(
+    chainId: number,
+    userOpHash: string,
+    wait?: boolean,
+    extra?: any,
+  ): Promise<string> {
+    const fetchArgs = FastlaneApiFetchParamCreator().getBundleHash(
+      chainId,
+      userOpHash,
+      wait,
+      extra,
+    );
+    const response = await this.fetch(
+      this.params["basePath"] + fetchArgs.url,
+      fetchArgs.options,
+    );
+    if (response.ok) {
+      const data = await response.json();
+      return data as string; // Assuming the response is a string hash
+    } else {
+      const errorBody = await response.json();
+      throw new Error(errorBody.message || "Failed to get bundle hash.");
+    }
+  }
+
   public async _getBundleForUserOp(
+    chainId: number,
     userOp: UserOperation,
     hints: string[],
     wait?: boolean,
     extra?: any,
   ): Promise<Bundle> {
-    const localVarFetchArgs = FastlaneApiFetchParamCreator().getBundleForUserOp(
+    const fetchArgs = FastlaneApiFetchParamCreator().getBundleForUserOp(
+      chainId,
       userOp,
       hints,
       wait,
       extra,
     );
-    const response = await fetch(
-      this.params["basePath"] + localVarFetchArgs.url,
-      localVarFetchArgs.options,
+    const response = await this.fetch(
+      this.params["basePath"] + fetchArgs.url,
+      fetchArgs.options,
     );
-    if (response.status >= 200 && response.status < 300) {
+    if (response.ok) {
       const bundleData = await response.json();
-      return OperationBuilder.newBundle(
-        this.chainId,
+      const bundle = OperationBuilder.newBundle(
+        chainId,
         OperationBuilder.newUserOperation(bundleData.userOperation),
         bundleData.solverOperations.map((op: any) =>
           OperationBuilder.newSolverOperation(op),
         ),
         OperationBuilder.newDAppOperation(bundleData.dAppOperation),
       );
+      return bundle;
     } else {
-      const responseBody = await response.json();
-      throw new Error(responseBody.message);
+      const errorBody = await response.json();
+      throw new Error(
+        errorBody.message || "Failed to get bundle for user operation.",
+      );
     }
   }
 }
 
-const FastlaneApiFetchParamCreator = function () {
+class RequestBuilder {
+  /**
+   * Builds the fetch arguments based on the route key and parameters.
+   */
+  static buildRequest(
+    routeKey: string,
+    queryParams: { [key: string]: any } = {},
+    body?: any,
+  ): FetchArgs {
+    const route = ROUTES.get(routeKey);
+    if (!route) {
+      throw new Error(`Route ${routeKey} is not defined.`);
+    }
+
+    // Determine the HTTP method
+    const method = route.method;
+
+    // Parse the URL
+    const urlObj = url.parse(route.path, true);
+
+    // Assign query parameters
+    urlObj.query = { ...urlObj.query, ...queryParams };
+    urlObj.search = null; // Reset search to apply new query
+
+    // Set headers
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+    };
+
+    // Construct request options
+    const options: RequestInit = {
+      method,
+      headers,
+    };
+
+    // Attach body if present and method allows
+    if (body && ["POST", "PUT", "PATCH"].includes(method.toUpperCase())) {
+      options.body = JSON.stringify(body, (_, value) =>
+        typeof value === "bigint" ? toQuantity(value) : value,
+      );
+    }
+
+    return {
+      url: url.format(urlObj),
+      options,
+    };
+  }
+}
+
+/**
+ * Validates the response data by attempting to construct and validate a Bundle instance.
+ * @param data The response data to validate.
+ * @param tdDomain The TypedDataDomain used for validation.
+ * @returns The validated Bundle instance if valid.
+ * @throws An error if validation fails.
+ */
+export const validateBundleData = (
+  data: any,
+  tdDomain: TypedDataDomain,
+): Bundle => {
+  try {
+    // Construct the Bundle instance
+    const bundle = new Bundle(
+      data.chainId,
+      OperationBuilder.newUserOperation(data.userOperation),
+      data.solverOperations.map((op: any) =>
+        OperationBuilder.newSolverOperation(op),
+      ),
+      OperationBuilder.newDAppOperation(data.dAppOperation),
+    );
+
+    // Perform validation
+    bundle.validate(tdDomain);
+
+    return bundle;
+  } catch (error: any) {
+    throw new Error(`Invalid bundle data: ${error.message}`);
+  }
+};
+
+export const FastlaneApiFetchParamCreator = function () {
   return {
-    /**
-     * Submit a user operation to the backend
-     * @summary Submit a user operation to the backend
-     * @param {UserOperation} [userOp] The user operation
-     * @param {string[]} [hints] Hints for solvers
-     * @param {*} [options] Override http request option.
-     */
     submitUserOperation(
+      chainId: number,
       userOp: UserOperation,
       hints: string[],
       options: any = {},
@@ -245,266 +302,125 @@ const FastlaneApiFetchParamCreator = function () {
       if (hints.length > 0) {
         body["hints"] = hints;
       }
-      const localVarUrlObj = url.parse(
-        ROUTES.get("submitUserOperation")?.path as string,
-        true,
-      );
-      const localVarRequestOptions = Object.assign(
-        { method: ROUTES.get("submitUserOperation")?.method as string },
-        options,
-      );
-      const localVarHeaderParameter = {} as any;
-      const localVarQueryParameter = {} as any;
 
-      localVarHeaderParameter["Content-Type"] = "application/json";
-
-      localVarUrlObj.query = Object.assign(
-        {},
-        localVarUrlObj.query,
-        localVarQueryParameter,
-        options.query,
-      );
-      // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      localVarUrlObj.search = null;
-      localVarRequestOptions.headers = Object.assign(
-        {},
-        localVarHeaderParameter,
-        options.headers,
-      );
-      const needsSerialization =
-        <any>"UserOperation" !== "string" ||
-        localVarRequestOptions.headers["Content-Type"] === "application/json";
-      localVarRequestOptions.body = needsSerialization
-        ? JSON.stringify(body || {}, (_, v) =>
-            typeof v === "bigint" ? toQuantity(v) : v,
-          )
-        : body || "";
-
-      return {
-        url: url.format(localVarUrlObj),
-        options: localVarRequestOptions,
+      const queryParams = {
+        chainId: toQuantity(chainId),
+        ...options.query,
       };
+
+      return RequestBuilder.buildRequest(
+        "submitUserOperation",
+        queryParams,
+        body,
+      );
     },
-    /**
-     * Get solver operations for a user operation previously submitted
-     * @summary Get solver operations for a user operation previously submitted
-     * @param {string} userOpHash The hash of the user operation
-     * @param {boolean} [wait] Hold the request until having a response
-     * @param {*} [options] Override http request option.
-     */
+
     getSolverOperations(
+      chainId: number,
       userOpHash: string,
       wait?: boolean,
       options: any = {},
     ): FetchArgs {
-      // verify required parameter 'userOpHash' is not null or undefined
       if (userOpHash === null || userOpHash === undefined) {
-        throw "Required parameter userOpHash was null or undefined when calling solverOperations.";
+        throw new Error(
+          "Required parameter userOpHash was null or undefined when calling getSolverOperations.",
+        );
       }
-      const localVarUrlObj = url.parse(
-        ROUTES.get("getSolverOperations")?.path as string,
-        true,
-      );
-      const localVarRequestOptions = Object.assign(
-        { method: ROUTES.get("getSolverOperations")?.method as string },
-        options,
-      );
-      const localVarHeaderParameter = {} as any;
-      const localVarQueryParameter = {} as any;
 
-      if (userOpHash !== undefined) {
-        localVarQueryParameter["operationHash"] = userOpHash;
-      }
+      const queryParams: any = {
+        chainId: toQuantity(chainId),
+        operationHash: userOpHash,
+        ...options.query,
+      };
 
       if (wait !== undefined) {
-        localVarQueryParameter["wait"] = wait;
+        queryParams["wait"] = wait;
       }
 
-      localVarUrlObj.query = Object.assign(
-        {},
-        localVarUrlObj.query,
-        localVarQueryParameter,
-        options.query,
+      return RequestBuilder.buildRequest(
+        "getSolverOperations",
+        queryParams,
+        undefined,
       );
-      // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      localVarUrlObj.search = null;
-      localVarRequestOptions.headers = Object.assign(
-        {},
-        localVarHeaderParameter,
-        options.headers,
-      );
-
-      return {
-        url: url.format(localVarUrlObj),
-        options: localVarRequestOptions,
-      };
     },
-    /**
-     * Submit user/solvers/dApp operations to the backend for bundling
-     * @summary Submit a bundle of user/solvers/dApp operations to the backend
-     * @param {Bundle} [bundle] The user/solvers/dApp operations to be bundled
-     * @param {*} [options] Override http request option.
-     */
-    submitBundle(bundle: Bundle, options: any = {}): FetchArgs {
+
+    submitBundle(
+      chainId: number,
+      bundle: Bundle,
+      options: any = {},
+    ): FetchArgs {
       const bundleStruct = {
         userOperation: bundle.userOperation.toStruct(),
         solverOperations: bundle.solverOperations.map((op) => op.toStruct()),
         dAppOperation: bundle.dAppOperation.toStruct(),
       };
-      const localVarUrlObj = url.parse(
-        ROUTES.get("submitBundle")?.path as string,
-        true,
-      );
-      const localVarRequestOptions = Object.assign(
-        { method: ROUTES.get("submitBundle")?.method as string },
-        options,
-      );
-      const localVarHeaderParameter = {} as any;
-      const localVarQueryParameter = {} as any;
 
-      localVarHeaderParameter["Content-Type"] = "application/json";
-
-      localVarUrlObj.query = Object.assign(
-        {},
-        localVarUrlObj.query,
-        localVarQueryParameter,
-        options.query,
-      );
-      // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      localVarUrlObj.search = null;
-      localVarRequestOptions.headers = Object.assign(
-        {},
-        localVarHeaderParameter,
-        options.headers,
-      );
-      const needsSerialization =
-        <any>"Bundle" !== "string" ||
-        localVarRequestOptions.headers["Content-Type"] === "application/json";
-      localVarRequestOptions.body = needsSerialization
-        ? JSON.stringify(bundleStruct || {}, (_, v) =>
-            typeof v === "bigint" ? toQuantity(v) : v,
-          )
-        : bundleStruct || "";
-
-      return {
-        url: url.format(localVarUrlObj),
-        options: localVarRequestOptions,
+      const queryParams = {
+        chainId: toQuantity(chainId),
+        ...options.query,
       };
+
+      return RequestBuilder.buildRequest(
+        "submitBundle",
+        queryParams,
+        bundleStruct,
+      );
     },
-    /**
-     * Get the Atlas transaction hash from a previously submitted bundle
-     * @summary Get the Atlas transaction hash from a previously submitted bundle
-     * @param {string} userOpHash The hash of the user operation
-     * @param {boolean} [wait] Hold the request until having a response
-     * @param {*} [options] Override http request option.
-     */
+
     getBundleHash(
+      chainId: number,
       userOpHash: string,
       wait?: boolean,
       options: any = {},
     ): FetchArgs {
-      // verify required parameter 'userOpHash' is not null or undefined
       if (userOpHash === null || userOpHash === undefined) {
-        throw "Required parameter userOpHash was null or undefined when calling getBundleHash.";
+        throw new Error(
+          "Required parameter userOpHash was null or undefined when calling getBundleHash.",
+        );
       }
-      const localVarUrlObj = url.parse(
-        ROUTES.get("getBundleHash")?.path as string,
-        true,
-      );
-      const localVarRequestOptions = Object.assign(
-        { method: ROUTES.get("getBundleHash")?.method as string },
-        options,
-      );
-      const localVarHeaderParameter = {} as any;
-      const localVarQueryParameter = {} as any;
 
-      if (userOpHash !== undefined) {
-        localVarQueryParameter["operationHash"] = userOpHash;
-      }
+      const queryParams: any = {
+        chainId: toQuantity(chainId),
+        operationHash: userOpHash,
+        ...options.query,
+      };
 
       if (wait !== undefined) {
-        localVarQueryParameter["wait"] = wait;
+        queryParams["wait"] = wait;
       }
 
-      localVarUrlObj.query = Object.assign(
-        {},
-        localVarUrlObj.query,
-        localVarQueryParameter,
-        options.query,
-      );
-      // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      localVarUrlObj.search = null;
-      localVarRequestOptions.headers = Object.assign(
-        {},
-        localVarHeaderParameter,
-        options.headers,
-      );
-
-      return {
-        url: url.format(localVarUrlObj),
-        options: localVarRequestOptions,
-      };
+      return RequestBuilder.buildRequest("getBundleHash", queryParams);
     },
-    /**
-     * Get the full bundle for a given user operation
-     * @summary Get the full bundle for a given user operation
-     * @param {UserOperation} userOp The user operation
-     * @param {string[]} hints Hints for solvers
-     * @param {boolean} [wait] Hold the request until having a response
-     * @param {*} [options] Override http request option.
-     */
+
     getBundleForUserOp(
+      chainId: number,
       userOp: UserOperation,
       hints: string[],
       wait?: boolean,
       options: any = {},
     ): FetchArgs {
       if (userOp === null || userOp === undefined) {
-        throw "Required parameter userOp was null or undefined when calling getBundle.";
-      }
-      const localVarUrlObj = url.parse(
-        ROUTES.get("getBundleForUserOp")?.path as string,
-        true,
-      );
-      const localVarRequestOptions = Object.assign(
-        { method: ROUTES.get("getBundleForUserOp")?.method as string },
-        options,
-      );
-      const localVarHeaderParameter = {} as any;
-      const localVarQueryParameter = {} as any;
-
-      localVarHeaderParameter["Content-Type"] = "application/json";
-
-      if (wait !== undefined) {
-        localVarQueryParameter["wait"] = wait;
+        throw new Error(
+          "Required parameter userOp was null or undefined when calling getBundleForUserOp.",
+        );
       }
 
-      localVarUrlObj.query = Object.assign(
-        {},
-        localVarUrlObj.query,
-        localVarQueryParameter,
-        options.query,
-      );
-      localVarUrlObj.search = null;
-      localVarRequestOptions.headers = Object.assign(
-        {},
-        localVarHeaderParameter,
-        options.headers,
-      );
-
-      const requestBody = {
+      const body = {
+        chainId: toQuantity(chainId),
         userOperation: userOp.toStruct(),
         hints: hints,
       };
 
-      localVarRequestOptions.body = JSON.stringify(requestBody, (_, v) =>
-        typeof v === "bigint" ? toQuantity(v) : v,
-      );
-
-      return {
-        url: url.format(localVarUrlObj),
-        options: localVarRequestOptions,
+      const queryParams: any = {
+        wait,
+        ...options.query,
       };
+
+      return RequestBuilder.buildRequest(
+        "getBundleForUserOp",
+        queryParams,
+        body,
+      );
     },
   };
 };

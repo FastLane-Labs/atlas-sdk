@@ -25,7 +25,7 @@ export class SimulationHooksController extends BaseHooksController {
   private maxSolutions: number = 10;
 
   constructor(provider: AbstractProvider, chainId: number) {
-    super(provider, chainId);
+    super(provider);
     this.atlas = new Contract(
       chainConfig[chainId].contracts.atlas.address,
       atlasAbi,
@@ -44,9 +44,11 @@ export class SimulationHooksController extends BaseHooksController {
   }
 
   async preSubmitUserOperation(
+    chainId: number,
     userOp: UserOperation,
     hints: string[],
-  ): Promise<[UserOperation, string[]]> {
+    extra?: any,
+  ): Promise<[UserOperation, string[], any]> {
     const [success, result, validCallsResult] = await this.simulator
       .getFunction("simUserOperation")
       .staticCall(userOp.toStruct());
@@ -57,10 +59,11 @@ export class SimulationHooksController extends BaseHooksController {
       );
     }
 
-    return [userOp, hints];
+    return [userOp, hints, extra];
   }
 
   async postGetSolverOperations(
+    chainId: number,
     userOp: UserOperation,
     solverOps: SolverOperation[],
   ): Promise<[UserOperation, SolverOperation[]]> {
@@ -141,7 +144,11 @@ export class SimulationHooksController extends BaseHooksController {
     return [userOp, simulatedSolverOps];
   }
 
-  async preSubmitBundle(bundleOps: Bundle): Promise<Bundle> {
+  async preSubmitBundle(
+    chainId: number,
+    bundleOps: Bundle,
+    extra?: any,
+  ): Promise<[Bundle, any]> {
     // Simulation will throw if the bundle is invalid
     await this.atlas
       .connect(
@@ -157,6 +164,6 @@ export class SimulationHooksController extends BaseHooksController {
         bundleOps.dAppOperation.toStruct(),
       );
 
-    return bundleOps;
+    return [bundleOps, extra];
   }
 }
