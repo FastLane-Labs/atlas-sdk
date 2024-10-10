@@ -440,7 +440,16 @@ export class AtlasSdk {
     wait?: boolean,
     extra?: any,
   ): Promise<Bundle> {
-    return this.backend.getBundleForUserOp(chainId, userOp, hints, wait, extra);
+    const bundle = await this.backend.getBundleForUserOp(
+      chainId,
+      userOp,
+      hints,
+      wait,
+      extra,
+    );
+    // validate the bundle
+    bundle.validate(chainConfig[this.chainId].eip712Domain);
+    return bundle;
   }
 
   /**
