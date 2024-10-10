@@ -226,7 +226,7 @@ const FastlaneApiFetchParamCreator = function () {
       );
       const localVarHeaderParameter = {} as any;
       const localVarQueryParameter = {} as any;
-      localVarQueryParameter["chainId"] = chainId;
+      localVarQueryParameter["chainId"] = toQuantity(chainId);
 
       localVarHeaderParameter["Content-Type"] = "application/json";
 
@@ -277,7 +277,7 @@ const FastlaneApiFetchParamCreator = function () {
       );
       const localVarHeaderParameter = {} as any;
       const localVarQueryParameter = {} as any;
-      localVarQueryParameter["chainId"] = chainId;
+      localVarQueryParameter["chainId"] = toQuantity(chainId);
 
       if (userOpHash !== undefined) {
         localVarQueryParameter["operationHash"] = userOpHash;
@@ -326,7 +326,7 @@ const FastlaneApiFetchParamCreator = function () {
       );
       const localVarHeaderParameter = {} as any;
       const localVarQueryParameter = {} as any;
-      localVarQueryParameter["chainId"] = chainId;
+      localVarQueryParameter["chainId"] = toQuantity(chainId);
 
       localVarHeaderParameter["Content-Type"] = "application/json";
 
@@ -377,7 +377,7 @@ const FastlaneApiFetchParamCreator = function () {
       );
       const localVarHeaderParameter = {} as any;
       const localVarQueryParameter = {} as any;
-      localVarQueryParameter["chainId"] = chainId;
+      localVarQueryParameter["chainId"] = toQuantity(chainId);
       localVarQueryParameter["operationHash"] = userOpHash;
 
       if (wait !== undefined) {
@@ -423,7 +423,7 @@ const FastlaneApiFetchParamCreator = function () {
       );
       const localVarHeaderParameter = {} as any;
       const localVarQueryParameter = {} as any;
-      localVarQueryParameter["chainId"] = chainId;
+      localVarQueryParameter["chainId"] = toQuantity(chainId);
 
       localVarHeaderParameter["Content-Type"] = "application/json";
 
@@ -445,6 +445,7 @@ const FastlaneApiFetchParamCreator = function () {
       );
 
       const requestBody = {
+        chainId: toQuantity(chainId),
         userOperation: userOp.toStruct(),
         hints: hints,
       };
