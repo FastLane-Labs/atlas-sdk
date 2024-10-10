@@ -1,0 +1,33 @@
+@startuml
+participant Browser
+participant RFQAuctioneer
+participant BDN
+participant Solvers
+participant Bundler
+participant AtlasEntrypoint
+
+Solvers -> BDN : Intents (subscribe)
+Browser -> RFQAuctioneer : request quote
+RFQAuctioneer -> BDN : SubmitIntent(quote)
+RFQAuctioneer -> BDN : IntentSolutions (subscribe)
+BDN -> Solvers : broadcast UserOperation
+Solvers --> BDN : SubmitIntentSolution
+Solvers --> BDN : SubmitIntentSolution
+BDN --> RFQAuctioneer : quote, ...
+RFQAuctioneer -> RFQAuctioneer : score quotes (reputation)
+RFQAuctioneer -> RFQAuctioneer : filter/aggregate quotes
+RFQAuctioneer --> Browser : return quotes
+Browser -> Browser : create UserOperation
+Browser -> RFQAuctioneer : submit UserOperation
+RFQAuctioneer -> BDN : SubmitIntent(UserOperation)
+BDN -> Solvers : broadcast UserOperation
+Solvers --> BDN : SubmitIntentSolution
+Solvers --> BDN : SubmitIntentSolution
+BDN --> RFQAuctioneer : SolverOperation, ...
+RFQAuctioneer -> RFQAuctioneer : score SolverOperations (reputation)
+RFQAuctioneer --> RFQAuctioneer : order SolverOperations and create DAppOperation
+RFQAuctioneer -> Bundler : sumbit UserOperation and SolverOperations and DAppOperation
+Bundler -> AtlasEntrypoint : sumbit Bundle
+Bundler --> RFQAuctioneer: Bundle tx hash
+RFQAuctioneer --> Browser : Bundle tx hash
+@enduml

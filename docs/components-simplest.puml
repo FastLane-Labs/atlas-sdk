@@ -1,0 +1,35 @@
+@startuml
+
+package "SDK" {
+    node AtlasClient {
+    }
+
+    node Auctioneer {
+    }
+
+    node Bundler {
+    }
+}
+
+node OperationsRelay {
+}
+
+node Solvers {
+}
+
+
+node AtlasEntrypoint {
+}
+
+node RPC {
+}
+
+AtlasClient --> OperationsRelay
+OperationsRelay --> Solvers
+AtlasClient --> Auctioneer
+Auctioneer --> RPC
+AtlasClient --> Bundler
+AtlasClient --> RPC
+Bundler --> AtlasEntrypoint
+Bundler --> RPC
+@enduml

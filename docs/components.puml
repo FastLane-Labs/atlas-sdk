@@ -1,0 +1,37 @@
+@startuml
+
+node AtlasClient {
+}
+
+node OperationsRelay {
+}
+
+node Solvers {
+}
+
+node Auctioneer {
+}
+
+node Reputation {
+}
+
+node Bundler {
+}
+
+node AtlasEntrypoint {
+}
+
+node RPC {
+}
+
+AtlasClient --> OperationsRelay
+OperationsRelay --> Solvers
+AtlasClient --> Auctioneer
+Auctioneer --> RPC
+AtlasClient --> Reputation
+AtlasClient --> Bundler
+AtlasClient --> RPC
+Reputation --> RPC
+Bundler --> AtlasEntrypoint
+Bundler --> RPC
+@enduml

@@ -1,0 +1,22 @@
+@startuml
+participant AtlasClient
+participant OperationsRelay
+participant Solvers
+participant Reputation
+participant Auctioneer
+participant Bundler
+participant AtlasEntrypoint
+
+AtlasClient -> OperationsRelay : submit UserOperation
+OperationsRelay -> Solvers : broadcast UserOperation
+Solvers --> OperationsRelay : submit SolverOperation
+Solvers --> OperationsRelay : submit SolverOperation
+OperationsRelay --> AtlasClient : return SolverOperations
+AtlasClient -> Reputation : score SolverOperations
+Reputation --> AtlasClient : scored SolverOperations
+AtlasClient -> Auctioneer : submit UserOperation and SolverOperations
+Auctioneer --> AtlasClient : ordered SolverOperations and DAppOperation
+AtlasClient -> Bundler : sumbit UserOperation and SolverOperations and DAppOperation
+Bundler -> AtlasEntrypoint : sumbit Bundle
+Bundler --> AtlasClient: Bundle tx hash
+@enduml

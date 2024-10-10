@@ -1,0 +1,18 @@
+@startuml
+participant Browser
+participant BDN
+participant Solvers
+participant RPC
+participant AtlasEntrypoint
+
+Solvers -> BDN : Intents (subscribe)
+Browser -> BDN : SubmitIntent(UserOperation)
+Browser -> BDN : IntentSolutions (subscribe)
+BDN -> Solvers : broadcast UserOperation
+Solvers --> BDN : SubmitIntentSolution
+BDN --> Browser : SolverOperation, ...
+Browser -> RPC : Sorter.sortBids(SolverOperations)
+Browser -> Browser : create Bundle
+Browser -> RPC : send Bundle Transaction
+RPC -> AtlasEntrypoint : execute Atlas.metacall(Bundle)
+@enduml
