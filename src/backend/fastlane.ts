@@ -110,7 +110,9 @@ export class FastlaneBackend extends BaseBackend {
       const solverOpsWithScore = await response.json();
       return solverOpsWithScore.map((solverOpWithScore: any) =>
         OperationBuilder.newSolverOperation(
-          solverOpWithScore.solverOperation,
+          {
+            ...solverOpWithScore.solverOperation,
+          },
           solverOpWithScore.score,
         ),
       );
