@@ -1,20 +1,31 @@
 {
-  "name": "atlas-sdk",
+  "name": "@fastlane-labs/atlas-sdk",
   "version": "1.0.0",
   "description": "An SDK for building dApps on top of Atlas",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "test": "jest",
     "build": "tsc",
     "prettier": "prettier --write .",
-    "prettier:check": "prettier --check ."
+    "prettier:check": "prettier --check .",
+    "prepublishOnly": "npm run build"
   },
+  "keywords": [
+    "fastlane",
+    "sdk",
+    "atlas",
+    "dapp"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/FastLane-Labs/atlas-sdk.git"
   },
   "author": "FastLane Labs",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/FastLane-Labs/atlas-sdk/issues"
   },
