@@ -25,14 +25,14 @@ const ROUTES: Map<string, Route> = new Map([
     "submitUserOperation",
     {
       method: "POST",
-      path: "/userOperation",
+      path: "/auction",
     },
   ],
   [
     "submitBundle",
     {
       method: "POST",
-      path: "/bundleOperations",
+      path: "/bundle",
     },
   ],
 ]);
