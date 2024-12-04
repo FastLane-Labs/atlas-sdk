@@ -218,10 +218,10 @@ export class AtlasSdk {
    * @returns an array of solver operations
    */
   public async submitUserOperation(
-    chainId: number,
     userOp: UserOperation,
     hints: string[] = [],
-  ): Promise<SolverOperation[]> {
+    options: any = {},
+  ): Promise<string[] | Bundle> {
     const sessionKey = userOp.getField("sessionKey").value as string;
     if (sessionKey !== ZeroAddress && !this.sessionKeys.has(sessionKey)) {
       throw new Error("Session key not found");
@@ -241,34 +241,14 @@ export class AtlasSdk {
     }
 
     // Submit the user operation to the backend
-    const remoteUserOphash: string = await this.backend.submitUserOperation(
-      chainId,
+    const result = await this.backend.submitUserOperation(
+      this.chainId,
       userOp,
       hints,
+      options,
     );
 
-    const userOpHash = userOp.hash(
-      chainConfig[this.chainId].eip712Domain,
-      flagTrustedOpHash(userOp.callConfig()),
-    );
-
-    if (userOpHash !== remoteUserOphash) {
-      throw new Error("User operation hash mismatch");
-    }
-
-    // Get the solver operations
-    const solverOps: SolverOperation[] = await this.backend.getSolverOperations(
-      chainId,
-      userOp,
-      userOpHash,
-      true,
-    );
-
-    if (solverOps.length === 0 && !flagZeroSolvers(userOp.callConfig())) {
-      throw new Error("No solver operations returned");
-    }
-
-    return solverOps;
+    return result;
   }
 
   /**
@@ -382,14 +362,15 @@ export class AtlasSdk {
    * @param userOp a signed user operation
    * @param solverOps an array of solver operations
    * @param dAppOp a signed dApp operation
-   * @returns the hash of the generated Atlas transaction
+   * @returns the hashes of the generated Atlas transaction
    */
   public async submitBundle(
     chainId: number,
     userOp: UserOperation,
     solverOps: SolverOperation[],
     dAppOp: DAppOperation,
-  ): Promise<string> {
+    options: any = {},
+  ): Promise<string[]> {
     const sessionKey = userOp.getField("sessionKey").value as string;
     if (
       sessionKey !== ZeroAddress &&
@@ -408,48 +389,13 @@ export class AtlasSdk {
     );
     bundle.validate(chainConfig[this.chainId].eip712Domain);
 
-    const remoteUserOpHash = await this.backend.submitBundle(chainId, bundle);
-
-    const userOpHash = this.getUserOperationHash(userOp);
-
-    if (userOpHash !== remoteUserOpHash) {
-      throw new Error("User operation hash mismatch");
-    }
-
-    const atlasTxHash: string = await this.backend.getBundleHash(
-      chainId,
-      userOpHash,
-      true,
+    const result = await this.backend.submitBundle(
+      this.chainId,
+      bundle,
+      options,
     );
 
-    return atlasTxHash;
-  }
-
-  /**
-   * Retrieves a bundle for a given user operation.
-   * @param userOp The user operation
-   * @param hints An array of hints for solvers
-   * @param wait Hold the request until having a response
-   * @param extra Extra parameters
-   * @returns The bundle associated with the user operation
-   */
-  public async getBundleForUserOp(
-    chainId: number,
-    userOp: UserOperation,
-    hints: string[] = [],
-    wait?: boolean,
-    extra?: any,
-  ): Promise<Bundle> {
-    const bundle = await this.backend.getBundleForUserOp(
-      chainId,
-      userOp,
-      hints,
-      wait,
-      extra,
-    );
-    // validate the bundle
-    bundle.validate(chainConfig[this.chainId].eip712Domain);
-    return bundle;
+    return result;
   }
 
   /**

@@ -66,11 +66,11 @@ describe("FastlaneBackend", () => {
       const expectedHash = "0xabcdef1234567890";
       fetchMock.mockResolvedValue({
         ok: true,
-        json: async () => expectedHash,
+        json: async () => [expectedHash],
       });
 
       const result = await backend._submitUserOperation(1, userOp, []);
-      expect(result).toBe(expectedHash);
+      expect((result as string[])[0]).toBe(expectedHash);
     });
 
     it("should throw an error if submission fails", async () => {
@@ -84,83 +84,6 @@ describe("FastlaneBackend", () => {
       await expect(backend._submitUserOperation(1, userOp, [])).rejects.toThrow(
         "Submission failed",
       );
-    });
-  });
-
-  describe("_getSolverOperations", () => {
-    it("should get solver operations successfully", async () => {
-      const expectedSolverOps = [
-        {
-          solverOperation: {
-            from: "0x1234567890123456789012345678901234567890",
-            to: "0x2345678901234567890123456789012345678901",
-            value: "0x1",
-            gas: "0xf4240",
-            maxFeePerGas: "0x3b9aca00",
-            deadline: "0x1",
-            solver: "0x3456789012345678901234567890123456789012",
-            control: "0x4567890123456789012345678901234567890123",
-            userOpHash:
-              "0x5678901234567890123456789012345678901234567890123456789012345678",
-            bidToken: "0x6789012345678901234567890123456789012345",
-            bidAmount: "0x1",
-            data: "0x",
-            signature: "0x",
-          },
-          score: 100,
-        },
-        {
-          solverOperation: {
-            from: "0x2345678901234567890123456789012345678901",
-            to: "0x3456789012345678901234567890123456789012",
-            value: "0x2",
-            gas: "0xf4240",
-            maxFeePerGas: "0x3b9aca00",
-            deadline: "0x1",
-            solver: "0x4567890123456789012345678901234567890123",
-            control: "0x5678901234567890123456789012345678901234",
-            userOpHash:
-              "0x6789012345678901234567890123456789012345678901234567890123456789",
-            bidToken: "0x7890123456789012345678901234567890123456",
-            bidAmount: "0x2",
-            data: "0x",
-            signature: "0x",
-          },
-          score: 90,
-        },
-      ];
-
-      fetchMock.mockResolvedValue({
-        ok: true,
-        json: async () => expectedSolverOps,
-      });
-
-      const userOp = createValidUserOp();
-      const result = await backend._getSolverOperations(1, userOp, "0x", true);
-      expect(result).toHaveLength(2);
-      expect(result[0]).toBeInstanceOf(SolverOperation);
-      expect(result[0].score).toBe(100);
-      expect(result[1]).toBeInstanceOf(SolverOperation);
-      expect(result[1].score).toBe(90);
-
-      expect(result[0].getField("from").value).toBe(
-        "0x1234567890123456789012345678901234567890",
-      );
-      expect(result[1].getField("from").value).toBe(
-        "0x2345678901234567890123456789012345678901",
-      );
-    });
-
-    it("should throw an error if getting solver operations fails", async () => {
-      fetchMock.mockResolvedValue({
-        ok: false,
-        json: async () => ({ message: "Failed to get solver operations" }),
-      });
-
-      const userOp = createValidUserOp();
-      await expect(
-        backend._getSolverOperations(1, userOp, "0x", true),
-      ).rejects.toThrow("Failed to get solver operations");
     });
   });
 
@@ -189,66 +112,6 @@ describe("FastlaneBackend", () => {
       await expect(backend._submitBundle(1, mockBundle)).rejects.toThrow(
         "Failed to submit bundle",
       );
-    });
-  });
-
-  describe("_getBundleHash", () => {
-    it("should get bundle hash successfully", async () => {
-      const expectedHash = "0xabcdef1234567890";
-      fetchMock.mockResolvedValue({
-        ok: true,
-        json: async () => expectedHash,
-      });
-
-      const result = await backend._getBundleHash(1, "0x", true);
-      expect(result).toBe(expectedHash);
-    });
-
-    it("should throw an error if getting bundle hash fails", async () => {
-      fetchMock.mockResolvedValue({
-        ok: false,
-        json: async () => ({ message: "Failed to get bundle hash" }),
-      });
-
-      await expect(backend._getBundleHash(1, "0x", true)).rejects.toThrow(
-        "Failed to get bundle hash",
-      );
-    });
-  });
-
-  describe("_getBundleForUserOp", () => {
-    it("should get bundle for user operation successfully", async () => {
-      const mockBundleData = {
-        userOperation: createValidUserOp().toStruct(),
-        solverOperations: [],
-        dAppOperation: createValidDAppOp().toStruct(),
-      };
-
-      fetchMock.mockResolvedValue({
-        ok: true,
-        json: async () => mockBundleData,
-      });
-
-      const userOp = createValidUserOp();
-      const result = await backend._getBundleForUserOp(1, userOp, [], true);
-
-      expect(result).toBeInstanceOf(Bundle);
-      expect(result.userOperation).toBeInstanceOf(UserOperation);
-      expect(result.dAppOperation).toBeInstanceOf(DAppOperation);
-    });
-
-    it("should throw an error if getting bundle for user operation fails", async () => {
-      fetchMock.mockResolvedValue({
-        ok: false,
-        json: async () => ({
-          message: "Failed to get bundle for user operation",
-        }),
-      });
-
-      const userOp = createValidUserOp();
-      await expect(
-        backend._getBundleForUserOp(1, userOp, [], true),
-      ).rejects.toThrow("Failed to get bundle for user operation");
     });
   });
 });

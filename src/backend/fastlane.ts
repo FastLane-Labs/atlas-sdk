@@ -2,6 +2,7 @@ import { BaseBackend } from "./base";
 import { OperationBuilder } from "../operation/builder";
 import { UserOperation, SolverOperation, Bundle } from "../operation";
 import { toQuantity, TypedDataDomain } from "ethers";
+import { chainConfig } from "../config";
 import isomorphicFetch from "isomorphic-fetch";
 import * as url from "url";
 
@@ -28,31 +29,10 @@ const ROUTES: Map<string, Route> = new Map([
     },
   ],
   [
-    "getSolverOperations",
-    {
-      method: "GET",
-      path: "/solverOperations",
-    },
-  ],
-  [
     "submitBundle",
     {
       method: "POST",
       path: "/bundleOperations",
-    },
-  ],
-  [
-    "getBundleHash",
-    {
-      method: "GET",
-      path: "/bundleHash",
-    },
-  ],
-  [
-    "getBundleForUserOp",
-    {
-      method: "POST",
-      path: "/bundle",
     },
   ],
 ]);
@@ -69,7 +49,7 @@ export class FastlaneBackend extends BaseBackend {
     userOp: UserOperation,
     hints: string[],
     extra?: any,
-  ): Promise<string> {
+  ): Promise<string[] | Bundle> {
     const fetchArgs = FastlaneApiFetchParamCreator().submitUserOperation(
       chainId,
       userOp,
@@ -82,43 +62,14 @@ export class FastlaneBackend extends BaseBackend {
     );
     if (response.ok) {
       const data = await response.json();
-      return data as string; // Assuming the response is a string hash
+      if (Array.isArray(data)) {
+        return data as string[];
+      } else {
+        return validateBundleData(data, chainConfig[chainId].eip712Domain);
+      }
     } else {
       const errorBody = await response.json();
       throw new Error(errorBody.message || "Failed to submit user operation.");
-    }
-  }
-
-  public async _getSolverOperations(
-    chainId: number,
-    userOp: UserOperation,
-    userOpHash: string,
-    wait?: boolean,
-    extra?: any,
-  ): Promise<SolverOperation[]> {
-    const fetchArgs = FastlaneApiFetchParamCreator().getSolverOperations(
-      chainId,
-      userOpHash,
-      wait,
-      extra,
-    );
-    const response = await this.fetch(
-      this.params["basePath"] + fetchArgs.url,
-      fetchArgs.options,
-    );
-    if (response.ok) {
-      const solverOpsWithScore = await response.json();
-      return solverOpsWithScore.map((solverOpWithScore: any) =>
-        OperationBuilder.newSolverOperation(
-          {
-            ...solverOpWithScore.solverOperation,
-          },
-          solverOpWithScore.score,
-        ),
-      );
-    } else {
-      const errorBody = await response.json();
-      throw new Error(errorBody.message || "Failed to get solver operations.");
     }
   }
 
@@ -126,7 +77,7 @@ export class FastlaneBackend extends BaseBackend {
     chainId: number,
     bundle: Bundle,
     extra?: any,
-  ): Promise<string> {
+  ): Promise<string[]> {
     const fetchArgs = FastlaneApiFetchParamCreator().submitBundle(
       chainId,
       bundle,
@@ -138,72 +89,10 @@ export class FastlaneBackend extends BaseBackend {
     );
     if (response.ok) {
       const data = await response.json();
-      return data as string; // Assuming the response is a string message
+      return data as string[];
     } else {
       const errorBody = await response.json();
       throw new Error(errorBody.message || "Failed to submit bundle.");
-    }
-  }
-
-  public async _getBundleHash(
-    chainId: number,
-    userOpHash: string,
-    wait?: boolean,
-    extra?: any,
-  ): Promise<string> {
-    const fetchArgs = FastlaneApiFetchParamCreator().getBundleHash(
-      chainId,
-      userOpHash,
-      wait,
-      extra,
-    );
-    const response = await this.fetch(
-      this.params["basePath"] + fetchArgs.url,
-      fetchArgs.options,
-    );
-    if (response.ok) {
-      const data = await response.json();
-      return data as string; // Assuming the response is a string hash
-    } else {
-      const errorBody = await response.json();
-      throw new Error(errorBody.message || "Failed to get bundle hash.");
-    }
-  }
-
-  public async _getBundleForUserOp(
-    chainId: number,
-    userOp: UserOperation,
-    hints: string[],
-    wait?: boolean,
-    extra?: any,
-  ): Promise<Bundle> {
-    const fetchArgs = FastlaneApiFetchParamCreator().getBundleForUserOp(
-      chainId,
-      userOp,
-      hints,
-      wait,
-      extra,
-    );
-    const response = await this.fetch(
-      this.params["basePath"] + fetchArgs.url,
-      fetchArgs.options,
-    );
-    if (response.ok) {
-      const bundleData = await response.json();
-      const bundle = OperationBuilder.newBundle(
-        chainId,
-        OperationBuilder.newUserOperation(bundleData.userOperation),
-        bundleData.solverOperations.map((op: any) =>
-          OperationBuilder.newSolverOperation(op),
-        ),
-        OperationBuilder.newDAppOperation(bundleData.dAppOperation),
-      );
-      return bundle;
-    } else {
-      const errorBody = await response.json();
-      throw new Error(
-        errorBody.message || "Failed to get bundle for user operation.",
-      );
     }
   }
 }
@@ -297,50 +186,18 @@ export const FastlaneApiFetchParamCreator = function () {
       options: any = {},
     ): FetchArgs {
       const body: any = {
-        userOperation: userOp.toStruct(),
-      };
-      if (hints.length > 0) {
-        body["hints"] = hints;
-      }
-
-      const queryParams = {
-        chainId: toQuantity(chainId),
-        ...options.query,
+        userOperationWithHints: {
+          chainId: toQuantity(chainId),
+          userOperation: userOp.toStruct(),
+          hints: hints,
+        },
+        ...options,
       };
 
       return RequestBuilder.buildRequest(
         "submitUserOperation",
-        queryParams,
+        {},
         body,
-      );
-    },
-
-    getSolverOperations(
-      chainId: number,
-      userOpHash: string,
-      wait?: boolean,
-      options: any = {},
-    ): FetchArgs {
-      if (userOpHash === null || userOpHash === undefined) {
-        throw new Error(
-          "Required parameter userOpHash was null or undefined when calling getSolverOperations.",
-        );
-      }
-
-      const queryParams: any = {
-        chainId: toQuantity(chainId),
-        operationHash: userOpHash,
-        ...options.query,
-      };
-
-      if (wait !== undefined) {
-        queryParams["wait"] = wait;
-      }
-
-      return RequestBuilder.buildRequest(
-        "getSolverOperations",
-        queryParams,
-        undefined,
       );
     },
 
@@ -364,62 +221,6 @@ export const FastlaneApiFetchParamCreator = function () {
         "submitBundle",
         queryParams,
         bundleStruct,
-      );
-    },
-
-    getBundleHash(
-      chainId: number,
-      userOpHash: string,
-      wait?: boolean,
-      options: any = {},
-    ): FetchArgs {
-      if (userOpHash === null || userOpHash === undefined) {
-        throw new Error(
-          "Required parameter userOpHash was null or undefined when calling getBundleHash.",
-        );
-      }
-
-      const queryParams: any = {
-        chainId: toQuantity(chainId),
-        operationHash: userOpHash,
-        ...options.query,
-      };
-
-      if (wait !== undefined) {
-        queryParams["wait"] = wait;
-      }
-
-      return RequestBuilder.buildRequest("getBundleHash", queryParams);
-    },
-
-    getBundleForUserOp(
-      chainId: number,
-      userOp: UserOperation,
-      hints: string[],
-      wait?: boolean,
-      options: any = {},
-    ): FetchArgs {
-      if (userOp === null || userOp === undefined) {
-        throw new Error(
-          "Required parameter userOp was null or undefined when calling getBundleForUserOp.",
-        );
-      }
-
-      const body = {
-        chainId: toQuantity(chainId),
-        userOperation: userOp.toStruct(),
-        hints: hints,
-      };
-
-      const queryParams: any = {
-        wait,
-        ...options.query,
-      };
-
-      return RequestBuilder.buildRequest(
-        "getBundleForUserOp",
-        queryParams,
-        body,
       );
     },
   };
