@@ -188,12 +188,13 @@ export const FastlaneApiFetchParamCreator = function () {
       hints: string[],
       options: any = {},
     ): FetchArgs {
+      const userOperationWithHints = JSON.stringify({
+        chainId: toQuantity(chainId),
+        userOperation: userOp.toStruct(),
+        hints: hints,
+      });
       const body: any = {
-        userOperationWithHints: {
-          chainId: toQuantity(chainId),
-          userOperation: userOp.toStruct(),
-          hints: hints,
-        },
+        userOperationWithHints: "0x" + Buffer.from(userOperationWithHints).toString("hex"),
         ...options,
       };
 

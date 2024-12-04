@@ -256,11 +256,6 @@ export class AtlasSdk {
     hints: string[] = [],
     options: any = {},
   ): Promise<string[] | Bundle> {
-    const sessionKey = userOp.getField("sessionKey").value as string;
-    if (sessionKey !== ZeroAddress && !this.sessionKeys.has(sessionKey)) {
-      throw new Error("Session key not found");
-    }
-
     userOp.validateFields();
 
     // Check the signature only if it's already set
