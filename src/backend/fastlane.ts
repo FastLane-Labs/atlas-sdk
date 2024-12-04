@@ -1,8 +1,8 @@
 import { BaseBackend } from "./base";
 import { OperationBuilder } from "../operation/builder";
-import { UserOperation, SolverOperation, Bundle } from "../operation";
+import { UserOperation, Bundle } from "../operation";
 import { toQuantity, TypedDataDomain } from "ethers";
-import { chainConfig } from "../config";
+import { AtlasVersion, chainConfig } from "../config";
 import isomorphicFetch from "isomorphic-fetch";
 import * as url from "url";
 
@@ -46,6 +46,7 @@ export class FastlaneBackend extends BaseBackend {
 
   public async _submitUserOperation(
     chainId: number,
+    atlasVersion: AtlasVersion,
     userOp: UserOperation,
     hints: string[],
     extra?: any,
@@ -57,7 +58,7 @@ export class FastlaneBackend extends BaseBackend {
       extra,
     );
     const response = await this.fetch(
-      this.params["basePath"] + fetchArgs.url,
+      this.params["endpoint"] + fetchArgs.url,
       fetchArgs.options,
     );
     if (response.ok) {
@@ -65,7 +66,8 @@ export class FastlaneBackend extends BaseBackend {
       if (Array.isArray(data)) {
         return data as string[];
       } else {
-        return validateBundleData(data, chainConfig[chainId].eip712Domain);
+        const eip712Domain = (await chainConfig(chainId, atlasVersion)).eip712Domain;
+        return validateBundleData(data, eip712Domain);
       }
     } else {
       const errorBody = await response.json();
@@ -75,6 +77,7 @@ export class FastlaneBackend extends BaseBackend {
 
   public async _submitBundle(
     chainId: number,
+    atlasVersion: AtlasVersion,
     bundle: Bundle,
     extra?: any,
   ): Promise<string[]> {
@@ -84,7 +87,7 @@ export class FastlaneBackend extends BaseBackend {
       extra,
     );
     const response = await this.fetch(
-      this.params["basePath"] + fetchArgs.url,
+      this.params["endpoint"] + fetchArgs.url,
       fetchArgs.options,
     );
     if (response.ok) {

@@ -1,9 +1,11 @@
 import { AbstractProvider } from "ethers";
-import { UserOperation, SolverOperation, Bundle } from "../../operation";
+import { UserOperation, Bundle } from "../../operation";
+import { AtlasVersion } from "../../config/chain";
 
 export interface IHooksController {
   preSubmitUserOperation(
     chainId: number,
+    atlasVersion: AtlasVersion,
     userOp: UserOperation,
     hints: string[],
     extra?: any,
@@ -11,6 +13,7 @@ export interface IHooksController {
 
   postSubmitUserOperation(
     chainId: number,
+    atlasVersion: AtlasVersion,
     userOp: UserOperation,
     result: string[] | Bundle,
     extra?: any,
@@ -18,12 +21,14 @@ export interface IHooksController {
 
   preSubmitBundle(
     chainId: number,
+    atlasVersion: AtlasVersion,
     bundle: Bundle,
     extra?: any,
   ): Promise<[Bundle, any]>;
 
   postSubmitBundle(
     chainId: number,
+    atlasVersion: AtlasVersion,
     result: string[],
     extra?: any,
   ): Promise<string[]>;
@@ -39,6 +44,7 @@ export abstract class BaseHooksController implements IHooksController {
   async preSubmitUserOperation(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     chainId: number,
+    atlasVersion: AtlasVersion,
     userOp: UserOperation,
     hints: string[],
     extra?: any,
@@ -49,6 +55,7 @@ export abstract class BaseHooksController implements IHooksController {
   async postSubmitUserOperation(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     chainId: number,
+    atlasVersion: AtlasVersion,
     userOp: UserOperation,
     result: string[] | Bundle,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -60,6 +67,7 @@ export abstract class BaseHooksController implements IHooksController {
   async preSubmitBundle(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     chainId: number,
+    atlasVersion: AtlasVersion,
     bundle: Bundle,
     extra?: any,
   ): Promise<[Bundle, any]> {
@@ -69,6 +77,7 @@ export abstract class BaseHooksController implements IHooksController {
   async postSubmitBundle(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     chainId: number,
+    atlasVersion: AtlasVersion,
     result: string[],
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     extra?: any,

@@ -2,10 +2,10 @@ import { FastlaneBackend } from "../src/backend/fastlane";
 import { OperationBuilder } from "../src/operation/builder";
 import {
   UserOperation,
-  SolverOperation,
   DAppOperation,
   Bundle,
 } from "../src/operation";
+import { AtlasLatestVersion } from "../src/config";
 
 describe("FastlaneBackend", () => {
   let backend: FastlaneBackend;
@@ -69,7 +69,7 @@ describe("FastlaneBackend", () => {
         json: async () => [expectedHash],
       });
 
-      const result = await backend._submitUserOperation(1, userOp, []);
+      const result = await backend._submitUserOperation(1, AtlasLatestVersion, userOp, []);
       expect((result as string[])[0]).toBe(expectedHash);
     });
 
@@ -81,7 +81,7 @@ describe("FastlaneBackend", () => {
         json: async () => ({ message: "Submission failed" }),
       });
 
-      await expect(backend._submitUserOperation(1, userOp, [])).rejects.toThrow(
+      await expect(backend._submitUserOperation(1, AtlasLatestVersion, userOp, [])).rejects.toThrow(
         "Submission failed",
       );
     });
@@ -97,7 +97,7 @@ describe("FastlaneBackend", () => {
         json: async () => expectedMessage,
       });
 
-      const result = await backend._submitBundle(1, mockBundle);
+      const result = await backend._submitBundle(1, AtlasLatestVersion, mockBundle);
       expect(result).toBe(expectedMessage);
     });
 
@@ -109,7 +109,7 @@ describe("FastlaneBackend", () => {
         json: async () => ({ message: "Failed to submit bundle" }),
       });
 
-      await expect(backend._submitBundle(1, mockBundle)).rejects.toThrow(
+      await expect(backend._submitBundle(1, AtlasLatestVersion, mockBundle)).rejects.toThrow(
         "Failed to submit bundle",
       );
     });

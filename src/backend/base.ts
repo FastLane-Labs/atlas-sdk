@@ -1,5 +1,6 @@
-import { UserOperation, SolverOperation, Bundle } from "../operation";
+import { UserOperation, Bundle } from "../operation";
 import { IHooksController } from "./hooks";
+import { AtlasVersion } from "../config/chain";
 
 export interface IBackend {
   addHooksControllers(hooksControllers: IHooksController[]): void;
@@ -8,6 +9,7 @@ export interface IBackend {
    * Submit a user operation to the backend
    * @summary Submit a user operation to the backend
    * @param {number} chainId The chain ID
+   * @param {AtlasVersion} atlasVersion The Atlas version
    * @param {UserOperation} userOp The user operation
    * @param {string[]} hints Hints for solvers
    * @param {*} [extra] Extra parameters
@@ -15,6 +17,7 @@ export interface IBackend {
    */
   submitUserOperation(
     chainId: number,
+    atlasVersion: AtlasVersion,
     userOp: UserOperation,
     hints: string[],
     extra?: any,
@@ -22,6 +25,7 @@ export interface IBackend {
 
   _submitUserOperation(
     chainId: number,
+    atlasVersion: AtlasVersion,
     userOp: UserOperation,
     hints: string[],
     extra?: any,
@@ -31,13 +35,24 @@ export interface IBackend {
    * Submit user/solvers/dApp operations to the backend for bundling
    * @summary Submit a bundle of user/solvers/dApp operations to the backend
    * @param {number} chainId The chain ID
+   * @param {AtlasVersion} atlasVersion The Atlas version
    * @param {Bundle} bundle The user/solvers/dApp operations to be bundled
    * @param {*} [extra] Extra parameters
    * @returns {Promise<string[]>} The hashes of the metacall
    */
-  submitBundle(chainId: number, bundle: Bundle, extra?: any): Promise<string[]>;
+  submitBundle(
+    chainId: number,
+    atlasVersion: AtlasVersion,
+    bundle: Bundle,
+    extra?: any,
+  ): Promise<string[]>;
 
-  _submitBundle(chainId: number, bundle: Bundle, extra?: any): Promise<string[]>;
+  _submitBundle(
+    chainId: number,
+    atlasVersion: AtlasVersion,
+    bundle: Bundle,
+    extra?: any,
+  ): Promise<string[]>;
 }
 
 export abstract class BaseBackend implements IBackend {
@@ -51,6 +66,7 @@ export abstract class BaseBackend implements IBackend {
 
   async submitUserOperation(
     chainId: number,
+    atlasVersion: AtlasVersion,
     userOp: UserOperation,
     hints: string[],
     extra?: any,
@@ -59,6 +75,7 @@ export abstract class BaseBackend implements IBackend {
     for (const hooksController of this.hooksControllers) {
       [userOp, hints, extra] = await hooksController.preSubmitUserOperation(
         chainId,
+        atlasVersion,
         userOp,
         hints,
         extra,
@@ -67,6 +84,7 @@ export abstract class BaseBackend implements IBackend {
     // Implemented by subclass
     let result = await this._submitUserOperation(
       chainId,
+      atlasVersion,
       userOp,
       hints,
       extra,
@@ -76,6 +94,7 @@ export abstract class BaseBackend implements IBackend {
     for (const hooksController of this.hooksControllers) {
       [userOp, result] = await hooksController.postSubmitUserOperation(
         chainId,
+        atlasVersion,
         userOp,
         result,
         extra,
@@ -87,6 +106,7 @@ export abstract class BaseBackend implements IBackend {
 
   async submitBundle(
     chainId: number,
+    atlasVersion: AtlasVersion,
     bundle: Bundle,
     extra?: any,
   ): Promise<string[]> {
@@ -94,17 +114,28 @@ export abstract class BaseBackend implements IBackend {
     for (const hooksController of this.hooksControllers) {
       [bundle, extra] = await hooksController.preSubmitBundle(
         chainId,
+        atlasVersion,
         bundle,
         extra,
       );
     }
 
     // Implemented by subclass
-    let result = await this._submitBundle(chainId, bundle, extra);
+    let result = await this._submitBundle(
+      chainId,
+      atlasVersion,
+      bundle,
+      extra,
+    );
 
     // Post hooks
     for (const hooksController of this.hooksControllers) {
-      result = await hooksController.postSubmitBundle(chainId, result, extra);
+      result = await hooksController.postSubmitBundle(
+        chainId,
+        atlasVersion,
+        result,
+        extra,
+      );
     }
 
     return result;
@@ -112,6 +143,7 @@ export abstract class BaseBackend implements IBackend {
 
   abstract _submitUserOperation(
     chainId: number,
+    atlasVersion: AtlasVersion,
     userOp: UserOperation,
     hints: string[],
     extra?: any,
@@ -119,6 +151,7 @@ export abstract class BaseBackend implements IBackend {
 
   abstract _submitBundle(
     chainId: number,
+    atlasVersion: AtlasVersion,
     bundle: Bundle,
     extra?: any,
   ): Promise<string[]>;

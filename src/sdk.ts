@@ -28,16 +28,15 @@ import {
   flagExPostBids,
   flagTrustedOpHash,
 } from "./utils";
-import { chainConfig } from "./config";
-import atlasAbi from "./abi/Atlas.json";
-import atlasVerificationAbi from "./abi/AtlasVerification.json";
+import { AtlasVersion, AtlasLatestVersion, chainConfig, atlasAbi, atlasVerificationAbi, sorterAbi } from "./config";
 import dAppControlAbi from "./abi/DAppControl.json";
-import sorterAbi from "./abi/Sorter.json";
 
 /**
  * The main class to submit user operations to Atlas.
  */
 export class AtlasSdk {
+  private chainId: number;
+  private atlasVersion: AtlasVersion;
   private iAtlas: Interface;
   private atlasVerification: Contract;
   private dAppControl: Contract;
@@ -45,7 +44,6 @@ export class AtlasSdk {
   private backend: IBackend;
   private sessionKeys: Map<string, HDNodeWallet> = new Map();
   private usersLastNonSequentialNonce: Map<string, bigint> = new Map();
-  private chainId: number;
 
   /**
    * Creates a new Atlas SDK instance.
@@ -53,26 +51,53 @@ export class AtlasSdk {
    * @param chainId the chain ID of the network
    * @param backend a backend client
    * @param hooksControllers an array of hooks controllers
+   * @param atlasVersion the version of the Atlas protocol
    */
-  constructor(
+  public static async create(
     provider: AbstractProvider,
     chainId: number,
     backend: IBackend,
     hooksControllers: IHooksControllerConstructable[] = [],
+    atlasVersion: AtlasVersion = AtlasLatestVersion,
+  ): Promise<AtlasSdk> {
+    const atlasVerificationContract = new Contract(
+      (await chainConfig(chainId, atlasVersion)).contracts.atlasVerification,
+      atlasVerificationAbi(atlasVersion),
+      provider,
+    );
+    const sorterContract = new Contract(
+      (await chainConfig(chainId, atlasVersion)).contracts.sorter,
+      sorterAbi(atlasVersion),
+      provider,
+    );
+    return new AtlasSdk(provider, chainId, atlasVersion, backend, atlasVerificationContract, sorterContract, hooksControllers);
+  }
+
+  /**
+   * Creates a new Atlas SDK instance.
+   * @param provider a provider
+   * @param chainId the chain ID of the network
+   * @param atlasVersion the version of the Atlas protocol
+   * @param backend a backend client
+   * @param atlasVerificationContract the Atlas verification contract
+   * @param sorterContract the sorter contract
+   * @param hooksControllers an array of hooks controllers
+   */
+  private constructor(
+    provider: AbstractProvider,
+    chainId: number,
+    atlasVersion: AtlasVersion,
+    backend: IBackend,
+    atlasVerificationContract: Contract,
+    sorterContract: Contract,
+    hooksControllers: IHooksControllerConstructable[] = [],
   ) {
     this.chainId = chainId;
-    this.iAtlas = new Interface(atlasAbi);
-    this.atlasVerification = new Contract(
-      chainConfig[chainId].contracts.atlasVerification.address,
-      atlasVerificationAbi,
-      provider,
-    );
+    this.atlasVersion = atlasVersion;
+    this.iAtlas = new Interface(atlasAbi(atlasVersion));
+    this.atlasVerification = atlasVerificationContract;
     this.dAppControl = new Contract(ZeroAddress, dAppControlAbi, provider);
-    this.sorter = new Contract(
-      chainConfig[chainId].contracts.sorter.address,
-      sorterAbi,
-      provider,
-    );
+    this.sorter = sorterContract;
     const _hooksControllers = hooksControllers.map(
       (HookController) => new HookController(provider),
     );
@@ -94,7 +119,7 @@ export class AtlasSdk {
       from: userOpParams.from,
       to: userOpParams.to
         ? userOpParams.to
-        : chainConfig[this.chainId].contracts.atlas.address,
+        : (await chainConfig(this.chainId, this.atlasVersion)).contracts.atlas,
       value: userOpParams.value,
       gas: userOpParams.gas,
       maxFeePerGas: userOpParams.maxFeePerGas,
@@ -141,9 +166,10 @@ export class AtlasSdk {
    * @param userOp a user operation
    * @returns the hash of the user operation
    */
-  public getUserOperationHash(userOp: UserOperation): string {
+  public async getUserOperationHash(userOp: UserOperation): Promise<string> {
+    const eip712Domain = (await chainConfig(this.chainId, this.atlasVersion)).eip712Domain;
     return userOp.hash(
-      chainConfig[this.chainId].eip712Domain,
+      eip712Domain,
       flagTrustedOpHash(userOp.callConfig()),
     );
   }
@@ -199,15 +225,16 @@ export class AtlasSdk {
     userOp: UserOperation,
     signer: AbstractSigner,
   ): Promise<UserOperation> {
+    const eip712Domain = (await chainConfig(this.chainId, this.atlasVersion)).eip712Domain;
     userOp.setField(
       "signature",
       await signer.signTypedData(
-        chainConfig[this.chainId].eip712Domain,
+        eip712Domain,
         userOp.toTypedDataTypes(),
         userOp.toTypedDataValues(),
       ),
     );
-    userOp.validateSignature(chainConfig[this.chainId].eip712Domain);
+    userOp.validateSignature(eip712Domain);
     return userOp;
   }
 
@@ -231,7 +258,8 @@ export class AtlasSdk {
 
     // Check the signature only if it's already set
     if (userOp.getField("signature").value !== ZeroBytes) {
-      userOp.validateSignature(chainConfig[this.chainId].eip712Domain);
+      const eip712Domain = (await chainConfig(this.chainId, this.atlasVersion)).eip712Domain;
+      userOp.validateSignature(eip712Domain);
     }
 
     for (const hint of hints) {
@@ -243,6 +271,7 @@ export class AtlasSdk {
     // Submit the user operation to the backend
     const result = await this.backend.submitUserOperation(
       this.chainId,
+      this.atlasVersion,
       userOp,
       hints,
       options,
@@ -311,9 +340,10 @@ export class AtlasSdk {
     }
 
     const callConfig = userOp.callConfig();
+    const eip712Domain = (await chainConfig(this.chainId, this.atlasVersion)).eip712Domain;
 
     const userOpHash = userOp.hash(
-      chainConfig[this.chainId].eip712Domain,
+      eip712Domain,
       flagTrustedOpHash(callConfig),
     );
 
@@ -327,13 +357,13 @@ export class AtlasSdk {
       );
 
     const signature = await sessionAccount.signTypedData(
-      chainConfig[this.chainId].eip712Domain,
+      eip712Domain,
       dAppOp.toTypedDataTypes(),
       dAppOp.toTypedDataValues(),
     );
 
     dAppOp.setField("signature", signature);
-    dAppOp.validateSignature(chainConfig[this.chainId].eip712Domain);
+    dAppOp.validateSignature(eip712Domain);
 
     return dAppOp;
   }
@@ -387,10 +417,13 @@ export class AtlasSdk {
       solverOps,
       dAppOp,
     );
-    bundle.validate(chainConfig[this.chainId].eip712Domain);
+
+    const eip712Domain = (await chainConfig(this.chainId, this.atlasVersion)).eip712Domain;
+    bundle.validate(eip712Domain);
 
     const result = await this.backend.submitBundle(
       this.chainId,
+      this.atlasVersion,
       bundle,
       options,
     );

@@ -8,15 +8,14 @@ import { AtlasSdk } from "../src";
 import { MockBackend } from "../src/backend";
 import { OperationBuilder, ZeroBytes } from "../src/operation";
 import { validateBytes32, CallConfigIndex } from "../src/utils";
-import { chainConfig } from "../src/config";
+import { AtlasVersion, ChainConfig, chainConfig } from "../src/config";
 
 describe("Atlas SDK main tests", () => {
+  let sdk: AtlasSdk;
+  let _chainConfig: ChainConfig;
+
   const chainId = 11155111;
-  const sdk = new AtlasSdk(
-    new JsonRpcProvider("https://rpc.sepolia.org/", chainId),
-    chainId,
-    new MockBackend(),
-  );
+  const atlasVersion: AtlasVersion = "1.0";
 
   const testDAppControl = "0x60d7B59c6743C25b29a7aEe6F5a37c07B1A6Cff3";
 
@@ -28,7 +27,7 @@ describe("Atlas SDK main tests", () => {
 
   const userOpParams = {
     from: signer.address,
-    to: chainConfig[chainId].contracts.atlas.address,
+    to: "",
     value: 0n,
     gas: 100000n,
     maxFeePerGas: 30000000000n,
@@ -44,6 +43,18 @@ describe("Atlas SDK main tests", () => {
     uop.callConfig |= 1n << BigInt(flagIndex);
     return uop;
   };
+
+  beforeAll(async () => {
+    sdk = await AtlasSdk.create(
+      new JsonRpcProvider("https://rpc.sepolia.org/", chainId),
+      chainId,
+      new MockBackend(),
+      [],
+      atlasVersion,
+    );
+    _chainConfig = await chainConfig(chainId, atlasVersion);
+    userOpParams.to = _chainConfig.contracts.atlas;
+  });
 
   test("newUserOperation without sessionKey generation", async () => {
     const userOp = await sdk.newUserOperation(userOpParams);
@@ -105,7 +116,7 @@ describe("Atlas SDK main tests", () => {
 
     // Validate signature
     expect(() =>
-      userOp.validateSignature(chainConfig[chainId].eip712Domain),
+      userOp.validateSignature(_chainConfig.eip712Domain),
     ).not.toThrow();
   });
 

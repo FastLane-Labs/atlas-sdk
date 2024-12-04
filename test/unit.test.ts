@@ -1,9 +1,12 @@
 import { hexlify, toUtf8Bytes, HDNodeWallet } from "ethers";
 import { OperationBuilder } from "../src/operation";
 import { getCallChainHash } from "../src/utils";
-import { chainConfig } from "../src/config";
+import { AtlasVersion, ChainConfig, chainConfig } from "../src/config";
 
 describe("Atlas SDK unit tests", () => {
+  let _chainConfig: ChainConfig;
+  const _atlasVersion: AtlasVersion = "1.0";
+
   const testUserOperation = OperationBuilder.newUserOperation({
     from: "0x0000000000000000000000000000000000000001",
     to: "0x0000000000000000000000000000000000000002",
@@ -51,6 +54,10 @@ describe("Atlas SDK unit tests", () => {
     signature: hexlify(toUtf8Bytes("signature")),
   });
 
+  beforeAll(async () => {
+    _chainConfig = await chainConfig(0, _atlasVersion);
+  });
+
   test("abi encode user operation", () => {
     expect(testUserOperation.abiEncode()).toBe(
       "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000001f400000000000000000000000000000000000000000000000000000000000000c80000000000000000000000000000000000000000000000000000000000000190000000000000000000000000000000000000000000000000000000000000012c0000000000000000000000000000000000000000000000000000000000000064000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000258000000000000000000000000000000000000000000000000000000000000000500000000000000000000000000000000000000000000000000000000000001a000000000000000000000000000000000000000000000000000000000000001e00000000000000000000000000000000000000000000000000000000000000004646174610000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000097369676e61747572650000000000000000000000000000000000000000000000",
@@ -64,13 +71,13 @@ describe("Atlas SDK unit tests", () => {
   });
 
   test("user operation hash default", () => {
-    expect(testUserOperation.hash(chainConfig[0].eip712Domain, false)).toBe(
+    expect(testUserOperation.hash(_chainConfig.eip712Domain, false)).toBe(
       "0x021a7f3f62347f1f3d1163aa8eb9fc965e87556aede03c7182ec05bc60311b64",
     );
   });
 
   test("user operation hash trusted", () => {
-    expect(testUserOperation.hash(chainConfig[0].eip712Domain, true)).toBe(
+    expect(testUserOperation.hash(_chainConfig.eip712Domain, true)).toBe(
       "0x96aa1212cae2645ba1b8bf8014abccdfe9a60c16f86e21f82753d4cecc0b6089",
     );
   });
@@ -101,7 +108,7 @@ describe("Atlas SDK unit tests", () => {
     );
 
     const signature = await signer.signTypedData(
-      chainConfig[0].eip712Domain,
+      _chainConfig.eip712Domain,
       testUserOperation.toTypedDataTypes(),
       testUserOperation.toTypedDataValues(),
     );
@@ -119,7 +126,7 @@ describe("Atlas SDK unit tests", () => {
     });
 
     expect(() =>
-      testUserOperation.validateSignature(chainConfig[0].eip712Domain),
+      testUserOperation.validateSignature(_chainConfig.eip712Domain),
     ).not.toThrow();
   });
 
@@ -129,7 +136,7 @@ describe("Atlas SDK unit tests", () => {
     );
 
     const signature = await signer.signTypedData(
-      chainConfig[0].eip712Domain,
+      _chainConfig.eip712Domain,
       testDAppOperation.toTypedDataTypes(),
       testDAppOperation.toTypedDataValues(),
     );
@@ -147,7 +154,7 @@ describe("Atlas SDK unit tests", () => {
     });
 
     expect(() =>
-      testDAppOperation.validateSignature(chainConfig[0].eip712Domain),
+      testDAppOperation.validateSignature(_chainConfig.eip712Domain),
     ).not.toThrow();
   });
 
