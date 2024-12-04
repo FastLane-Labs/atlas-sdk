@@ -373,18 +373,26 @@ export class AtlasSdk {
    * @param userOp a signed user operation
    * @param solverOps an array of solver operations
    * @param dAppOp a signed dApp operation
+   * @param gasRefundBeneficiary the address of the gas refund beneficiary
    * @returns the encoded calldata for metacall
    */
   public getMetacallCalldata(
     userOp: UserOperation,
     solverOps: SolverOperation[],
     dAppOp: DAppOperation,
+    gasRefundBeneficiary: string = ZeroAddress,
   ): string {
-    return this.iAtlas.encodeFunctionData("metacall", [
+    const params: any[] = [
       userOp.toStruct(),
       solverOps.map((solverOp) => solverOp.toStruct()),
       dAppOp.toStruct(),
-    ]);
+    ]
+
+    if (!["1.0", "1.1"].includes(this.atlasVersion)) {
+      params.push(gasRefundBeneficiary);
+    }
+
+    return this.iAtlas.encodeFunctionData("metacall", params);
   }
 
   /**
