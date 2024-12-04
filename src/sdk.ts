@@ -37,7 +37,7 @@ import dAppControlAbi from "./abi/DAppControl.json";
 export class AtlasSdk {
   private chainId: number;
   private atlasVersion: AtlasVersion;
-  private iAtlas: Interface;
+  private atlas: Contract;
   private atlasVerification: Contract;
   private dAppControl: Contract;
   private sorter: Contract;
@@ -60,6 +60,11 @@ export class AtlasSdk {
     hooksControllers: IHooksControllerConstructable[] = [],
     atlasVersion: AtlasVersion = AtlasLatestVersion,
   ): Promise<AtlasSdk> {
+    const atlasContract = new Contract(
+      (await chainConfig(chainId, atlasVersion)).contracts.atlas,
+      atlasAbi(atlasVersion),
+      provider,
+    );
     const atlasVerificationContract = new Contract(
       (await chainConfig(chainId, atlasVersion)).contracts.atlasVerification,
       atlasVerificationAbi(atlasVersion),
@@ -70,7 +75,7 @@ export class AtlasSdk {
       sorterAbi(atlasVersion),
       provider,
     );
-    return new AtlasSdk(provider, chainId, atlasVersion, backend, atlasVerificationContract, sorterContract, hooksControllers);
+    return new AtlasSdk(provider, chainId, atlasVersion, backend, atlasContract, atlasVerificationContract, sorterContract, hooksControllers);
   }
 
   /**
@@ -79,6 +84,7 @@ export class AtlasSdk {
    * @param chainId the chain ID of the network
    * @param atlasVersion the version of the Atlas protocol
    * @param backend a backend client
+   * @param atlasContract the Atlas contract
    * @param atlasVerificationContract the Atlas verification contract
    * @param sorterContract the sorter contract
    * @param hooksControllers an array of hooks controllers
@@ -88,13 +94,14 @@ export class AtlasSdk {
     chainId: number,
     atlasVersion: AtlasVersion,
     backend: IBackend,
+    atlasContract: Contract,
     atlasVerificationContract: Contract,
     sorterContract: Contract,
     hooksControllers: IHooksControllerConstructable[] = [],
   ) {
     this.chainId = chainId;
     this.atlasVersion = atlasVersion;
-    this.iAtlas = new Interface(atlasAbi(atlasVersion));
+    this.atlas = atlasContract;
     this.atlasVerification = atlasVerificationContract;
     this.dAppControl = new Contract(ZeroAddress, dAppControlAbi, provider);
     this.sorter = sorterContract;
@@ -392,7 +399,7 @@ export class AtlasSdk {
       params.push(gasRefundBeneficiary);
     }
 
-    return this.iAtlas.encodeFunctionData("metacall", params);
+    return this.atlas.interface.encodeFunctionData("metacall", params);
   }
 
   /**
@@ -437,6 +444,23 @@ export class AtlasSdk {
     );
 
     return result;
+  }
+
+  /**
+   * Gets a user execution environment.
+   * @param userAddress the address of the user
+   * @param dAppControlAddress the address of the dApp control
+   * @returns the execution environment address
+   */
+  public async getExecutionEnvironment(
+    userAddress: string,
+    dAppControlAddress: string,
+  ): Promise<string> {
+    const executionEnvironmentData = await this.atlas
+      .getFunction("getExecutionEnvironment")
+      .staticCall(userAddress, dAppControlAddress);
+
+    return executionEnvironmentData[0];
   }
 
   /**
