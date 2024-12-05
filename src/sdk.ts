@@ -2,7 +2,6 @@ import {
   AbstractProvider,
   Wallet,
   HDNodeWallet,
-  Interface,
   AbstractSigner,
   ZeroAddress,
   Contract,
@@ -28,7 +27,7 @@ import {
   flagExPostBids,
   flagTrustedOpHash,
 } from "./utils";
-import { AtlasVersion, AtlasLatestVersion, chainConfig, atlasAbi, atlasVerificationAbi, sorterAbi } from "./config";
+import { AtlasVersion, AtlasLatestVersion, chainConfig, atlasAbi, atlasVerificationAbi, sorterAbi, simulatorAbi } from "./config";
 import dAppControlAbi from "./abi/DAppControl.json";
 
 /**
@@ -41,6 +40,7 @@ export class AtlasSdk {
   private atlasVerification: Contract;
   private dAppControl: Contract;
   private sorter: Contract;
+  private simulator: Contract;
   private backend: IBackend;
   private sessionKeys: Map<string, HDNodeWallet> = new Map();
   private usersLastNonSequentialNonce: Map<string, bigint> = new Map();
@@ -75,7 +75,12 @@ export class AtlasSdk {
       sorterAbi(atlasVersion),
       provider,
     );
-    return new AtlasSdk(provider, chainId, atlasVersion, backend, atlasContract, atlasVerificationContract, sorterContract, hooksControllers);
+    const simulatorContract = new Contract(
+      (await chainConfig(chainId, atlasVersion)).contracts.simulator,
+      simulatorAbi(atlasVersion),
+      provider,
+    );
+    return new AtlasSdk(provider, chainId, atlasVersion, backend, atlasContract, atlasVerificationContract, sorterContract, simulatorContract, hooksControllers);
   }
 
   /**
@@ -87,6 +92,7 @@ export class AtlasSdk {
    * @param atlasContract the Atlas contract
    * @param atlasVerificationContract the Atlas verification contract
    * @param sorterContract the sorter contract
+   * @param simulatorContract the simulator contract
    * @param hooksControllers an array of hooks controllers
    */
   private constructor(
@@ -97,6 +103,7 @@ export class AtlasSdk {
     atlasContract: Contract,
     atlasVerificationContract: Contract,
     sorterContract: Contract,
+    simulatorContract: Contract,
     hooksControllers: IHooksControllerConstructable[] = [],
   ) {
     this.chainId = chainId;
@@ -105,11 +112,44 @@ export class AtlasSdk {
     this.atlasVerification = atlasVerificationContract;
     this.dAppControl = new Contract(ZeroAddress, dAppControlAbi, provider);
     this.sorter = sorterContract;
+    this.simulator = simulatorContract;
     const _hooksControllers = hooksControllers.map(
       (HookController) => new HookController(provider),
     );
     this.backend = backend;
     this.backend.addHooksControllers(_hooksControllers);
+  }
+  
+  /**
+   * Gets Atlas address.
+   * @returns the Atlas address
+   */
+  public async getAtlasAddress(): Promise<string> {
+    return await this.atlas.getAddress();
+  }
+
+  /**
+   * Gets Atlas verification address.
+   * @returns the Atlas verification address
+   */
+  public async getAtlasVerificationAddress(): Promise<string> {
+    return await this.atlasVerification.getAddress();
+  }
+
+  /**
+   * Gets sorter address.
+   * @returns the sorter address
+   */
+  public async getSorterAddress(): Promise<string> {
+    return await this.sorter.getAddress();
+  }
+
+  /**
+   * Gets simulator address.
+   * @returns the simulator address
+   */
+  public async getSimulatorAddress(): Promise<string> {
+    return await this.simulator.getAddress();
   }
 
   /**
