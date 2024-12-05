@@ -2,7 +2,6 @@ import {
   AbstractProvider,
   Wallet,
   HDNodeWallet,
-  Interface,
   AbstractSigner,
   ZeroAddress,
   Contract,
@@ -28,24 +27,23 @@ import {
   flagExPostBids,
   flagTrustedOpHash,
 } from "./utils";
-import { chainConfig } from "./config";
-import atlasAbi from "./abi/Atlas.json";
-import atlasVerificationAbi from "./abi/AtlasVerification.json";
+import { AtlasVersion, AtlasLatestVersion, chainConfig, atlasAbi, atlasVerificationAbi, sorterAbi, simulatorAbi } from "./config";
 import dAppControlAbi from "./abi/DAppControl.json";
-import sorterAbi from "./abi/Sorter.json";
 
 /**
  * The main class to submit user operations to Atlas.
  */
 export class AtlasSdk {
-  private iAtlas: Interface;
+  private chainId: number;
+  private atlasVersion: AtlasVersion;
+  private atlas: Contract;
   private atlasVerification: Contract;
   private dAppControl: Contract;
   private sorter: Contract;
+  private simulator: Contract;
   private backend: IBackend;
   private sessionKeys: Map<string, HDNodeWallet> = new Map();
   private usersLastNonSequentialNonce: Map<string, bigint> = new Map();
-  private chainId: number;
 
   /**
    * Creates a new Atlas SDK instance.
@@ -53,31 +51,105 @@ export class AtlasSdk {
    * @param chainId the chain ID of the network
    * @param backend a backend client
    * @param hooksControllers an array of hooks controllers
+   * @param atlasVersion the version of the Atlas protocol
    */
-  constructor(
+  public static async create(
     provider: AbstractProvider,
     chainId: number,
     backend: IBackend,
     hooksControllers: IHooksControllerConstructable[] = [],
+    atlasVersion: AtlasVersion = AtlasLatestVersion,
+  ): Promise<AtlasSdk> {
+    const atlasContract = new Contract(
+      (await chainConfig(chainId, atlasVersion)).contracts.atlas,
+      atlasAbi(atlasVersion),
+      provider,
+    );
+    const atlasVerificationContract = new Contract(
+      (await chainConfig(chainId, atlasVersion)).contracts.atlasVerification,
+      atlasVerificationAbi(atlasVersion),
+      provider,
+    );
+    const sorterContract = new Contract(
+      (await chainConfig(chainId, atlasVersion)).contracts.sorter,
+      sorterAbi(atlasVersion),
+      provider,
+    );
+    const simulatorContract = new Contract(
+      (await chainConfig(chainId, atlasVersion)).contracts.simulator,
+      simulatorAbi(atlasVersion),
+      provider,
+    );
+    return new AtlasSdk(provider, chainId, atlasVersion, backend, atlasContract, atlasVerificationContract, sorterContract, simulatorContract, hooksControllers);
+  }
+
+  /**
+   * Creates a new Atlas SDK instance.
+   * @param provider a provider
+   * @param chainId the chain ID of the network
+   * @param atlasVersion the version of the Atlas protocol
+   * @param backend a backend client
+   * @param atlasContract the Atlas contract
+   * @param atlasVerificationContract the Atlas verification contract
+   * @param sorterContract the sorter contract
+   * @param simulatorContract the simulator contract
+   * @param hooksControllers an array of hooks controllers
+   */
+  private constructor(
+    provider: AbstractProvider,
+    chainId: number,
+    atlasVersion: AtlasVersion,
+    backend: IBackend,
+    atlasContract: Contract,
+    atlasVerificationContract: Contract,
+    sorterContract: Contract,
+    simulatorContract: Contract,
+    hooksControllers: IHooksControllerConstructable[] = [],
   ) {
     this.chainId = chainId;
-    this.iAtlas = new Interface(atlasAbi);
-    this.atlasVerification = new Contract(
-      chainConfig[chainId].contracts.atlasVerification.address,
-      atlasVerificationAbi,
-      provider,
-    );
+    this.atlasVersion = atlasVersion;
+    this.atlas = atlasContract;
+    this.atlasVerification = atlasVerificationContract;
     this.dAppControl = new Contract(ZeroAddress, dAppControlAbi, provider);
-    this.sorter = new Contract(
-      chainConfig[chainId].contracts.sorter.address,
-      sorterAbi,
-      provider,
-    );
+    this.sorter = sorterContract;
+    this.simulator = simulatorContract;
     const _hooksControllers = hooksControllers.map(
       (HookController) => new HookController(provider),
     );
     this.backend = backend;
     this.backend.addHooksControllers(_hooksControllers);
+  }
+  
+  /**
+   * Gets Atlas address.
+   * @returns the Atlas address
+   */
+  public async getAtlasAddress(): Promise<string> {
+    return await this.atlas.getAddress();
+  }
+
+  /**
+   * Gets Atlas verification address.
+   * @returns the Atlas verification address
+   */
+  public async getAtlasVerificationAddress(): Promise<string> {
+    return await this.atlasVerification.getAddress();
+  }
+
+  /**
+   * Gets sorter address.
+   * @returns the sorter address
+   */
+  public async getSorterAddress(): Promise<string> {
+    return await this.sorter.getAddress();
+  }
+
+  /**
+   * Gets simulator address.
+   * @returns the simulator address
+   */
+  public async getSimulatorAddress(): Promise<string> {
+    return await this.simulator.getAddress();
   }
 
   /**
@@ -94,7 +166,7 @@ export class AtlasSdk {
       from: userOpParams.from,
       to: userOpParams.to
         ? userOpParams.to
-        : chainConfig[this.chainId].contracts.atlas.address,
+        : (await chainConfig(this.chainId, this.atlasVersion)).contracts.atlas,
       value: userOpParams.value,
       gas: userOpParams.gas,
       maxFeePerGas: userOpParams.maxFeePerGas,
@@ -141,9 +213,10 @@ export class AtlasSdk {
    * @param userOp a user operation
    * @returns the hash of the user operation
    */
-  public getUserOperationHash(userOp: UserOperation): string {
+  public async getUserOperationHash(userOp: UserOperation): Promise<string> {
+    const eip712Domain = (await chainConfig(this.chainId, this.atlasVersion)).eip712Domain;
     return userOp.hash(
-      chainConfig[this.chainId].eip712Domain,
+      eip712Domain,
       flagTrustedOpHash(userOp.callConfig()),
     );
   }
@@ -199,15 +272,16 @@ export class AtlasSdk {
     userOp: UserOperation,
     signer: AbstractSigner,
   ): Promise<UserOperation> {
+    const eip712Domain = (await chainConfig(this.chainId, this.atlasVersion)).eip712Domain;
     userOp.setField(
       "signature",
       await signer.signTypedData(
-        chainConfig[this.chainId].eip712Domain,
+        eip712Domain,
         userOp.toTypedDataTypes(),
         userOp.toTypedDataValues(),
       ),
     );
-    userOp.validateSignature(chainConfig[this.chainId].eip712Domain);
+    userOp.validateSignature(eip712Domain);
     return userOp;
   }
 
@@ -218,20 +292,16 @@ export class AtlasSdk {
    * @returns an array of solver operations
    */
   public async submitUserOperation(
-    chainId: number,
     userOp: UserOperation,
     hints: string[] = [],
-  ): Promise<SolverOperation[]> {
-    const sessionKey = userOp.getField("sessionKey").value as string;
-    if (sessionKey !== ZeroAddress && !this.sessionKeys.has(sessionKey)) {
-      throw new Error("Session key not found");
-    }
-
+    options: any = {},
+  ): Promise<string[] | Bundle> {
     userOp.validateFields();
 
     // Check the signature only if it's already set
     if (userOp.getField("signature").value !== ZeroBytes) {
-      userOp.validateSignature(chainConfig[this.chainId].eip712Domain);
+      const eip712Domain = (await chainConfig(this.chainId, this.atlasVersion)).eip712Domain;
+      userOp.validateSignature(eip712Domain);
     }
 
     for (const hint of hints) {
@@ -241,34 +311,15 @@ export class AtlasSdk {
     }
 
     // Submit the user operation to the backend
-    const remoteUserOphash: string = await this.backend.submitUserOperation(
-      chainId,
+    const result = await this.backend.submitUserOperation(
+      this.chainId,
+      this.atlasVersion,
       userOp,
       hints,
+      options,
     );
 
-    const userOpHash = userOp.hash(
-      chainConfig[this.chainId].eip712Domain,
-      flagTrustedOpHash(userOp.callConfig()),
-    );
-
-    if (userOpHash !== remoteUserOphash) {
-      throw new Error("User operation hash mismatch");
-    }
-
-    // Get the solver operations
-    const solverOps: SolverOperation[] = await this.backend.getSolverOperations(
-      chainId,
-      userOp,
-      userOpHash,
-      true,
-    );
-
-    if (solverOps.length === 0 && !flagZeroSolvers(userOp.callConfig())) {
-      throw new Error("No solver operations returned");
-    }
-
-    return solverOps;
+    return result;
   }
 
   /**
@@ -331,9 +382,10 @@ export class AtlasSdk {
     }
 
     const callConfig = userOp.callConfig();
+    const eip712Domain = (await chainConfig(this.chainId, this.atlasVersion)).eip712Domain;
 
     const userOpHash = userOp.hash(
-      chainConfig[this.chainId].eip712Domain,
+      eip712Domain,
       flagTrustedOpHash(callConfig),
     );
 
@@ -347,13 +399,13 @@ export class AtlasSdk {
       );
 
     const signature = await sessionAccount.signTypedData(
-      chainConfig[this.chainId].eip712Domain,
+      eip712Domain,
       dAppOp.toTypedDataTypes(),
       dAppOp.toTypedDataValues(),
     );
 
     dAppOp.setField("signature", signature);
-    dAppOp.validateSignature(chainConfig[this.chainId].eip712Domain);
+    dAppOp.validateSignature(eip712Domain);
 
     return dAppOp;
   }
@@ -363,18 +415,26 @@ export class AtlasSdk {
    * @param userOp a signed user operation
    * @param solverOps an array of solver operations
    * @param dAppOp a signed dApp operation
+   * @param gasRefundBeneficiary the address of the gas refund beneficiary
    * @returns the encoded calldata for metacall
    */
   public getMetacallCalldata(
     userOp: UserOperation,
     solverOps: SolverOperation[],
     dAppOp: DAppOperation,
+    gasRefundBeneficiary: string = ZeroAddress,
   ): string {
-    return this.iAtlas.encodeFunctionData("metacall", [
+    const params: any[] = [
       userOp.toStruct(),
       solverOps.map((solverOp) => solverOp.toStruct()),
       dAppOp.toStruct(),
-    ]);
+    ]
+
+    if (!["1.0", "1.1"].includes(this.atlasVersion)) {
+      params.push(gasRefundBeneficiary);
+    }
+
+    return this.atlas.interface.encodeFunctionData("metacall", params);
   }
 
   /**
@@ -382,14 +442,15 @@ export class AtlasSdk {
    * @param userOp a signed user operation
    * @param solverOps an array of solver operations
    * @param dAppOp a signed dApp operation
-   * @returns the hash of the generated Atlas transaction
+   * @returns the hashes of the generated Atlas transaction
    */
   public async submitBundle(
     chainId: number,
     userOp: UserOperation,
     solverOps: SolverOperation[],
     dAppOp: DAppOperation,
-  ): Promise<string> {
+    options: any = {},
+  ): Promise<string[]> {
     const sessionKey = userOp.getField("sessionKey").value as string;
     if (
       sessionKey !== ZeroAddress &&
@@ -406,50 +467,35 @@ export class AtlasSdk {
       solverOps,
       dAppOp,
     );
-    bundle.validate(chainConfig[this.chainId].eip712Domain);
 
-    const remoteUserOpHash = await this.backend.submitBundle(chainId, bundle);
+    const eip712Domain = (await chainConfig(this.chainId, this.atlasVersion)).eip712Domain;
+    bundle.validate(eip712Domain, userOp.getField("signature").value !== ZeroBytes);
 
-    const userOpHash = this.getUserOperationHash(userOp);
-
-    if (userOpHash !== remoteUserOpHash) {
-      throw new Error("User operation hash mismatch");
-    }
-
-    const atlasTxHash: string = await this.backend.getBundleHash(
-      chainId,
-      userOpHash,
-      true,
+    const result = await this.backend.submitBundle(
+      this.chainId,
+      this.atlasVersion,
+      bundle,
+      options,
     );
 
-    return atlasTxHash;
+    return result;
   }
 
   /**
-   * Retrieves a bundle for a given user operation.
-   * @param userOp The user operation
-   * @param hints An array of hints for solvers
-   * @param wait Hold the request until having a response
-   * @param extra Extra parameters
-   * @returns The bundle associated with the user operation
+   * Gets a user execution environment.
+   * @param userAddress the address of the user
+   * @param dAppControlAddress the address of the dApp control
+   * @returns the execution environment address
    */
-  public async getBundleForUserOp(
-    chainId: number,
-    userOp: UserOperation,
-    hints: string[] = [],
-    wait?: boolean,
-    extra?: any,
-  ): Promise<Bundle> {
-    const bundle = await this.backend.getBundleForUserOp(
-      chainId,
-      userOp,
-      hints,
-      wait,
-      extra,
-    );
-    // validate the bundle
-    bundle.validate(chainConfig[this.chainId].eip712Domain);
-    return bundle;
+  public async getExecutionEnvironment(
+    userAddress: string,
+    dAppControlAddress: string,
+  ): Promise<string> {
+    const executionEnvironmentData = await this.atlas
+      .getFunction("getExecutionEnvironment")
+      .staticCall(userAddress, dAppControlAddress);
+
+    return executionEnvironmentData[0];
   }
 
   /**

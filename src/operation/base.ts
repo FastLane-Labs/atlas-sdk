@@ -45,9 +45,11 @@ export abstract class BaseOperation {
     return f;
   }
 
-  public validate(tdDomain: TypedDataDomain) {
+  public validate(tdDomain: TypedDataDomain, validateSignature: boolean = true) {
     this.validateFields();
-    this.validateSignature(tdDomain);
+    if (validateSignature) {
+      this.validateSignature(tdDomain);
+    }
   }
 
   public validateSignature(tdDomain: TypedDataDomain) {
@@ -67,7 +69,7 @@ export abstract class BaseOperation {
       this.toTypedDataValues(),
       f.value as string,
     );
-    if (signer !== this.getField("from").value) {
+    if (signer.toLowerCase() !== (this.getField("from").value as string).toLowerCase()) {
       throw new Error("Invalid signature");
     }
   }

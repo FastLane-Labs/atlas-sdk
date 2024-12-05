@@ -19,8 +19,8 @@ export class Bundle {
     this.dAppOperation = dAppOp;
   }
 
-  public validate(tdDomain: TypedDataDomain): void {
-    this.userOperation.validate(tdDomain);
+  public validate(tdDomain: TypedDataDomain, validateUserOpSignature: boolean = true): void {
+    this.userOperation.validate(tdDomain, validateUserOpSignature);
     this.dAppOperation.validate(tdDomain);
     // We don't validate solver operations
   }
