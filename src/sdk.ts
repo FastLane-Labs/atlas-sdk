@@ -469,7 +469,7 @@ export class AtlasSdk {
     );
 
     const eip712Domain = (await chainConfig(this.chainId, this.atlasVersion)).eip712Domain;
-    bundle.validate(eip712Domain);
+    bundle.validate(eip712Domain, userOp.getField("signature").value !== ZeroBytes);
 
     const result = await this.backend.submitBundle(
       this.chainId,

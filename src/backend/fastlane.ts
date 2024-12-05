@@ -1,5 +1,5 @@
 import { BaseBackend } from "./base";
-import { OperationBuilder } from "../operation/builder";
+import { OperationBuilder, ZeroBytes } from "../operation/builder";
 import { UserOperation, Bundle } from "../operation";
 import { toQuantity, TypedDataDomain } from "ethers";
 import { AtlasVersion, chainConfig } from "../config";
@@ -67,7 +67,7 @@ export class FastlaneBackend extends BaseBackend {
         return data as string[];
       } else {
         const eip712Domain = (await chainConfig(chainId, atlasVersion)).eip712Domain;
-        return validateBundleData(data, eip712Domain);
+        return validateBundleData(data, eip712Domain, userOp.getField("signature").value !== ZeroBytes);
       }
     } else {
       const errorBody = await response.json();
@@ -153,12 +153,14 @@ class RequestBuilder {
  * Validates the response data by attempting to construct and validate a Bundle instance.
  * @param data The response data to validate.
  * @param tdDomain The TypedDataDomain used for validation.
+ * @param validateUserOpSignature Whether to validate the user operation signature.
  * @returns The validated Bundle instance if valid.
  * @throws An error if validation fails.
  */
 export const validateBundleData = (
   data: any,
   tdDomain: TypedDataDomain,
+  validateUserOpSignature: boolean = true,
 ): Bundle => {
   try {
     // Construct the Bundle instance
@@ -172,7 +174,7 @@ export const validateBundleData = (
     );
 
     // Perform validation
-    bundle.validate(tdDomain);
+    bundle.validate(tdDomain, validateUserOpSignature);
 
     return bundle;
   } catch (error: any) {
