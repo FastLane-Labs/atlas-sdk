@@ -1,0 +1,26 @@
+name: Test and publish
+
+on:
+  workflow_call:
+
+  push:
+    branches:
+      - main
+
+jobs:
+  test-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@fastlane-labs'
+      - run: npm install
+      - run: npm run build
+      - run: npm run test
+      - run: |
+          npm publish || true
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
