@@ -46,7 +46,7 @@ describe("Atlas SDK main tests", () => {
 
   beforeAll(async () => {
     sdk = await AtlasSdk.create(
-      new JsonRpcProvider("https://rpc.sepolia.org/", chainId),
+      new JsonRpcProvider("https://ethereum-sepolia-rpc.publicnode.com", chainId),
       chainId,
       new MockBackend(),
       [],
