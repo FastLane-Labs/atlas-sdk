@@ -438,50 +438,6 @@ export class AtlasSdk {
   }
 
   /**
-   * Submits all operations to the backend for bundling.
-   * @param userOp a signed user operation
-   * @param solverOps an array of solver operations
-   * @param dAppOp a signed dApp operation
-   * @returns the hashes of the generated Atlas transaction
-   */
-  public async submitBundle(
-    chainId: number,
-    userOp: UserOperation,
-    solverOps: SolverOperation[],
-    dAppOp: DAppOperation,
-    options: any = {},
-  ): Promise<string[]> {
-    const sessionKey = userOp.getField("sessionKey").value as string;
-    if (
-      sessionKey !== ZeroAddress &&
-      sessionKey !== dAppOp.getField("from").value
-    ) {
-      throw new Error(
-        "User operation session key does not match dApp operation",
-      );
-    }
-
-    const bundle = OperationBuilder.newBundle(
-      chainId,
-      userOp,
-      solverOps,
-      dAppOp,
-    );
-
-    const eip712Domain = (await chainConfig(this.chainId, this.atlasVersion)).eip712Domain;
-    bundle.validate(eip712Domain, userOp.getField("signature").value !== ZeroBytes);
-
-    const result = await this.backend.submitBundle(
-      this.chainId,
-      this.atlasVersion,
-      bundle,
-      options,
-    );
-
-    return result;
-  }
-
-  /**
    * Gets a user execution environment.
    * @param userAddress the address of the user
    * @param dAppControlAddress the address of the dApp control
