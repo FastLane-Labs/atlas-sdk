@@ -36,13 +36,11 @@ export class FastlaneBackend extends BaseBackend {
 
     const response = await this.rpcClient.send(atlasAuctionMethod, [params]);
 
-    console.log(response);
-
-      if (Array.isArray(response.result)) {
-        return response.result as string[];
+      if (Array.isArray(response)) {
+        return response as string[];
       } else {
         const eip712Domain = (await chainConfig(chainId, atlasVersion)).eip712Domain;
-        return validateBundleData(response.result, eip712Domain, userOp.getField("signature").value !== ZeroBytes);
+        return validateBundleData(response, eip712Domain, userOp.getField("signature").value !== ZeroBytes);
       }
   }
 }
