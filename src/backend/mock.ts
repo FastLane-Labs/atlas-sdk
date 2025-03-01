@@ -43,29 +43,4 @@ export class MockBackend extends BaseBackend {
     const userOpHash = await this.generateUserOpHash(chainId, atlasVersion, userOp);
     return [userOpHash];
   }
-
-  /**
-   * Submit user/solvers/dApp operations to the backend for bundling
-   * @summary Submit a bundle of user/solvers/dApp operations to the backend
-   * @param {number} chainId the chain ID of the network
-   * @param {AtlasVersion} atlasVersion the version of the Atlas protocol
-   * @param {Bundle} [bundle] The user/solvers/dApp operations to be bundled
-   * @param {*} [extra] Extra parameters
-   * @returns {Promise<string[]>} The hashes of the metacall
-   */
-  public async _submitBundle(
-    chainId: number,
-    atlasVersion: AtlasVersion,
-    bundle: Bundle,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    extra?: any,
-  ): Promise<string[]> {
-    const userOpHash = await this.generateUserOpHash(
-      chainId,
-      atlasVersion,
-      bundle.userOperation,
-    );
-    this.submittedBundles[userOpHash] = bundle;
-    return [userOpHash];
-  }
 }

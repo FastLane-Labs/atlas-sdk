@@ -453,12 +453,4 @@ export class AtlasSdk {
 
     return executionEnvironmentData[0];
   }
-
-  /**
-   * Adds hooks controllers to the backend.
-   * @param hooksControllers An array of hooks controllers
-   */
-  public addHooksControllers(hooksControllers: IHooksController[]): void {
-    this.backend.addHooksControllers(hooksControllers);
-  }
 }
