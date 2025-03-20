@@ -18,7 +18,7 @@ export class FastlaneBackend extends BaseBackend {
     chainId: number,
     atlasVersion: AtlasVersion,
     userOp: UserOperation,
-    hints: string[],
+    hints: {[key: string]: any},
     extra?: any,
   ): Promise<string[] | Bundle> {
     const userOperationWithHints = JSON.stringify({

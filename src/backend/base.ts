@@ -11,7 +11,7 @@ export interface IBackend {
    * @param {number} chainId The chain ID
    * @param {AtlasVersion} atlasVersion The Atlas version
    * @param {UserOperation} userOp The user operation
-   * @param {string[]} hints Hints for solvers
+   * @param {{[key: string]: any}} hints Hints for solvers
    * @param {*} [extra] Extra parameters
    * @returns {Promise<string[] | Bundle>} The hashes of the metacall or the full bundle
    */
@@ -19,7 +19,7 @@ export interface IBackend {
     chainId: number,
     atlasVersion: AtlasVersion,
     userOp: UserOperation,
-    hints: string[],
+    hints: {[key: string]: any},
     extra?: any,
   ): Promise<string[] | Bundle>;
 
@@ -27,7 +27,7 @@ export interface IBackend {
     chainId: number,
     atlasVersion: AtlasVersion,
     userOp: UserOperation,
-    hints: string[],
+    hints: {[key: string]: any},
     extra?: any,
   ): Promise<string[] | Bundle>;
 }
@@ -45,7 +45,7 @@ export abstract class BaseBackend implements IBackend {
     chainId: number,
     atlasVersion: AtlasVersion,
     userOp: UserOperation,
-    hints: string[],
+    hints: {[key: string]: any},
     extra?: any,
   ): Promise<string[] | Bundle> {
     // Pre hooks
@@ -85,7 +85,7 @@ export abstract class BaseBackend implements IBackend {
     chainId: number,
     atlasVersion: AtlasVersion,
     userOp: UserOperation,
-    hints: string[],
+    hints: {[key: string]: any},
     extra?: any,
   ): Promise<string[] | Bundle>;
 }

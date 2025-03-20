@@ -120,16 +120,6 @@ describe("Atlas SDK main tests", () => {
     ).not.toThrow();
   });
 
-  test("submitUserOperation with invalid hints", async () => {
-    const userOp = OperationBuilder.newUserOperation(userOpParams);
-
-    // Invalid hints
-    const invalidHints = ["0x01"];
-    expect(
-      async () => await sdk.submitUserOperation(userOp, invalidHints),
-    ).rejects.toThrow("Invalid hint address: 0x01");
-  });
-
   test("submitUserOperation", async () => {
     const userOp = OperationBuilder.newUserOperation(userOpParams);
 

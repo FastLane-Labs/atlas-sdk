@@ -27,7 +27,7 @@ export class MockBackend extends BaseBackend {
    * @param {number} chainId the chain ID of the network
    * @param {AtlasVersion} atlasVersion the version of the Atlas protocol
    * @param {UserOperation} [userOp] The user operation
-   * @param {string[]} [hints] Hints for solvers
+   * @param {{[key: string]: any}} [hints] Hints for solvers
    * @param {*} [extra] Extra parameters
    * @returns {Promise<string[] | Bundle>} The hashes of the metacall or the full bundle
    */
@@ -36,7 +36,7 @@ export class MockBackend extends BaseBackend {
     atlasVersion: AtlasVersion,
     userOp: UserOperation,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    hints: string[],
+    hints: {[key: string]: any},
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     extra?: any,
   ): Promise<string[]> {
