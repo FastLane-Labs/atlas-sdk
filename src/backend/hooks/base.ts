@@ -7,9 +7,9 @@ export interface IHooksController {
     chainId: number,
     atlasVersion: AtlasVersion,
     userOp: UserOperation,
-    hints: string[],
+    hints: {[key: string]: any},
     extra?: any,
-  ): Promise<[UserOperation, string[], any]>;
+  ): Promise<[UserOperation, {[key: string]: any}, any]>;
 
   postSubmitUserOperation(
     chainId: number,
@@ -32,9 +32,9 @@ export abstract class BaseHooksController implements IHooksController {
     chainId: number,
     atlasVersion: AtlasVersion,
     userOp: UserOperation,
-    hints: string[],
+    hints: {[key: string]: any},
     extra?: any,
-  ): Promise<[UserOperation, string[], any]> {
+  ): Promise<[UserOperation, {[key: string]: any}, any]> {
     return [userOp, hints, extra];
   }
 

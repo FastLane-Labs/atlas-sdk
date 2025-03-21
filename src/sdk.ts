@@ -288,12 +288,12 @@ export class AtlasSdk {
   /**
    * Submits a user operation to the backend.
    * @param userOp a signed user operation
-   * @param hints an array of addresses used as hints for solvers
+   * @param hints an object used as hints for solvers
    * @returns an array of solver operations
    */
   public async submitUserOperation(
     userOp: UserOperation,
-    hints: string[] = [],
+    hints: {[key: string]: any} = {},
     options: any = {},
   ): Promise<string[] | Bundle> {
     userOp.validateFields();
@@ -302,12 +302,6 @@ export class AtlasSdk {
     if (userOp.getField("signature").value !== ZeroBytes) {
       const eip712Domain = (await chainConfig(this.chainId, this.atlasVersion)).eip712Domain;
       userOp.validateSignature(eip712Domain);
-    }
-
-    for (const hint of hints) {
-      if (!validateAddress(hint)) {
-        throw new Error(`Invalid hint address: ${hint}`);
-      }
     }
 
     // Submit the user operation to the backend
