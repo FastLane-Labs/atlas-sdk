@@ -1,6 +1,6 @@
 {
   "name": "@fastlane-labs/atlas-sdk",
-  "version": "2.0.2",
+  "version": "2.1.1",
   "description": "An SDK for building dApps on top of Atlas",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

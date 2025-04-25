@@ -6,6 +6,7 @@ import {
   ZeroAddress,
   Contract,
 } from "ethers";
+import { is_v1_5_or_above } from "./config";
 import {
   UserOperation,
   SolverOperation,
@@ -17,11 +18,9 @@ import {
 } from "./operation";
 import { IBackend } from "./backend";
 import {
-  IHooksController,
   IHooksControllerConstructable,
 } from "./backend/hooks";
 import {
-  validateAddress,
   flagUserNoncesSequential,
   flagZeroSolvers,
   flagExPostBids,
@@ -29,6 +28,7 @@ import {
 } from "./utils";
 import { AtlasVersion, AtlasLatestVersion, chainConfig, atlasAbi, atlasVerificationAbi, sorterAbi, simulatorAbi } from "./config";
 import dAppControlAbi from "./abi/DAppControl.json";
+import dAppControlAbi1_5 from "./abi/DAppControl_1.5.json";
 
 /**
  * The main class to submit user operations to Atlas.
@@ -110,7 +110,7 @@ export class AtlasSdk {
     this.atlasVersion = atlasVersion;
     this.atlas = atlasContract;
     this.atlasVerification = atlasVerificationContract;
-    this.dAppControl = new Contract(ZeroAddress, dAppControlAbi, provider);
+    this.dAppControl = is_v1_5_or_above(atlasVersion) ? new Contract(ZeroAddress, dAppControlAbi1_5, provider) : new Contract(ZeroAddress, dAppControlAbi, provider);
     this.sorter = sorterContract;
     this.simulator = simulatorContract;
     const _hooksControllers = hooksControllers.map(
@@ -162,24 +162,27 @@ export class AtlasSdk {
     userOpParams: UserOperationParams,
     generateSessionKey = false,
   ): Promise<UserOperation> {
-    let userOp = OperationBuilder.newUserOperation({
-      from: userOpParams.from,
-      to: userOpParams.to
-        ? userOpParams.to
-        : (await chainConfig(this.chainId, this.atlasVersion)).contracts.atlas,
-      value: userOpParams.value,
-      gas: userOpParams.gas,
-      maxFeePerGas: userOpParams.maxFeePerGas,
-      nonce: userOpParams.nonce,
-      deadline: userOpParams.deadline,
-      dapp: userOpParams.dapp,
-      control: userOpParams.control,
-      callConfig: userOpParams.callConfig,
-      sessionKey: userOpParams.sessionKey,
-      data: userOpParams.data,
-      signature: userOpParams.signature,
-    });
-
+    let userOp = OperationBuilder.newUserOperation(
+      {
+        from: userOpParams.from,
+        to: userOpParams.to
+          ? userOpParams.to
+          : (await chainConfig(this.chainId, this.atlasVersion)).contracts.atlas,
+        value: userOpParams.value,
+        gas: userOpParams.gas,
+        maxFeePerGas: userOpParams.maxFeePerGas,
+        nonce: userOpParams.nonce,
+        deadline: userOpParams.deadline,
+        dapp: userOpParams.dapp,
+        control: userOpParams.control,
+        callConfig: userOpParams.callConfig,
+        dappGasLimit: userOpParams.dappGasLimit,
+        sessionKey: userOpParams.sessionKey,
+        data: userOpParams.data,
+        signature: userOpParams.signature,
+      },
+      is_v1_5_or_above(this.atlasVersion),
+    );
     const dConfig = await this.dAppControl
       .attach(userOpParams.control)
       .getFunction("getDAppConfig")
@@ -191,6 +194,14 @@ export class AtlasSdk {
       throw new Error(
         "UserOperation callConfig does not match dApp callConfig",
       );
+    }
+
+    if (is_v1_5_or_above(this.atlasVersion)) {
+      if (!userOpParams.dappGasLimit) {
+        userOp.setField("dappGasLimit", dConfig.dappGasLimit);
+      } else if (dConfig.dappGasLimit !== userOpParams.dappGasLimit) {
+        throw new Error("UserOperation dappGasLimit does not match dApp dappGasLimit");
+      }
     }
 
     if (dConfig.to !== userOpParams.control) {
@@ -429,6 +440,30 @@ export class AtlasSdk {
     }
 
     return this.atlas.interface.encodeFunctionData("metacall", params);
+  }
+
+  /**
+   * Gets the gas limit for a metacall.
+   * @param userOp a user operation
+   * @param solverOps an array of solver operations
+   * @returns the gas limit for a metacall
+   */
+  public async getMetacallGasLimit(userOp: UserOperation, solverOps: SolverOperation[]): Promise<bigint> {
+    let gasLimit = BigInt(0);
+
+    if (is_v1_5_or_above(this.atlasVersion)) {
+      gasLimit = await this.simulator
+      .getFunction("estimateMetacallGasLimit")
+      .staticCall(userOp.toStruct(), solverOps.map((solverOp) => solverOp.toStruct()));
+    } else {
+      gasLimit += userOp.getField("gas").value as bigint;
+      for (const solverOp of solverOps) {
+        gasLimit += (solverOp.getField("gas").value as bigint) * BigInt(2);
+      }
+      gasLimit += BigInt(500_000); // Buffer for metacall validation
+    }
+
+    return gasLimit;
   }
 
   /**

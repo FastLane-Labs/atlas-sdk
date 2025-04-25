@@ -40,13 +40,14 @@ export class FastlaneBackend extends BaseBackend {
         return response as string[];
       } else {
         const eip712Domain = (await chainConfig(chainId, atlasVersion)).eip712Domain;
-        return validateBundleData(response, eip712Domain, userOp.getField("signature").value !== ZeroBytes);
+        return validateBundleData(userOp, response, eip712Domain, userOp.getField("signature").value !== ZeroBytes);
       }
   }
 }
 
 /**
  * Validates the response data by attempting to construct and validate a Bundle instance.
+ * @param userOp The original user operation
  * @param data The response data to validate.
  * @param tdDomain The TypedDataDomain used for validation.
  * @param validateUserOpSignature Whether to validate the user operation signature.
@@ -54,6 +55,7 @@ export class FastlaneBackend extends BaseBackend {
  * @throws An error if validation fails.
  */
 export const validateBundleData = (
+  userOp: UserOperation,
   data: any,
   tdDomain: TypedDataDomain,
   validateUserOpSignature: boolean = true,
@@ -62,7 +64,7 @@ export const validateBundleData = (
     // Construct the Bundle instance
     const bundle = new Bundle(
       data.chainId,
-      OperationBuilder.newUserOperation(data.userOperation),
+      userOp,
       data.solverOperations.map((op: any) =>
         OperationBuilder.newSolverOperation(op),
       ),

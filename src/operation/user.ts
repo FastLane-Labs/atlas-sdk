@@ -3,19 +3,20 @@ import { BaseOperation, OpField } from "./base";
 
 export class UserOperation extends BaseOperation {
   protected fields: Map<string, OpField> = new Map([
-    ["from", { name: "from", solType: "address" }],
-    ["to", { name: "to", solType: "address" }],
-    ["value", { name: "value", solType: "uint256" }],
-    ["gas", { name: "gas", solType: "uint256" }],
-    ["maxFeePerGas", { name: "maxFeePerGas", solType: "uint256" }],
-    ["nonce", { name: "nonce", solType: "uint256" }],
-    ["deadline", { name: "deadline", solType: "uint256" }],
-    ["dapp", { name: "dapp", solType: "address" }],
-    ["control", { name: "control", solType: "address" }],
-    ["callConfig", { name: "callConfig", solType: "uint32" }],
-    ["sessionKey", { name: "sessionKey", solType: "address" }],
-    ["data", { name: "data", solType: "bytes" }],
-    ["signature", { name: "signature", solType: "bytes" }],
+    ["from", { name: "from", solType: "address"}],
+    ["to", { name: "to", solType: "address"}],
+    ["value", { name: "value", solType: "uint256"}],
+    ["gas", { name: "gas", solType: "uint256"}],
+    ["maxFeePerGas", { name: "maxFeePerGas", solType: "uint256"}],
+    ["nonce", { name: "nonce", solType: "uint256"}],
+    ["deadline", { name: "deadline", solType: "uint256"}],
+    ["dapp", { name: "dapp", solType: "address"}],
+    ["control", { name: "control", solType: "address"}],
+    ["callConfig", { name: "callConfig", solType: "uint32"}],
+    ["dappGasLimit", { name: "dappGasLimit", solType: "uint32", only1_5: true }],
+    ["sessionKey", { name: "sessionKey", solType: "address"}],
+    ["data", { name: "data", solType: "bytes"}],
+    ["signature", { name: "signature", solType: "bytes"}],
   ]);
 
   private trustedOperationHashFields = [
@@ -27,8 +28,18 @@ export class UserOperation extends BaseOperation {
     "sessionKey",
   ];
 
-  constructor() {
-    super("UserOperation");
+  private trustedOperationHashFields1_5 = [
+    "from",
+    "to",
+    "dapp",
+    "control",
+    "callConfig",
+    "dappGasLimit",
+    "sessionKey",
+  ];
+
+  constructor(is1_5: boolean = false) {
+    super("UserOperation", is1_5);
   }
 
   public hash(eip712Domain: TypedDataDomain, trusted: boolean): string {
@@ -37,10 +48,10 @@ export class UserOperation extends BaseOperation {
 
     if (trusted) {
       typedDataTypes = this.toTypedDataTypesCustomFields(
-        this.trustedOperationHashFields,
+        this.is1_5 ? this.trustedOperationHashFields1_5 : this.trustedOperationHashFields,
       );
       typedDataValues = this.toTypedDataValuesCustomFields(
-        this.trustedOperationHashFields,
+        this.is1_5 ? this.trustedOperationHashFields1_5 : this.trustedOperationHashFields,
       );
     } else {
       typedDataTypes = this.toTypedDataTypes();
@@ -67,6 +78,7 @@ export interface UserOperationParams {
   dapp: string;
   control: string;
   callConfig?: bigint;
+  dappGasLimit?: bigint;
   sessionKey?: string;
   data: string;
   signature?: string;

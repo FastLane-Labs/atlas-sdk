@@ -14,13 +14,13 @@ import {
 } from "../utils";
 
 export type OpFieldType = string | bigint;
-export type OpField = { name: string; value?: OpFieldType; solType: string };
+export type OpField = { name: string; value?: OpFieldType; solType: string; only1_5?: boolean };
 
 export abstract class BaseOperation {
   protected fields: Map<string, OpField> = new Map();
   protected abiCoder = new AbiCoder();
 
-  constructor(protected typeName: string) {}
+  constructor(protected typeName: string, protected is1_5: boolean) {}
 
   public setFields(fields: { [key: string]: OpFieldType }) {
     Object.entries(fields).forEach(([name, value]) => {
@@ -81,6 +81,10 @@ export abstract class BaseOperation {
   }
 
   public validateField(f: OpField) {
+    if (f.only1_5 && !this.is1_5) {
+      return;
+    }
+
     if (f.value === undefined) {
       throw new Error(`Field ${f.name} is not set`);
     }
@@ -116,7 +120,7 @@ export abstract class BaseOperation {
   }
 
   public abiEncode(): string {
-    const f = Array.from(this.fields.values());
+    const f = Array.from(this.fields.values()).filter((f) => this.is1_5 || !f.only1_5);
     return this.abiCoder.encode(
       [`tuple(${f.map((f) => f.solType).join(", ")})`],
       [f.map((f) => f.value)],
@@ -124,7 +128,7 @@ export abstract class BaseOperation {
   }
 
   public toStruct(): { [key: string]: any } {
-    return Array.from(this.fields.values()).reduce(
+    return Array.from(this.fields.values()).filter((f) => this.is1_5 || !f.only1_5).reduce(
       (acc, f) => ({
         ...acc,
         [f.name]: this.serializeFieldValue(f.value, f.solType),
@@ -157,7 +161,7 @@ export abstract class BaseOperation {
   public toTypedDataTypes(): { [key: string]: TypedDataField[] } {
     return this.toTypedDataTypesCustomFields(
       // All fields except the last one (signature)
-      Array.from(this.fields.keys()).slice(0, -1),
+      Array.from(this.fields.keys()).filter((f) => this.is1_5 || !this.fields.get(f)?.only1_5).slice(0, -1),
     );
   }
 
@@ -177,7 +181,7 @@ export abstract class BaseOperation {
   public toTypedDataValues(): { [key: string]: OpFieldType } {
     return this.toTypedDataValuesCustomFields(
       // All fields except the last one (signature)
-      Array.from(this.fields.keys()).slice(0, -1),
+      Array.from(this.fields.keys()).filter((f) => this.is1_5 || !this.fields.get(f)?.only1_5).slice(0, -1),
     );
   }
 

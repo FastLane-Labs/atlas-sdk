@@ -1,7 +1,11 @@
 import { TypedDataDomain } from "ethers";
 
-export type AtlasVersion = "1.0" | "1.1" | "1.2" | "1.3";
-export const AtlasLatestVersion: AtlasVersion = "1.3";
+export type AtlasVersion = "1.0" | "1.1" | "1.2" | "1.3" | "1.5";
+export const AtlasLatestVersion: AtlasVersion = "1.5";
+
+export function is_v1_5_or_above(version: AtlasVersion): boolean {
+  return version === "1.5";
+}
 
 export interface ChainConfig {
   contracts: {
