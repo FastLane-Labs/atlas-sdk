@@ -6,22 +6,26 @@ export const ZeroUint = 0n;
 export const ZeroBytes = "0x";
 
 export abstract class OperationBuilder {
-  public static newUserOperation(prop: {
-    from: string;
-    to: string;
-    value: bigint;
-    gas: bigint;
-    maxFeePerGas: bigint;
-    nonce?: bigint;
-    deadline: bigint;
-    dapp: string;
-    control: string;
-    callConfig?: bigint;
-    sessionKey?: string;
-    data: string;
-    signature?: string;
-  }): UserOperation {
-    const userOp = new UserOperation();
+  public static newUserOperation(
+    prop: {
+      from: string;
+      to: string;
+      value: bigint;
+      gas: bigint;
+      maxFeePerGas: bigint;
+      nonce?: bigint;
+      deadline: bigint;
+      dapp: string;
+      control: string;
+      callConfig?: bigint;
+      dappGasLimit?: bigint;
+      sessionKey?: string;
+      data: string;
+      signature?: string;
+    },
+    is1_5: boolean = false,
+  ): UserOperation {
+    const userOp = new UserOperation(is1_5);
     userOp.setFields({
       from: prop.from,
       to: prop.to,
@@ -33,6 +37,7 @@ export abstract class OperationBuilder {
       dapp: prop.dapp,
       control: prop.control,
       callConfig: prop.callConfig || ZeroUint,
+      dappGasLimit: prop.dappGasLimit || ZeroUint,
       sessionKey: prop.sessionKey || ZeroAddress,
       data: prop.data,
       signature: prop.signature || ZeroBytes,
