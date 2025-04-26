@@ -36,7 +36,7 @@ In this case, the Bundling and Auctioneer responsibilities are conducted by the 
 
 ## Domain Data Model
 
-The Atlas data model primarily consists of 3 different types of Operations which togehter are combined into a Bundle that is signed into a transaction:
+The Atlas data model primarily consists of 3 different types of Operations which together are combined into a Bundle that is signed into a transaction:
 
 ![Data model](/docs/data-model.png "Data model")
 
