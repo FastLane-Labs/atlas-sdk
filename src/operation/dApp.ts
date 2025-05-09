@@ -1,4 +1,5 @@
 import { BaseOperation, OpField } from "./base";
+import { AtlasVersion, AtlasLatestVersion } from "../config";
 
 export class DAppOperation extends BaseOperation {
   protected fields: Map<string, OpField> = new Map([
@@ -13,7 +14,7 @@ export class DAppOperation extends BaseOperation {
     ["signature", { name: "signature", solType: "bytes"}],
   ]);
 
-  constructor(is1_5: boolean = false) {
-    super("DAppOperation", is1_5);
+  constructor(atlasVersion: AtlasVersion = AtlasLatestVersion) {
+    super("DAppOperation", atlasVersion);
   }
 }

@@ -1,4 +1,5 @@
 import { BaseOperation, OpField } from "./base";
+import { AtlasVersion, AtlasLatestVersion } from "../config";
 
 export class SolverOperation extends BaseOperation {
   protected fields: Map<string, OpField> = new Map([
@@ -19,8 +20,8 @@ export class SolverOperation extends BaseOperation {
 
   public score: number;
 
-  constructor(score?: number, is1_5: boolean = false) {
-    super("SolverOperation", is1_5);
+  constructor(score?: number, atlasVersion: AtlasVersion = AtlasLatestVersion) {
+    super("SolverOperation", atlasVersion);
     this.score = score || 0;
   }
 
