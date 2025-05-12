@@ -1,10 +1,12 @@
 import { TypedDataDomain } from "ethers";
 
-export type AtlasVersion = "1.0" | "1.1" | "1.2" | "1.3" | "1.5";
-export const AtlasLatestVersion: AtlasVersion = "1.5";
+export const allAtlasVersions = ["1.0", "1.1", "1.2", "1.3", "1.5", "1.6"] as const;
+export const AtlasLatestVersion: AtlasVersion = allAtlasVersions[allAtlasVersions.length - 1];
 
-export function is_v1_5_or_above(version: AtlasVersion): boolean {
-  return version === "1.5";
+export type AtlasVersion = "1.0" | "1.1" | "1.2" | "1.3" | "1.5" | "1.6";
+
+export function isVersionAtLeast(version: AtlasVersion, minVersion: AtlasVersion): boolean {
+  return allAtlasVersions.indexOf(version) >= allAtlasVersions.indexOf(minVersion);
 }
 
 export interface ChainConfig {

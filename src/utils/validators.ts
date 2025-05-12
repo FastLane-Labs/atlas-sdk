@@ -5,6 +5,10 @@ export function validateAddress(address: string): boolean {
   return isAddress(address) && address.length === 42;
 }
 
+export function validateUint24(value: bigint): boolean {
+  return value <= 2n ** 24n - 1n;
+}
+
 export function validateUint32(value: bigint): boolean {
   return value <= 2n ** 32n - 1n;
 }

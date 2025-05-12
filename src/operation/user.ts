@@ -1,5 +1,6 @@
 import { TypedDataEncoder, TypedDataDomain, TypedDataField } from "ethers";
 import { BaseOperation, OpField } from "./base";
+import { AtlasVersion, AtlasLatestVersion, isVersionAtLeast } from "../config";
 
 export class UserOperation extends BaseOperation {
   protected fields: Map<string, OpField> = new Map([
@@ -13,7 +14,9 @@ export class UserOperation extends BaseOperation {
     ["dapp", { name: "dapp", solType: "address"}],
     ["control", { name: "control", solType: "address"}],
     ["callConfig", { name: "callConfig", solType: "uint32"}],
-    ["dappGasLimit", { name: "dappGasLimit", solType: "uint32", only1_5: true }],
+    ["dappGasLimit", { name: "dappGasLimit", solType: "uint32", fromVersion: "1.5" }],
+    ["solverGasLimit", { name: "solverGasLimit", solType: "uint32", fromVersion: "1.6" }],
+    ["bundlerSurchargeRate", { name: "bundlerSurchargeRate", solType: "uint24", fromVersion: "1.6" }],
     ["sessionKey", { name: "sessionKey", solType: "address"}],
     ["data", { name: "data", solType: "bytes"}],
     ["signature", { name: "signature", solType: "bytes"}],
@@ -38,8 +41,20 @@ export class UserOperation extends BaseOperation {
     "sessionKey",
   ];
 
-  constructor(is1_5: boolean = false) {
-    super("UserOperation", is1_5);
+  private trustedOperationHashFields1_6 = [
+    "from",
+    "to",
+    "dapp",
+    "control",
+    "callConfig",
+    "dappGasLimit",
+    "solverGasLimit",
+    "bundlerSurchargeRate",
+    "sessionKey",
+  ];
+
+  constructor(atlasVersion: AtlasVersion = AtlasLatestVersion) {
+    super("UserOperation", atlasVersion);
   }
 
   public hash(eip712Domain: TypedDataDomain, trusted: boolean): string {
@@ -47,12 +62,16 @@ export class UserOperation extends BaseOperation {
     let typedDataValues: Record<string, any>;
 
     if (trusted) {
-      typedDataTypes = this.toTypedDataTypesCustomFields(
-        this.is1_5 ? this.trustedOperationHashFields1_5 : this.trustedOperationHashFields,
-      );
-      typedDataValues = this.toTypedDataValuesCustomFields(
-        this.is1_5 ? this.trustedOperationHashFields1_5 : this.trustedOperationHashFields,
-      );
+      if (isVersionAtLeast(this.atlasVersion, "1.6")) {
+        typedDataTypes = this.toTypedDataTypesCustomFields(this.trustedOperationHashFields1_6);
+        typedDataValues = this.toTypedDataValuesCustomFields(this.trustedOperationHashFields1_6);
+      } else if (isVersionAtLeast(this.atlasVersion, "1.5")) {
+        typedDataTypes = this.toTypedDataTypesCustomFields(this.trustedOperationHashFields1_5);
+        typedDataValues = this.toTypedDataValuesCustomFields(this.trustedOperationHashFields1_5);
+      } else {
+        typedDataTypes = this.toTypedDataTypesCustomFields(this.trustedOperationHashFields);
+        typedDataValues = this.toTypedDataValuesCustomFields(this.trustedOperationHashFields);
+      }
     } else {
       typedDataTypes = this.toTypedDataTypes();
       typedDataValues = this.toTypedDataValues();
@@ -78,7 +97,9 @@ export interface UserOperationParams {
   dapp: string;
   control: string;
   callConfig?: bigint;
-  dappGasLimit?: bigint;
+  dappGasLimit?: bigint; // From Atlas v1.5
+  solverGasLimit?: bigint; // From Atlas v1.6
+  bundlerSurchargeRate?: bigint; // From Atlas v1.6
   sessionKey?: string;
   data: string;
   signature?: string;
