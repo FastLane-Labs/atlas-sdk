@@ -7,20 +7,22 @@ import {
 } from "ethers";
 import {
   validateAddress,
+  validateUint24,
   validateUint32,
   validateUint256,
   validateBytes32,
   validateBytes,
 } from "../utils";
+import { AtlasVersion, isVersionAtLeast } from "../config";
 
 export type OpFieldType = string | bigint;
-export type OpField = { name: string; value?: OpFieldType; solType: string; only1_5?: boolean };
+export type OpField = { name: string; value?: OpFieldType; solType: string; fromVersion?: AtlasVersion };
 
 export abstract class BaseOperation {
   protected fields: Map<string, OpField> = new Map();
   protected abiCoder = new AbiCoder();
 
-  constructor(protected typeName: string, protected is1_5: boolean) {}
+  constructor(protected typeName: string, protected atlasVersion: AtlasVersion) {}
 
   public setFields(fields: { [key: string]: OpFieldType }) {
     Object.entries(fields).forEach(([name, value]) => {
@@ -81,7 +83,7 @@ export abstract class BaseOperation {
   }
 
   public validateField(f: OpField) {
-    if (f.only1_5 && !this.is1_5) {
+    if (f.fromVersion && !isVersionAtLeast(this.atlasVersion, f.fromVersion)) {
       return;
     }
 
@@ -92,6 +94,11 @@ export abstract class BaseOperation {
       case "address":
         if (!validateAddress(f.value as string)) {
           throw new Error(`Field ${f.name} is not a valid address`);
+        }
+        break;
+      case "uint24":
+        if (!validateUint24(f.value as bigint)) {
+          throw new Error(`Field ${f.name} is not a valid uint24`);
         }
         break;
       case "uint32":
@@ -120,7 +127,7 @@ export abstract class BaseOperation {
   }
 
   public abiEncode(): string {
-    const f = Array.from(this.fields.values()).filter((f) => this.is1_5 || !f.only1_5);
+    const f = Array.from(this.fields.values()).filter((f) => !f.fromVersion || isVersionAtLeast(this.atlasVersion, f.fromVersion));
     return this.abiCoder.encode(
       [`tuple(${f.map((f) => f.solType).join(", ")})`],
       [f.map((f) => f.value)],
@@ -128,7 +135,7 @@ export abstract class BaseOperation {
   }
 
   public toStruct(): { [key: string]: any } {
-    return Array.from(this.fields.values()).filter((f) => this.is1_5 || !f.only1_5).reduce(
+    return Array.from(this.fields.values()).filter((f) => !f.fromVersion || isVersionAtLeast(this.atlasVersion, f.fromVersion)).reduce(
       (acc, f) => ({
         ...acc,
         [f.name]: this.serializeFieldValue(f.value, f.solType),
@@ -147,10 +154,10 @@ export abstract class BaseOperation {
     switch (solType) {
       case "uint256":
       case "uint32":
+      case "uint24":
         return toQuantity(value);
       case "bytes":
       case "bytes32":
-        return (value as string).toLowerCase();
       case "address":
         return (value as string).toLowerCase();
       default:
@@ -161,7 +168,7 @@ export abstract class BaseOperation {
   public toTypedDataTypes(): { [key: string]: TypedDataField[] } {
     return this.toTypedDataTypesCustomFields(
       // All fields except the last one (signature)
-      Array.from(this.fields.keys()).filter((f) => this.is1_5 || !this.fields.get(f)?.only1_5).slice(0, -1),
+      Array.from(this.fields.keys()).filter((f) => !this.fields.get(f)?.fromVersion || isVersionAtLeast(this.atlasVersion, this.fields.get(f)?.fromVersion!)).slice(0, -1),
     );
   }
 
@@ -181,7 +188,7 @@ export abstract class BaseOperation {
   public toTypedDataValues(): { [key: string]: OpFieldType } {
     return this.toTypedDataValuesCustomFields(
       // All fields except the last one (signature)
-      Array.from(this.fields.keys()).filter((f) => this.is1_5 || !this.fields.get(f)?.only1_5).slice(0, -1),
+      Array.from(this.fields.keys()).filter((f) => !this.fields.get(f)?.fromVersion || isVersionAtLeast(this.atlasVersion, this.fields.get(f)?.fromVersion!)).slice(0, -1),
     );
   }
 

@@ -6,7 +6,7 @@ import {
   ZeroAddress,
   Contract,
 } from "ethers";
-import { is_v1_5_or_above } from "./config";
+import { isVersionAtLeast } from "./config";
 import {
   UserOperation,
   SolverOperation,
@@ -26,9 +26,7 @@ import {
   flagExPostBids,
   flagTrustedOpHash,
 } from "./utils";
-import { AtlasVersion, AtlasLatestVersion, chainConfig, atlasAbi, atlasVerificationAbi, sorterAbi, simulatorAbi } from "./config";
-import dAppControlAbi from "./abi/DAppControl.json";
-import dAppControlAbi1_5 from "./abi/DAppControl_1.5.json";
+import { AtlasVersion, AtlasLatestVersion, chainConfig, atlasAbi, atlasVerificationAbi, sorterAbi, simulatorAbi, dAppControlAbi } from "./config";
 
 /**
  * The main class to submit user operations to Atlas.
@@ -80,7 +78,12 @@ export class AtlasSdk {
       simulatorAbi(atlasVersion),
       provider,
     );
-    return new AtlasSdk(provider, chainId, atlasVersion, backend, atlasContract, atlasVerificationContract, sorterContract, simulatorContract, hooksControllers);
+    const dAppControlContract = new Contract(
+      ZeroAddress,
+      dAppControlAbi(atlasVersion),
+      provider,
+    );
+    return new AtlasSdk(provider, chainId, atlasVersion, backend, atlasContract, atlasVerificationContract, sorterContract, simulatorContract, dAppControlContract, hooksControllers);
   }
 
   /**
@@ -93,6 +96,7 @@ export class AtlasSdk {
    * @param atlasVerificationContract the Atlas verification contract
    * @param sorterContract the sorter contract
    * @param simulatorContract the simulator contract
+   * @param dAppControlContract the dApp control contract
    * @param hooksControllers an array of hooks controllers
    */
   private constructor(
@@ -104,13 +108,14 @@ export class AtlasSdk {
     atlasVerificationContract: Contract,
     sorterContract: Contract,
     simulatorContract: Contract,
+    dAppControlContract: Contract,
     hooksControllers: IHooksControllerConstructable[] = [],
   ) {
     this.chainId = chainId;
     this.atlasVersion = atlasVersion;
     this.atlas = atlasContract;
     this.atlasVerification = atlasVerificationContract;
-    this.dAppControl = is_v1_5_or_above(atlasVersion) ? new Contract(ZeroAddress, dAppControlAbi1_5, provider) : new Contract(ZeroAddress, dAppControlAbi, provider);
+    this.dAppControl = dAppControlContract;
     this.sorter = sorterContract;
     this.simulator = simulatorContract;
     const _hooksControllers = hooksControllers.map(
@@ -177,11 +182,13 @@ export class AtlasSdk {
         control: userOpParams.control,
         callConfig: userOpParams.callConfig,
         dappGasLimit: userOpParams.dappGasLimit,
+        solverGasLimit: userOpParams.solverGasLimit,
+        bundlerSurchargeRate: userOpParams.bundlerSurchargeRate,
         sessionKey: userOpParams.sessionKey,
         data: userOpParams.data,
         signature: userOpParams.signature,
       },
-      is_v1_5_or_above(this.atlasVersion),
+      this.atlasVersion,
     );
     const dConfig = await this.dAppControl
       .attach(userOpParams.control)
@@ -196,11 +203,25 @@ export class AtlasSdk {
       );
     }
 
-    if (is_v1_5_or_above(this.atlasVersion)) {
+    if (isVersionAtLeast(this.atlasVersion, "1.5")) {
       if (!userOpParams.dappGasLimit) {
         userOp.setField("dappGasLimit", dConfig.dappGasLimit);
       } else if (dConfig.dappGasLimit !== userOpParams.dappGasLimit) {
         throw new Error("UserOperation dappGasLimit does not match dApp dappGasLimit");
+      }
+    }
+
+    if (isVersionAtLeast(this.atlasVersion, "1.6")) {
+      if (!userOpParams.solverGasLimit) {
+        userOp.setField("solverGasLimit", dConfig.solverGasLimit);
+      } else if (dConfig.solverGasLimit !== userOpParams.solverGasLimit) {
+        throw new Error("UserOperation solverGasLimit does not match dApp solverGasLimit");
+      }
+
+      if (!userOpParams.bundlerSurchargeRate) {
+        userOp.setField("bundlerSurchargeRate", dConfig.bundlerSurchargeRate);
+      } else if (dConfig.bundlerSurchargeRate !== userOpParams.bundlerSurchargeRate) {
+        throw new Error("UserOperation bundlerSurchargeRate does not match dApp bundlerSurchargeRate");
       }
     }
 
@@ -451,7 +472,7 @@ export class AtlasSdk {
   public async getMetacallGasLimit(userOp: UserOperation, solverOps: SolverOperation[]): Promise<bigint> {
     let gasLimit = BigInt(0);
 
-    if (is_v1_5_or_above(this.atlasVersion)) {
+    if (isVersionAtLeast(this.atlasVersion, "1.5")) {
       gasLimit = await this.simulator
       .getFunction("estimateMetacallGasLimit")
       .staticCall(userOp.toStruct(), solverOps.map((solverOp) => solverOp.toStruct()));

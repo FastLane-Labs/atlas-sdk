@@ -1,7 +1,7 @@
 import { HDNodeWallet, ZeroAddress, keccak256 } from "ethers";
 import { UserOperation, SolverOperation, DAppOperation, Bundle } from "./";
 import { getCallChainHash } from "../utils";
-
+import { AtlasVersion, AtlasLatestVersion } from "../config";
 export const ZeroUint = 0n;
 export const ZeroBytes = "0x";
 
@@ -19,13 +19,15 @@ export abstract class OperationBuilder {
       control: string;
       callConfig?: bigint;
       dappGasLimit?: bigint;
+      solverGasLimit?: bigint;
+      bundlerSurchargeRate?: bigint;
       sessionKey?: string;
       data: string;
       signature?: string;
     },
-    is1_5: boolean = false,
+    atlasVersion: AtlasVersion = AtlasLatestVersion,
   ): UserOperation {
-    const userOp = new UserOperation(is1_5);
+    const userOp = new UserOperation(atlasVersion);
     userOp.setFields({
       from: prop.from,
       to: prop.to,
@@ -38,6 +40,8 @@ export abstract class OperationBuilder {
       control: prop.control,
       callConfig: prop.callConfig || ZeroUint,
       dappGasLimit: prop.dappGasLimit || ZeroUint,
+      solverGasLimit: prop.solverGasLimit || ZeroUint,
+      bundlerSurchargeRate: prop.bundlerSurchargeRate || ZeroUint,
       sessionKey: prop.sessionKey || ZeroAddress,
       data: prop.data,
       signature: prop.signature || ZeroBytes,

@@ -21,7 +21,7 @@ describe("Atlas SDK unit tests", () => {
     sessionKey: "0x0000000000000000000000000000000000000005",
     data: hexlify(toUtf8Bytes("data")),
     signature: hexlify(toUtf8Bytes("signature")),
-  });
+  }, "1.0");
 
   const testSolverOperation = OperationBuilder.newSolverOperation({
     from: "0x0000000000000000000000000000000000000001",
@@ -173,7 +173,7 @@ describe("Atlas SDK unit tests", () => {
       sessionKey: "0x0000000000000000000000000000000000000005",
       data: "0x1234",
       signature: "0x5678",
-    });
+    }, "1.0");
 
     test("toStruct encodes all fields correctly", () => {
       const struct = testUserOperation.toStruct();
@@ -206,7 +206,7 @@ describe("Atlas SDK unit tests", () => {
         dapp: "0x0000000000000000000000000000000000000003",
         control: "0x0000000000000000000000000000000000000004",
         data: "0x1234",
-      });
+      }, "1.0");
 
       const struct = incompleteUserOp.toStruct();
 
@@ -241,7 +241,7 @@ describe("Atlas SDK unit tests", () => {
         dapp: "0x0000000000000000000000000000000000000003",
         control: "0x0000000000000000000000000000000000000004",
         data: "0x1234",
-      });
+      }, "1.0");
 
       const struct = largeNumberUserOp.toStruct();
 
@@ -275,7 +275,7 @@ describe("Atlas SDK unit tests", () => {
         control: "0xFEDCBA0000000000000000000000000000000004",
         sessionKey: "0x1234560000000000000000000000000000000005",
         data: "0x1234",
-      });
+      }, "1.0");
 
       const struct = mixedCaseUserOp.toStruct();
 
