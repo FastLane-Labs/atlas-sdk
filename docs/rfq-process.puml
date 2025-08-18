@@ -26,8 +26,8 @@ Solvers --> BDN : SubmitIntentSolution
 BDN --> RFQAuctioneer : SolverOperation, ...
 RFQAuctioneer -> RFQAuctioneer : score SolverOperations (reputation)
 RFQAuctioneer --> RFQAuctioneer : order SolverOperations and create DAppOperation
-RFQAuctioneer -> Bundler : sumbit UserOperation and SolverOperations and DAppOperation
-Bundler -> AtlasEntrypoint : sumbit Bundle
+RFQAuctioneer -> Bundler : submit UserOperation and SolverOperations and DAppOperation
+Bundler -> AtlasEntrypoint : submit Bundle
 Bundler --> RFQAuctioneer: Bundle tx hash
 RFQAuctioneer --> Browser : Bundle tx hash
 @enduml
